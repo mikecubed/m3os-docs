@@ -22,6 +22,8 @@ const codeSpotlightSchema = z.object({
   lines: z.string(),
   summary: z.string(),
   githubUrl: z.url().optional(),
+  snippet: z.string().optional(),
+  snippetLanguage: z.string().optional(),
 });
 
 const phaseCollection = defineCollection({

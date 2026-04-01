@@ -1,7 +1,7 @@
 ---
 phase: 35
 title: "True SMP Multitasking"
-status: complete
+status: in-progress
 category: foundations
 summary: "All CPU cores dispatch and run user tasks. The BSP-only restriction is removed by making syscall infrastructure per-core. The scheduler uses per-CPU run queues with load balancing, and tasks have priority levels. This is the single highest-impact performance improvement — the OS goes from effectively single-core to true multi-core."
 learningGoal: "Understand why per-core state (stacks, saved registers) is essential for SMP syscalls."
@@ -18,7 +18,28 @@ learningObjectives:
   - "Understand priority scheduling: real-time vs interactive vs batch tasks."
   - "Learn about CPU affinity and why it matters for cache performance."
 keyFiles: []
-codeSpotlights: []
+codeSpotlights:
+  - title: "Add syscall fields to `PerCoreData`"
+    file: "kernel/src/smp/mod.rs"
+    lines: "L3-L11"
+    summary: "Add the following fields to PerCoreData:"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/smp/mod.rs"
+    snippet: "//! Provides per-core data structures, AP bootstrap, IPI infrastructure, and\n//! TLB shootdown. Each core gets its own GDT, TSS, kernel stacks, and\n//! scheduler state via [`PerCoreData`].\n//!\n//! # Per-core access\n//!\n//! Two mechanisms are provided:\n//! - [`current_core_id`]: reads the LAPIC ID register and maps it to a core\n//!   index. Works from any context but requires an MMIO read."
+    snippetLanguage: "rust"
+  - title: "Add `FORK_ENTRY_CTX` to `PerCoreData`"
+    file: "kernel/src/process/mod.rs"
+    lines: "L14-L22"
+    summary: "Move the global FORK_ENTRY_CTX static into PerCoreData so that each core can"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/process/mod.rs"
+    snippet: "//! Phase 14: each process has its own file descriptor table (`fd_table`).\n//! FDs 0/1/2 are initialized as stdin/stdout/stderr on process creation.\n//! `fork()` deep-clones the parent's FD table into the child.\n\n#![allow(dead_code)]\n\nextern crate alloc;\n\nuse alloc::{collections::VecDeque, string::String, vec::Vec};"
+    snippetLanguage: "rust"
+  - title: "Rewrite `syscall_entry` assembly to use `gs_base` offsets"
+    file: "kernel/src/arch/x86_64/syscall.rs"
+    lines: "L185-L193"
+    summary: "Replace all [rip + GLOBAL_STATIC] references in the syscall_entry and"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/arch/x86_64/syscall.rs"
+    snippet: "\nglobal_asm!(\n    \".global syscall_entry\",\n    \"syscall_entry:\",\n    // At entry:\n    //   RSP  = user RSP       (saved to SYSCALL_USER_RSP)\n    //   RCX  = user RIP       (return address for SYSRETQ)\n    //   R11  = user RFLAGS\n    //   RAX  = syscall number"
+    snippetLanguage: "rust"
 realOsDifferences:
   - "Uses a red-black tree ordered by \"virtual runtime\" for O(log n) scheduling."
   - "Per-CPU run queues with work-stealing load balancer."

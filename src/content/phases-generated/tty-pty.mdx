@@ -1,7 +1,7 @@
 ---
 phase: 22
 title: "TTY PTY"
-status: planned
+status: complete
 category: userspace
 summary: "Give userspace programs a real terminal abstraction. The kernel's raw stdin buffer and hardcoded `stdin_feeder_task` are replaced by a proper TTY layer with a configurable line discipline. Programs can switch between cooked and raw mode via `tcgetattr` / `tcsetattr`, query the window size via `TIOCGWINSZ`, and detect whether they are attached to a terminal via `isatty`. The phase also lays the infrastructure for a future PTY master/slave pair."
 learningGoal: "Understand what a line discipline is and why it lives between the keyboard driver and userspace."

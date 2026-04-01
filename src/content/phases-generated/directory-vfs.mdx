@@ -1,7 +1,7 @@
 ---
 phase: 18
 title: "Directory VFS"
-status: planned
+status: complete
 category: infrastructure
 summary: "Make the filesystem navigable. Right now `getdents64` returns ENOSYS, directories cannot be opened as file descriptors, every process thinks its working directory is `/`, and the ramdisk is a flat array with no directory hierarchy. This phase fixes all of that: directories become first-class objects, paths resolve relative to a real per-process working directory, and the ramdisk gains a tree structure so binaries live under `/bin` instead of floating in a flat namespace."
 learningGoal: "Understand how a per-process working directory is stored and used during path resolution."

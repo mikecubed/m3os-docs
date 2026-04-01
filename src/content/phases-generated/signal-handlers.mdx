@@ -1,7 +1,7 @@
 ---
 phase: 19
 title: "Signal Handlers"
-status: planned
+status: complete
 category: userspace
 summary: "Enable userspace programs to install and execute signal handlers. Implement the signal trampoline mechanism so ring-3 code can catch `SIGINT`, `SIGSEGV`, `SIGCHLD`, and other signals, run a user-supplied handler, and return cleanly to the interrupted execution without kernel assistance beyond the initial delivery and the `sigreturn` syscall."
 learningGoal: "Understand why the kernel must save the full interrupted register state before branching to a signal handler and how it reconstructs it on return."

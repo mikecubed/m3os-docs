@@ -1,7 +1,7 @@
 ---
 phase: 17
 title: "Memory Reclamation"
-status: planned
+status: complete
 category: foundations
 summary: "Close the memory leaks that have accumulated since Phase 2. The bump frame allocator is replaced with a free-list allocator that can actually reclaim frames, the kernel heap grows on demand instead of being fixed at 1 MiB, kernel stacks are freed when processes exit, and `fork` switches from eager full-copy to copy-on-write so parent and child share physical pages until one of them writes."
 learningGoal: "Understand why a bump allocator leaks and what data structure replaces it."
@@ -29,9 +29,11 @@ codeSpotlights:
     githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/mm/frame_allocator.rs"
   - title: "Mm"
     file: "kernel/src/mm/mod.rs"
-    lines: "See file"
+    lines: "L247-L255"
     summary: "Update free_process_page_table() in kernel/src/mm/mod.rs to walk all four"
     githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/mm/mod.rs"
+    snippet: "/// that is no longer loaded in CR3. No other code may access the page table\n/// after this call.\npub fn free_process_page_table(cr3_phys: u64) {\n    use alloc::vec::Vec;\n    use x86_64::structures::paging::{PageTable, PageTableFlags};\n    let phys_off = VirtAddr::new(phys_offset());\n    let kernel_pml4_phys = *KERNEL_PML4_PHYS.get().expect(\"mm not initialized\");\n\n    // Helper: read present, non-huge child table addresses from a page table,"
+    snippetLanguage: "rust"
 realOsDifferences:
   - "Production kernels use buddy allocators (Linux's page allocator splits and coalesces power-of-two blocks) or slab allocators on top of page allocators for small objects. Reference counting in Linux is done with `struct page` metadata rather than a separate table. CoW is also used for `mmap(MAP_PRIVATE)` and file-backed pages, not just fork. The kernel heap in Linux is not a single contiguous region; `vmalloc` allocates from a scattered virtual range while `kmalloc` uses slab caches backed by physically contiguous pages. This phase keeps things simple: one free list, one reference count table, one contiguous heap region."
 successCriteria:

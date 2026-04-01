@@ -120,6 +120,11 @@ To regenerate a single phase while iterating:
 npm run content:generate -- --source ../m3os --phase tasking
 ```
 
+The phase generator currently supports two important quality signals from the upstream repo:
+
+- if `kernel/Cargo.toml` uses a `0.<phase>.x` version, phases below that version are treated as complete and the current version phase is treated as in progress
+- task docs with `###` subsections plus `**File:**` references can produce inline source-backed code spotlights when they also mention a concrete symbol or function name
+
 Once live phase docs have been generated, the component stage derives subsystem pages from the
 published phase metadata:
 

@@ -1,7 +1,7 @@
 ---
 phase: 28
 title: "Ext2 Filesystem"
-status: planned
+status: complete
 category: infrastructure
 summary: "Replace FAT32 as the primary persistent filesystem with ext2, which natively stores Unix ownership (uid/gid), permission modes, and timestamps in every inode. After this phase, file permissions set via `chmod`/`chown` survive reboots and the FAT32 permissions index file workaround from Phase 27 is no longer needed."
 learningGoal: "Understand on-disk filesystem layout: superblock, block group descriptors, inode tables, block/inode bitmaps."

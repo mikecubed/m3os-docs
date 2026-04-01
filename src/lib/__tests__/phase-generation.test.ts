@@ -329,4 +329,152 @@ Introduce the scheduler and explain context switching.
       'learningGoal: "Understand what a task context contains and why preserving it across timer-driven scheduling matters."',
     );
   });
+
+  it('uses the upstream kernel version to mark earlier phases complete and the current phase in progress', () => {
+    const cwd = createTempDirectory('m3os-docs-generate-');
+    const sourceDirectory = path.join(cwd, 'm3os');
+
+    writeMarkdownFile(
+      sourceDirectory,
+      'kernel/Cargo.toml',
+      `[package]
+name = "kernel"
+version = "0.35.0"
+`,
+    );
+    writeMarkdownFile(
+      sourceDirectory,
+      'docs/roadmap/34-real-time-clock.md',
+      `# Phase 34 - Real-Time Clock
+
+## Milestone Goal
+
+Teach the kernel about wall clock time.
+`,
+    );
+    writeMarkdownFile(
+      sourceDirectory,
+      'docs/roadmap/tasks/34-real-time-clock-tasks.md',
+      `# Phase 34 — Real-Time Clock and Timekeeping: Task List
+
+## Track Layout
+
+| Track | Scope | Dependencies | Status |
+|---|---|---|---|
+| A | Time conversion | — | ✅ Done |
+`,
+    );
+    writeMarkdownFile(
+      sourceDirectory,
+      'docs/roadmap/35-true-smp-multitasking.md',
+      `# Phase 35 - True SMP Multitasking
+
+## Milestone Goal
+
+Dispatch work across all CPU cores.
+`,
+    );
+    writeMarkdownFile(
+      sourceDirectory,
+      'docs/roadmap/tasks/35-true-smp-multitasking-tasks.md',
+      `# Phase 35 — True SMP Multitasking: Task List
+
+## Track Layout
+
+| Track | Scope | Dependencies | Status |
+|---|---|---|---|
+| A | Per-core syscall infrastructure | — | Done |
+`,
+    );
+    writeMarkdownFile(
+      sourceDirectory,
+      'docs/roadmap/36-expanded-memory.md',
+      `# Phase 36 - Expanded Memory
+
+## Milestone Goal
+
+Expand demand paging.
+`,
+    );
+
+    const repository = resolveSourceRepository({
+      cwd,
+      sourcePath: './m3os',
+      repoSlug: 'mikecubed/m3os',
+    });
+    const worklist = buildPhaseSynthesisWorklist(discoverSourceDocuments(repository));
+    const generatedDocuments = generatePhaseDocuments(worklist, {
+      outputDirectory: path.join(cwd, 'generated'),
+    });
+
+    expect(generatedDocuments.find((document) => document.slug === 'real-time-clock')?.content).toContain(
+      'status: complete',
+    );
+    expect(
+      generatedDocuments.find((document) => document.slug === 'true-smp-multitasking')?.content,
+    ).toContain('status: in-progress');
+    expect(generatedDocuments.find((document) => document.slug === 'expanded-memory')?.content).toContain(
+      'status: planned',
+    );
+  });
+
+  it('extracts source-backed code spotlight snippets from task sections with file references', () => {
+    const cwd = createTempDirectory('m3os-docs-generate-');
+    const sourceDirectory = path.join(cwd, 'm3os');
+
+    writeMarkdownFile(
+      sourceDirectory,
+      'kernel/src/task/scheduler.rs',
+      `pub fn pick_next(core_id: usize) -> Option<usize> {
+    if core_id != 0 {
+        return Some(0);
+    }
+
+    Some(core_id + 1)
+}
+`,
+    );
+    writeMarkdownFile(
+      sourceDirectory,
+      'docs/roadmap/35-true-smp-multitasking.md',
+      `# Phase 35 - True SMP Multitasking
+
+## Milestone Goal
+
+Dispatch work across all CPU cores.
+`,
+    );
+    writeMarkdownFile(
+      sourceDirectory,
+      'docs/roadmap/tasks/35-true-smp-multitasking-tasks.md',
+      `# Phase 35 — True SMP Multitasking: Task List
+
+## Track B — Multi-Core Task Dispatch
+
+### B.1 — Remove BSP-only dispatch guard
+
+**File:** \`kernel/src/task/scheduler.rs\`
+
+Remove the \`pick_next()\` guard so all cores can choose runnable work.
+`,
+    );
+
+    const repository = resolveSourceRepository({
+      cwd,
+      sourcePath: './m3os',
+      repoSlug: 'mikecubed/m3os',
+    });
+    const worklist = buildPhaseSynthesisWorklist(discoverSourceDocuments(repository));
+    const generatedDocuments = generatePhaseDocuments(worklist, {
+      outputDirectory: path.join(cwd, 'generated'),
+    });
+    const smpDocument = generatedDocuments.find((document) => document.slug === 'true-smp-multitasking');
+
+    expect(smpDocument?.content).toContain('codeSpotlights:');
+    expect(smpDocument?.content).toContain('title: "Remove BSP-only dispatch guard"');
+    expect(smpDocument?.content).toContain('file: "kernel/src/task/scheduler.rs"');
+    expect(smpDocument?.content).toContain('lines: "L1-L7"');
+    expect(smpDocument?.content).toContain('snippetLanguage: "rust"');
+    expect(smpDocument?.content).toContain('snippet: "pub fn pick_next(core_id: usize) -> Option<usize> {');
+  });
 });

@@ -5,9 +5,11 @@ interface Props {
   lines: string;
   summary: string;
   githubUrl?: string;
+  snippet?: string;
+  snippetLanguage?: string;
 }
 
-const { file, githubUrl, lines, summary, title } = Astro.props;
+const { file, githubUrl, lines, snippet, snippetLanguage, summary, title } = Astro.props;
 ---
 
 <section class="code-spotlight">
@@ -22,6 +24,9 @@ const { file, githubUrl, lines, summary, title } = Astro.props;
     </div>
   </div>
   <p>{summary}</p>
+  {snippet && (
+    <pre class="code-spotlight__snippet"><code class={`language-${snippetLanguage ?? 'text'}`}>{snippet}</code></pre>
+  )}
   {githubUrl && (
     <p class="code-spotlight__link">
       <a href={githubUrl} target="_blank" rel="noreferrer">

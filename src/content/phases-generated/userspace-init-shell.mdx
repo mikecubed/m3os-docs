@@ -1,7 +1,7 @@
 ---
 phase: 20
 title: "Userspace Init Shell"
-status: planned
+status: complete
 category: userspace
 summary: "Replace the kernel-resident `init_task` and `shell_task` ring-0 functions with real ring-3 userspace processes. After this phase PID 1 is a `no_std` Rust binary loaded from the ramdisk; the interactive shell is a userspace ELF that init spawns. The kernel is no longer responsible for parsing commands or managing the interactive session."
 learningGoal: "Understand the Unix PID 1 contract: why init must never exit and must reap orphaned children."
@@ -42,9 +42,11 @@ codeSpotlights:
     githubUrl: "https://github.com/mikecubed/m3os/blob/main/userspace/shell"
   - title: "Kernel entry"
     file: "kernel/src/main.rs"
-    lines: "See file"
+    lines: "L206-L214"
     summary: "Remove shell_task() and init_task() from kernel/src/main.rs; stdin_feeder_task"
     githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/main.rs"
+    snippet: "    }\n\n    task::spawn(init_task, \"init\");\n    task::spawn_idle(idle_task);\n\n    log::info!(\"[kernel] entering scheduler — init will start service set\");\n    task::run()\n}"
+    snippetLanguage: "rust"
 realOsDifferences:
   - "Production init systems (systemd, OpenRC, s6) handle service supervision, dependency ordering, socket activation, cgroups, and logging. Even BusyBox's `init` handles `/etc/inittab` respawn entries, runlevels, and `sysvinit` compatibility. Real shells (dash, bash) implement full POSIX parameter expansion, here-documents, arithmetic, function definitions, and complex job control. This phase targets only the subset needed to run interactive commands and pipelines — enough to feel like a real shell without the decades of accumulated specification compliance."
 successCriteria:

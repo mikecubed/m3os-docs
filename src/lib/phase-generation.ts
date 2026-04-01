@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 import type { PhaseSynthesisWorklist, SourceDocumentEntry } from './content-pipeline';
@@ -22,7 +22,10 @@ interface ParsedMarkdownDocument {
 
 interface ParsedTaskDocument extends ParsedMarkdownDocument {
   completedTaskCount: number;
+  completedTrackCount: number;
   dependsOn: string[];
+  explicitStatus?: PhaseStatus;
+  totalTrackCount: number;
   totalTaskCount: number;
 }
 
@@ -37,6 +40,14 @@ interface GeneratedCodeSpotlight {
   lines: string;
   summary: string;
   title: string;
+  snippet?: string;
+  snippetLanguage?: string;
+}
+
+interface SourceSnippet {
+  language: string;
+  lines: string;
+  snippet: string;
 }
 
 const GENERIC_KEY_FILE_SUMMARY = 'Referenced in the implementation notes.';
@@ -114,6 +125,8 @@ export function generatePhaseDocuments(
     dependencyLookup.set(normalizeLookupKey(`Phase ${phase.phaseId} - ${phase.title}`), phase.slug);
   }
 
+  const currentPhaseOrder = resolveCurrentPhaseOrder(worklist.source.sourcePath);
+
   return worklist.phases.map((phase) => {
     const phaseDocument = readSourceDocument(worklist.source.sourcePath, phase.sourceDocuments.phaseDoc);
     const roadmapDocument = readSourceDocument(
@@ -157,7 +170,12 @@ export function generatePhaseDocuments(
         : extractParagraphs(roadmapDocument.sections.get('How Real OS Implementations Differ'));
     const learningGoal = learningObjectives[0] ?? `Understand ${phase.title} in m3OS.`;
     const category = inferPhaseCategory(phase.slug, phase.phaseOrder);
-    const status = inferPhaseStatus(taskSummary);
+    const status = inferPhaseStatus({
+      currentPhaseOrder,
+      phaseOrder: phase.phaseOrder,
+      taskDocuments,
+      taskSummary,
+    });
     const keyFiles = extractKeyFiles({
       documents: [
         {
@@ -184,8 +202,10 @@ export function generatePhaseDocuments(
     );
     const codeSpotlights = createCodeSpotlights({
       keyFiles,
+      sourceRoot: worklist.source.sourcePath,
       repoRef: worklist.source.ref,
       repoUrl: worklist.source.repoUrl,
+      taskDocuments,
     });
     const content = [
       renderFrontmatter({
@@ -303,13 +323,86 @@ function parseTaskDocument(markdown: string): ParsedTaskDocument {
   const parsedDocument = parseMarkdownDocument(markdown);
   const taskMatches = [...markdown.matchAll(/^\s*-\s+\[([ xX])\]\s+(.+)$/gmu)];
   const dependsOnMatch = markdown.match(/\*\*Depends on:\*\*\s*(.+)$/imu);
+  const trackStatusSummary = summarizeTrackStatuses(markdown);
 
   return {
     ...parsedDocument,
     completedTaskCount: taskMatches.filter((match) => match[1]?.toLowerCase() === 'x').length,
+    completedTrackCount: trackStatusSummary.completed,
     dependsOn: splitDependsOn(dependsOnMatch?.[1]),
+    explicitStatus: parseExplicitTaskStatus(markdown),
+    totalTrackCount: trackStatusSummary.total,
     totalTaskCount: taskMatches.length,
   };
+}
+
+function parseExplicitTaskStatus(markdown: string): PhaseStatus | undefined {
+  const statusMatch = markdown.match(/\*\*Status:\*\*\s*(.+)$/imu);
+
+  if (!statusMatch?.[1]) {
+    return undefined;
+  }
+
+  const normalizedStatus = statusMatch[1].toLowerCase();
+
+  if (normalizedStatus.includes('complete') || normalizedStatus.includes('done')) {
+    return 'complete';
+  }
+
+  if (normalizedStatus.includes('progress')) {
+    return 'in-progress';
+  }
+
+  if (normalizedStatus.includes('not started') || normalizedStatus.includes('planned')) {
+    return 'planned';
+  }
+
+  return undefined;
+}
+
+function summarizeTrackStatuses(markdown: string): {
+  completed: number;
+  total: number;
+} {
+  const statusCells = markdown
+    .split(/\r?\n/u)
+    .filter((line) => line.startsWith('|'))
+    .map((line) => line.split('|').map((cell) => cell.trim()).filter((cell) => cell.length > 0))
+    .filter((cells) => cells.length >= 3)
+    .filter((cells) => !cells.every((cell) => /^-+$/u.test(cell)))
+    .filter((cells) => cells.at(-1)?.toLowerCase() !== 'status');
+
+  return statusCells.reduce(
+    (summary, cells) => {
+      const statusCell = cells.at(-1)?.toLowerCase() ?? '';
+
+      if (
+        !statusCell.includes('done') &&
+        !statusCell.includes('complete') &&
+        !statusCell.includes('progress') &&
+        !statusCell.includes('planned') &&
+        !statusCell.includes('not started') &&
+        !statusCell.includes('deferred') &&
+        !statusCell.includes('todo') &&
+        !statusCell.includes('✅')
+      ) {
+        return summary;
+      }
+
+      return {
+        completed:
+          summary.completed +
+          (statusCell.includes('done') || statusCell.includes('complete') || statusCell.includes('✅')
+            ? 1
+            : 0),
+        total: summary.total + 1,
+      };
+    },
+    {
+      completed: 0,
+      total: 0,
+    },
+  );
 }
 
 function splitDependsOn(dependsOnValue: string | undefined): string[] {
@@ -375,23 +468,96 @@ function normalizeLookupKey(value: string): string {
   return value.toLowerCase().replace(/\s+/gu, ' ').trim();
 }
 
-function inferPhaseStatus(taskSummary: {
-  completedTaskCount: number;
-  totalTaskCount: number;
+function inferPhaseStatus(input: {
+  currentPhaseOrder?: number;
+  phaseOrder: number;
+  taskDocuments: readonly ParsedTaskDocument[];
+  taskSummary: {
+    completedTaskCount: number;
+    totalTaskCount: number;
+  };
 }): PhaseStatus {
-  if (taskSummary.totalTaskCount === 0) {
+  if (input.currentPhaseOrder !== undefined) {
+    if (input.phaseOrder < input.currentPhaseOrder) {
+      return 'complete';
+    }
+
+    if (input.phaseOrder === input.currentPhaseOrder) {
+      return 'in-progress';
+    }
+
     return 'planned';
   }
 
-  if (taskSummary.completedTaskCount === 0) {
+  const explicitStatuses = input.taskDocuments
+    .map((taskDocument) => taskDocument.explicitStatus)
+    .filter((status): status is PhaseStatus => status !== undefined);
+
+  if (explicitStatuses.includes('in-progress')) {
+    return 'in-progress';
+  }
+
+  if (explicitStatuses.includes('complete')) {
+    return 'complete';
+  }
+
+  if (
+    input.taskDocuments.some((taskDocument) => taskDocument.totalTrackCount > 0) &&
+    input.taskDocuments.every(
+      (taskDocument) =>
+        taskDocument.totalTrackCount === 0 ||
+        taskDocument.completedTrackCount === taskDocument.totalTrackCount,
+    )
+  ) {
+    return 'complete';
+  }
+
+  if (
+    input.taskSummary.totalTaskCount > 0 &&
+    input.taskSummary.completedTaskCount === input.taskSummary.totalTaskCount
+  ) {
+    return 'complete';
+  }
+
+  if (
+    input.taskDocuments.some(
+      (taskDocument) =>
+        taskDocument.completedTrackCount > 0 || taskDocument.completedTaskCount > 0,
+    )
+  ) {
+    return 'in-progress';
+  }
+
+  if (input.taskSummary.totalTaskCount === 0) {
     return 'planned';
   }
 
-  if (taskSummary.completedTaskCount < taskSummary.totalTaskCount) {
+  if (input.taskSummary.completedTaskCount === 0) {
+    return 'planned';
+  }
+
+  if (input.taskSummary.completedTaskCount < input.taskSummary.totalTaskCount) {
     return 'in-progress';
   }
 
   return 'complete';
+}
+
+function resolveCurrentPhaseOrder(sourceRoot: string): number | undefined {
+  const kernelManifestPath = path.join(sourceRoot, 'kernel', 'Cargo.toml');
+
+  if (!existsSync(kernelManifestPath)) {
+    return undefined;
+  }
+
+  const manifestText = readFileSync(kernelManifestPath, 'utf8');
+  const versionMatch = manifestText.match(/^version\s*=\s*"0\.(\d+)\.\d+"$/mu);
+
+  if (!versionMatch?.[1]) {
+    return undefined;
+  }
+
+  return Number.parseInt(versionMatch[1], 10);
 }
 
 function inferPhaseCategory(slug: string, phaseOrder: number): PhaseCategory {
@@ -551,6 +717,12 @@ function renderCodeSpotlightsField(codeSpotlights: readonly GeneratedCodeSpotlig
       `    lines: ${yamlString(spotlight.lines)}`,
       `    summary: ${yamlString(spotlight.summary)}`,
       `    githubUrl: ${yamlString(spotlight.githubUrl)}`,
+      ...(spotlight.snippet
+        ? [`    snippet: ${yamlString(spotlight.snippet)}`]
+        : []),
+      ...(spotlight.snippetLanguage
+        ? [`    snippetLanguage: ${yamlString(spotlight.snippetLanguage)}`]
+        : []),
     ]),
   ].join('\n');
 }
@@ -782,16 +954,262 @@ export function inferComponentFromPath(filePath: string): string | undefined {
 
 function createCodeSpotlights(input: {
   keyFiles: readonly GeneratedKeyFile[];
+  sourceRoot: string;
   repoRef: string;
   repoUrl: string;
+  taskDocuments: readonly ParsedTaskDocument[];
 }): GeneratedCodeSpotlight[] {
-  return input.keyFiles.slice(0, 3).map((keyFile) => ({
-    file: keyFile.path,
-    githubUrl: `${input.repoUrl}/blob/${input.repoRef}/${keyFile.path}`,
-    lines: 'See file',
-    summary: keyFile.summary,
-    title: createSpotlightTitle(keyFile),
-  }));
+  const spotlights: GeneratedCodeSpotlight[] = [];
+  const seenFiles = new Set<string>();
+
+  for (const candidate of extractTaskSpotlights(input.taskDocuments)) {
+    if (seenFiles.has(candidate.file)) {
+      continue;
+    }
+
+    seenFiles.add(candidate.file);
+    spotlights.push(
+      createSpotlightFromCandidate(candidate, {
+        repoRef: input.repoRef,
+        repoUrl: input.repoUrl,
+        sourceRoot: input.sourceRoot,
+      }),
+    );
+
+    if (spotlights.length >= 3) {
+      return spotlights;
+    }
+  }
+
+  for (const keyFile of input.keyFiles) {
+    if (seenFiles.has(keyFile.path)) {
+      continue;
+    }
+
+    seenFiles.add(keyFile.path);
+    spotlights.push(
+      createSpotlightFromCandidate(
+        {
+          file: keyFile.path,
+          summary: keyFile.summary,
+          symbolHints: extractSymbolHints(keyFile.summary),
+          title: createSpotlightTitle(keyFile),
+        },
+        {
+          repoRef: input.repoRef,
+          repoUrl: input.repoUrl,
+          sourceRoot: input.sourceRoot,
+        },
+      ),
+    );
+
+    if (spotlights.length >= 3) {
+      break;
+    }
+  }
+
+  return spotlights;
+}
+
+function extractTaskSpotlights(taskDocuments: readonly ParsedTaskDocument[]): {
+  file: string;
+  summary: string;
+  symbolHints: string[];
+  title: string;
+}[] {
+  return taskDocuments.flatMap((taskDocument) =>
+    [...taskDocument.raw.matchAll(/(?:^|\n)###\s+(.+?)\n([\s\S]*?)(?=(?:\n###\s+)|(?:\n##\s+)|$)/gu)].flatMap(
+      (match) => {
+        const heading = normalizeTaskHeading(match[1] ?? '');
+        const sectionBody = match[2] ?? '';
+        const files = extractReferencedSourcePaths(sectionBody.match(/\*\*Files?:\*\*\s*(.+)$/imu)?.[1]);
+
+        if (files.length === 0) {
+          return [];
+        }
+
+        const summary = firstTaskSectionSentence(sectionBody) ?? heading;
+        const symbolHints = extractSymbolHints([heading, sectionBody].join(' '));
+
+        return files.map((file) => ({
+          file,
+          summary,
+          symbolHints,
+          title: heading,
+        }));
+      },
+    ),
+  );
+}
+
+function normalizeTaskHeading(heading: string): string {
+  return heading.replace(/^[A-Z]\.\d+\s+[—-]\s+/u, '').trim();
+}
+
+function extractReferencedSourcePaths(input: string | undefined): string[] {
+  if (!input) {
+    return [];
+  }
+
+  const seenPaths = new Set<string>();
+
+  return [...input.matchAll(/`((?:xtask|kernel(?:-core)?|userspace)\/[^`\s,)]+)`/gmu)].flatMap(
+    (match) => {
+      const filePath = match[1];
+
+      if (!filePath || seenPaths.has(filePath)) {
+        return [];
+      }
+
+      seenPaths.add(filePath);
+      return [filePath];
+    },
+  );
+}
+
+function firstTaskSectionSentence(sectionBody: string): string | undefined {
+  const lines = sectionBody
+    .split(/\r?\n/u)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+    .filter((line) => !line.startsWith('**File:') && !line.startsWith('**Files:'))
+    .filter((line) => !line.startsWith('**Acceptance:**'))
+    .filter((line) => !line.startsWith('- ['));
+
+  return lines[0] ? normalizeSentence(lines[0].replace(/`/gu, '')) : undefined;
+}
+
+function extractSymbolHints(input: string): string[] {
+  const seenHints = new Set<string>();
+
+  return [...input.matchAll(/`([^`]+)`/gmu), ...input.matchAll(/\b[A-Za-z_][A-Za-z0-9_]*\(\)/gmu)]
+    .flatMap((match) => {
+      const hint = (match[1] ?? match[0] ?? '')
+        .replace(/\(\)$/u, '')
+        .trim();
+
+      if (
+        hint.length === 0 ||
+        hint.includes('/') ||
+        hint.includes(' ') ||
+        seenHints.has(hint)
+      ) {
+        return [];
+      }
+
+      seenHints.add(hint);
+      return [hint];
+    });
+}
+
+function createSpotlightFromCandidate(
+  candidate: {
+    file: string;
+    summary: string;
+    symbolHints: readonly string[];
+    title: string;
+  },
+  input: {
+    repoRef: string;
+    repoUrl: string;
+    sourceRoot: string;
+  },
+): GeneratedCodeSpotlight {
+  const snippet = extractSourceSnippet(input.sourceRoot, candidate.file, candidate.symbolHints);
+
+  return {
+    file: candidate.file,
+    githubUrl: `${input.repoUrl}/blob/${input.repoRef}/${candidate.file}`,
+    lines: snippet?.lines ?? 'See file',
+    summary: candidate.summary,
+    title: candidate.title,
+    ...(snippet
+      ? {
+          snippet: snippet.snippet,
+          snippetLanguage: snippet.language,
+        }
+      : {}),
+  };
+}
+
+function extractSourceSnippet(
+  sourceRoot: string,
+  filePath: string,
+  symbolHints: readonly string[],
+): SourceSnippet | undefined {
+  if (filePath.endsWith('/') || filePath.includes('*')) {
+    return undefined;
+  }
+
+  const absolutePath = path.join(sourceRoot, filePath);
+
+  if (!existsSync(absolutePath)) {
+    return undefined;
+  }
+
+  if (!statSync(absolutePath).isFile()) {
+    return undefined;
+  }
+
+  const sourceText = readFileSync(absolutePath, 'utf8');
+  const sourceLines = sourceText.split(/\r?\n/u);
+  const matchLineIndex = findSnippetLineIndex(sourceLines, symbolHints);
+
+  if (matchLineIndex === undefined) {
+    return undefined;
+  }
+
+  const startLineIndex = Math.max(0, matchLineIndex - 2);
+  const endLineIndex = Math.min(sourceLines.length, matchLineIndex + 7);
+  const snippet = sourceLines.slice(startLineIndex, endLineIndex).join('\n').trimEnd();
+
+  return {
+    language: inferSnippetLanguage(filePath),
+    lines: `L${startLineIndex + 1}-L${endLineIndex}`,
+    snippet,
+  };
+}
+
+function findSnippetLineIndex(
+  sourceLines: readonly string[],
+  symbolHints: readonly string[],
+): number | undefined {
+  for (const symbolHint of symbolHints) {
+    const normalizedHint = symbolHint.replace(/[^\w]/gu, '');
+
+    if (normalizedHint.length === 0) {
+      continue;
+    }
+
+    const pattern = new RegExp(`\\b${escapeRegExp(normalizedHint)}\\b`, 'u');
+    const lineIndex = sourceLines.findIndex((line) => pattern.test(line));
+
+    if (lineIndex !== -1) {
+      return lineIndex;
+    }
+  }
+
+  return undefined;
+}
+
+function inferSnippetLanguage(filePath: string): string {
+  if (filePath.endsWith('.rs')) {
+    return 'rust';
+  }
+
+  if (filePath.endsWith('.c') || filePath.endsWith('.h')) {
+    return 'c';
+  }
+
+  if (filePath.endsWith('.S') || filePath.endsWith('.asm')) {
+    return 'asm';
+  }
+
+  return 'text';
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
 }
 
 function describeInlineReference(markdown: string, matchIndex: number, filePath: string): string {

@@ -1,7 +1,7 @@
 ---
 phase: 24
 title: "Persistent Storage"
-status: planned
+status: complete
 category: infrastructure
 summary: "Give m³OS a persistent block device so that files written during one boot session survive into the next. A virtio-blk driver (the simplest PCI virtio device in QEMU) handles raw sector I/O; a partition parser finds the FAT32 data partition; the existing `fat_server` gains a write path that flushes directly to disk. After this phase, writing a file to `/data` and rebooting leaves the file visible on the next boot (and on the host via `losetup` or similar)."
 learningGoal: "Understand how virtio devices are discovered, initialized, and driven through virtqueues over the PCI bus."

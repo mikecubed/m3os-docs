@@ -1,7 +1,7 @@
 ---
 phase: 23
 title: "Socket API"
-status: planned
+status: complete
 category: infrastructure
 summary: "Expose the kernel's existing TCP/IP stack to userspace via standard Linux socket syscalls. At the end of this phase a userspace program can open a TCP connection, send an HTTP/1.0 request, and receive the response — entirely from ring-3 code, with no kernel modifications needed for each new network program. The `ping` shell builtin moves out of the kernel and into a standalone userspace ELF."
 learningGoal: "Understand how socket syscalls map to internal kernel objects and how fds unify files and sockets behind the same descriptor table."
