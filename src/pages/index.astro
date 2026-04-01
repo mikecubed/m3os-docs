@@ -4,6 +4,7 @@ import { getCollection } from 'astro:content';
 import Layout from '../layouts/Layout.astro';
 import PhaseCard from '../components/PhaseCard.astro';
 import { sortPhases, type PhaseSummary } from '../lib/phase-utils';
+import { withBase } from '../lib/site-paths';
 
 const phases = sortPhases(
   (await getCollection('phases')).map((phase) => ({
@@ -25,8 +26,8 @@ const completedCount = phases.filter((phase) => phase.data.status === 'complete'
       real-OS tradeoffs behind each phase in the m³OS roadmap.
     </p>
     <div class="hero__actions">
-      <a class="button button--primary" href="/phases/">Explore phases</a>
-      <a class="button" href="/components/">Browse components</a>
+      <a class="button button--primary" href={withBase('/phases/')}>Explore phases</a>
+      <a class="button" href={withBase('/components/')}>Browse components</a>
     </div>
   </section>
 

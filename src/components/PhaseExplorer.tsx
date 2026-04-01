@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 
 import type { PhaseCategory, PhaseStatus, PhaseSummary } from '../lib/phase-utils';
+import { withBase } from '../lib/site-paths';
 
 interface PhaseExplorerProps {
   phases: PhaseSummary[];
@@ -74,7 +75,7 @@ export default function PhaseExplorer({ phases }: PhaseExplorerProps) {
 
       <div className="explorer__grid">
         {filteredPhases.map((phase) => (
-          <a className="phase-card" href={`/phases/${phase.slug}/`} key={phase.slug}>
+          <a className="phase-card" href={withBase(`/phases/${phase.slug}/`)} key={phase.slug}>
             <div className="phase-card__header">
               <p className="eyebrow">Phase {phase.data.phase.toString().padStart(2, '0')}</p>
               <span className={`status-badge status-badge--${phase.data.status}`}>

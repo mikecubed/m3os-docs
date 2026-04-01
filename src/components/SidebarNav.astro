@@ -1,4 +1,6 @@
 ---
+import { withBase } from '../lib/site-paths';
+
 interface SidebarLink {
   href: string;
   label: string;
@@ -32,7 +34,7 @@ const isActive = (href: string) => currentPath === href || currentPath.startsWit
   <nav class="sidebar__nav" aria-label="Secondary">
     {
       links.map((link) => (
-        <a href={link.href} class:list={['sidebar__link', { 'is-active': isActive(link.href) }]}>
+        <a href={withBase(link.href)} class:list={['sidebar__link', { 'is-active': isActive(link.href) }]}>
           <span>{link.label}</span>
           <small>{link.detail}</small>
         </a>

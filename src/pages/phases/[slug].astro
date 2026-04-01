@@ -6,6 +6,7 @@ import PhaseCard from '../../components/PhaseCard.astro';
 import StatusBadge from '../../components/StatusBadge.astro';
 import Layout from '../../layouts/Layout.astro';
 import { findRelatedPhases, sortPhases, type PhaseSummary } from '../../lib/phase-utils';
+import { withBase } from '../../lib/site-paths';
 
 export async function getStaticPaths() {
   const phases = await getCollection('phases');
@@ -60,7 +61,7 @@ const relatedPhases = findRelatedPhases(phase.id, phases);
       <ul>
         {relatedPhases.buildsOn.map((relatedPhase) => (
           <li>
-            <a href={`/phases/${relatedPhase.slug}/`}>{relatedPhase.data.title}</a>
+            <a href={withBase(`/phases/${relatedPhase.slug}/`)}>{relatedPhase.data.title}</a>
           </li>
         ))}
       </ul>
@@ -70,7 +71,7 @@ const relatedPhases = findRelatedPhases(phase.id, phases);
       <ul>
         {relatedPhases.unlocks.map((relatedPhase) => (
           <li>
-            <a href={`/phases/${relatedPhase.slug}/`}>{relatedPhase.data.title}</a>
+            <a href={withBase(`/phases/${relatedPhase.slug}/`)}>{relatedPhase.data.title}</a>
           </li>
         ))}
       </ul>

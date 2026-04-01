@@ -2,6 +2,7 @@
 import { getCollection, render } from 'astro:content';
 
 import Layout from '../../layouts/Layout.astro';
+import { withBase } from '../../lib/site-paths';
 
 export async function getStaticPaths() {
   const components = await getCollection('components');
@@ -27,7 +28,9 @@ const { Content } = await render(component);
     <article class="panel">
       <p class="eyebrow">Introduced in</p>
       <p>
-        <a href={`/phases/${component.data.introducedIn}/`}>{component.data.introducedIn}</a>
+        <a href={withBase(`/phases/${component.data.introducedIn}/`)}>
+          {component.data.introducedIn}
+        </a>
       </p>
     </article>
     <article class="panel">
@@ -35,7 +38,7 @@ const { Content } = await render(component);
       <ul>
         {component.data.touchedBy.map((phaseSlug) => (
           <li>
-            <a href={`/phases/${phaseSlug}/`}>{phaseSlug}</a>
+            <a href={withBase(`/phases/${phaseSlug}/`)}>{phaseSlug}</a>
           </li>
         ))}
       </ul>

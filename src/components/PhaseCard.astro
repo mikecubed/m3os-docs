@@ -1,6 +1,7 @@
 ---
 import StatusBadge from './StatusBadge.astro';
 import type { PhaseSummary } from '../lib/phase-utils';
+import { withBase } from '../lib/site-paths';
 
 interface Props {
   phase: PhaseSummary;
@@ -15,7 +16,7 @@ const { phase } = Astro.props;
     <StatusBadge status={phase.data.status} />
   </div>
   <h3>
-    <a href={`/phases/${phase.slug}/`}>{phase.data.title}</a>
+    <a href={withBase(`/phases/${phase.slug}/`)}>{phase.data.title}</a>
   </h3>
   <p>{phase.data.summary}</p>
   <div class="phase-card__footer">

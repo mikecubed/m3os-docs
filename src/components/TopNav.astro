@@ -1,4 +1,6 @@
 ---
+import { withBase } from '../lib/site-paths';
+
 interface NavItem {
   href: string;
   label: string;
@@ -24,11 +26,11 @@ const isActive = (href: string) =>
 ---
 
 <header class="top-nav">
-  <a class="brand" href="/">m³OS docs</a>
+  <a class="brand" href={withBase('/')}>m³OS docs</a>
   <nav class="top-nav__links" aria-label="Primary">
     {
       navItems.map((item) => (
-        <a href={item.href} class:list={['top-nav__link', { 'is-active': isActive(item.href) }]}>
+        <a href={withBase(item.href)} class:list={['top-nav__link', { 'is-active': isActive(item.href) }]}>
           {item.label}
         </a>
       ))

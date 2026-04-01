@@ -3,6 +3,7 @@ import { getCollection } from 'astro:content';
 
 import Layout from '../../layouts/Layout.astro';
 import { groupPhasesByCategory, sortPhases, type PhaseSummary } from '../../lib/phase-utils';
+import { withBase } from '../../lib/site-paths';
 
 const phases = sortPhases(
   (await getCollection('phases')).map((phase) => ({
@@ -31,7 +32,7 @@ const groupedPhases = groupPhasesByCategory(phases);
           <p class="eyebrow">{category}</p>
           <div class="card-grid">
             {entries.map((entry) => (
-              <a class="phase-card" href={`/phases/${entry.slug}/`}>
+              <a class="phase-card" href={withBase(`/phases/${entry.slug}/`)}>
                 <div class="phase-card__header">
                   <p class="eyebrow">Phase {entry.data.phase.toString().padStart(2, '0')}</p>
                   <span class:list={['status-badge', `status-badge--${entry.data.status}`]}>
