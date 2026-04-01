@@ -1,0 +1,78 @@
+---
+phase: 25
+title: "SMP"
+status: planned
+category: foundations
+summary: "Boot all available CPU cores, give each its own Local APIC timer, and run the scheduler across all cores simultaneously. Two processes should be able to execute truly in parallel."
+learningGoal: "Understand the AP startup sequence: why a 16-bit real-mode trampoline is needed."
+buildsOn:
+  - "persistent-storage"
+extends: []
+replaces: []
+components:
+  - "interrupt-router"
+  - "process-model"
+learningObjectives:
+  - "Understand the AP startup sequence: why a 16-bit real-mode trampoline is needed."
+  - "See what \"per-core\" means in terms of kernel data structures."
+  - "Learn why spinlocks must be audited before enabling a second core."
+keyFiles: []
+codeSpotlights: []
+realOsDifferences:
+  - "Production kernels use NUMA-aware memory allocation (allocating from the NUMA node local to each core), per-core page allocators to avoid cross-core lock contention, and sophisticated load-balancing heuristics. Linux's scheduler (CFS) tracks CPU utilization, task affinity, cache topology, and energy efficiency. This phase uses the simplest correct implementation: equal-weight round-robin with naive work stealing."
+successCriteria:
+  - "All cores reported in the MADT appear in the boot log as online."
+  - "Two CPU-bound tasks run simultaneously with no corruption of shared kernel state."
+  - "A TLB shootdown triggered by `munmap` in one process does not leave stale mappings on another core."
+  - "The system remains stable under a workload that context-switches rapidly across multiple cores."
+---
+
+## Why this phase matters
+
+Boot all available CPU cores, give each its own Local APIC timer, and run the scheduler across all cores simultaneously. Two processes should be able to execute truly in parallel.
+
+## How it works in m3OS
+
+Phase 25 adds multi-core support to m3OS. All Application Processors (APs) discovered in the ACPI MADT are brought online via the INIT-SIPI IPI sequence. Each core has its own GDT, TSS, kernel stack, double-fault stack, LAPIC timer, and scheduler loop. Inter-processor interrupts (IPIs) provide reschedule and TLB shootdown mechanisms.
+
+## How it builds on earlier phases
+
+This phase builds on Persistent Storage and turns that foundation into SMP.
+
+## Implementation outline
+
+- Determine AP count and APIC IDs from the MADT parsed in Phase 15.
+- Allocate a 4 KB trampoline page at a sub-1 MB physical address; write the 16-bit startup stub.
+- For each AP: send INIT IPI, wait 10 ms, send two SIPI IPIs with the trampoline physical page number.
+- In the trampoline: enable protected mode, set up a temporary GDT, enable long mode, jump to a Rust `ap_entry` function.
+- In `ap_entry`: initialize the per-core GDT, TSS, LAPIC, and kernel stack; signal the BSP that this AP is alive; enter the scheduler loop.
+- Split the global run queue into per-core queues; add a work-stealing path.
+- Implement `send_ipi` using LAPIC ICR registers.
+- Add TLB shootdown IPI handler.
+
+## Task progress snapshot
+
+No checklist tasks were discovered for this phase yet.
+
+## Documentation targets
+
+- explain the AP startup sequence step by step: INIT IPI → SIPI → real mode → long mode
+- document the per-core data layout and how `gs_base` is used to address it
+- explain TLB shootdowns: why they are needed and what happens without them
+- document the spinlock audit process and what makes a lock SMP-safe
+- explain work stealing at a high level
+
+## Deferred follow-on work
+
+- NUMA-aware memory allocation
+- CPU affinity (`sched_setaffinity`)
+- real-time scheduling classes
+- CPU frequency scaling (P-states)
+- CPU hotplug
+- per-core page allocator (SLUB/slab style)
+
+## Source materials
+
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/25-smp.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/25-smp.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/25-smp-tasks.md)

@@ -1,0 +1,91 @@
+---
+phase: 35
+title: "True SMP Multitasking"
+status: complete
+category: foundations
+summary: "All CPU cores dispatch and run user tasks. The BSP-only restriction is removed by making syscall infrastructure per-core. The scheduler uses per-CPU run queues with load balancing, and tasks have priority levels. This is the single highest-impact performance improvement — the OS goes from effectively single-core to true multi-core."
+learningGoal: "Understand why per-core state (stacks, saved registers) is essential for SMP syscalls."
+buildsOn:
+  - "real-time-clock"
+extends: []
+replaces: []
+components:
+  - "scheduler"
+learningObjectives:
+  - "Understand why per-core state (stacks, saved registers) is essential for SMP syscalls."
+  - "Learn the trade-offs between a single global run queue and per-CPU run queues."
+  - "See how load balancing migrates tasks between cores to equalize utilization."
+  - "Understand priority scheduling: real-time vs interactive vs batch tasks."
+  - "Learn about CPU affinity and why it matters for cache performance."
+keyFiles: []
+codeSpotlights: []
+realOsDifferences:
+  - "Uses a red-black tree ordered by \"virtual runtime\" for O(log n) scheduling."
+  - "Per-CPU run queues with work-stealing load balancer."
+  - "140 priority levels (0–99 real-time, 100–139 nice-based)."
+  - "SCHED_FIFO, SCHED_RR, SCHED_DEADLINE, SCHED_OTHER policies."
+  - "NUMA-aware: prefers to schedule tasks near their memory."
+  - "CPU bandwidth throttling via cgroups."
+  - "Tickless (NO_HZ) idle and full-system NO_HZ for latency-sensitive workloads."
+  - "Preemptible kernel (CONFIG_PREEMPT) — can preempt even inside kernel code."
+successCriteria:
+  - "Tasks run on all available cores (verified via per-core logging)."
+  - "Two processes making syscalls simultaneously on different cores do not corrupt state."
+  - "Per-CPU run queues eliminate global scheduler lock contention."
+  - "Load balancing distributes tasks across cores (no core is idle while another has >1 ready task)."
+  - "Priority 0 (real-time) tasks always preempt priority 20 (normal) tasks."
+  - "`sched_setaffinity` pins a task to a specific core."
+  - "Wait queues: a task sleeping on a pipe wakes immediately when data is written."
+  - "Time accounting: `times()` returns nonzero user and system time."
+  - "All existing tests pass without regression."
+---
+
+## Why this phase matters
+
+All CPU cores dispatch and run user tasks. The BSP-only restriction is removed by making syscall infrastructure per-core. The scheduler uses per-CPU run queues with load balancing, and tasks have priority levels. This is the single highest-impact performance improvement — the OS goes from effectively single-core to true multi-core.
+
+## How it works in m3OS
+
+The roadmap entry defines the learning scope for this phase; a deeper implementation doc has not been matched yet.
+
+## How it builds on earlier phases
+
+This phase builds on Real Time Clock and turns that foundation into True SMP Multitasking.
+
+## Implementation outline
+
+- Move syscall statics into `PerCoreData` and update `syscall_entry` assembly.
+- Verify: two cores can handle syscalls simultaneously without corruption.
+- Remove BSP-only guard in `pick_next()`.
+- Verify: tasks run on multiple cores (log which core runs which task).
+- Implement per-CPU run queues, replacing the global scheduler lock.
+- Implement load balancing (periodic migration).
+- Add priority field to `Task`; update `pick_next()` to respect priorities.
+- Implement `sched_setaffinity` / `sched_getaffinity` syscalls.
+- Implement wait queues; attach to pipes and sockets.
+- Add time accounting; implement `times()` syscall.
+- Stress test with many concurrent processes across all cores.
+
+## Task progress snapshot
+
+85 of 85 tracked tasks are complete.
+
+## Documentation targets
+
+- Documentation deliverables have not been listed yet.
+
+## Deferred follow-on work
+
+- CFS / virtual runtime scheduling
+- NUMA-aware scheduling
+- CPU bandwidth throttling (cgroups)
+- Tickless idle (NO_HZ)
+- Kernel preemption
+- SCHED_DEADLINE (earliest deadline first)
+- CPU hotplug
+- Power-aware scheduling (race-to-idle, frequency scaling)
+
+## Source materials
+
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/35-true-smp-multitasking.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/35-true-smp-multitasking-tasks.md)

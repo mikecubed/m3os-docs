@@ -1,0 +1,110 @@
+---
+phase: 32
+title: "Build Tools"
+status: planned
+category: productivity
+summary: "Multi-file C projects can be built inside the OS using a `make`-compatible build tool and shell scripts. This transforms the OS from a \"compile one file\" environment into one where real software projects can be developed."
+learningGoal: "Understand how `make` uses dependency graphs and file timestamps to do incremental builds."
+buildsOn:
+  - "compiler-bootstrap"
+extends: []
+replaces: []
+components:
+  - "vfs"
+  - "boot-path"
+learningObjectives:
+  - "Understand how `make` uses dependency graphs and file timestamps to do incremental builds."
+  - "Learn how shell scripting automates repetitive development tasks."
+  - "See why build tools are essential infrastructure for any self-hosting system."
+keyFiles:
+  - path: "kernel/Cargo.toml"
+    summary: "kernel/Cargo.toml — version bump to 0.32.0"
+  - path: "kernel/src/arch/x86_64/syscall.rs"
+    summary: "kernel/src/arch/x86_64/syscall.rs — stat timestamps, sys_utimensat, write mtime"
+  - path: "kernel/src/fs/ramdisk.rs"
+    summary: "kernel/src/fs/ramdisk.rs — register new binaries"
+  - path: "userspace/coreutils-rs/src/{touch,stat_cmd,wc,ar,install}.rs"
+    summary: "userspace/coreutils-rs/src/{touch,stat_cmd,wc,ar,install}.rs — Rust implementations"
+  - path: "userspace/coreutils/{touch,stat,wc,ar,install}.c"
+    summary: "userspace/coreutils/{touch,stat,wc,ar,install}.c — C reference implementations"
+  - path: "userspace/syscall-lib/src/lib.rs"
+    summary: "userspace/syscall-lib/src/lib.rs — Stat struct, utimensat/stat wrappers"
+  - path: "userspace/demo-project/"
+    summary: "userspace/demo-project/ — multi-file C demo project"
+  - path: "xtask/src/main.rs"
+    summary: "xtask/src/main.rs — pdpmake build, demo project population, new coreutils"
+codeSpotlights:
+  - title: "kernel/Cargo.toml — version bump to 0.32.0"
+    file: "kernel/Cargo.toml"
+    lines: "See file"
+    summary: "kernel/Cargo.toml — version bump to 0.32.0"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/Cargo.toml"
+  - title: "Syscall"
+    file: "kernel/src/arch/x86_64/syscall.rs"
+    lines: "See file"
+    summary: "kernel/src/arch/x86_64/syscall.rs — stat timestamps, sys_utimensat, write mtime"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/arch/x86_64/syscall.rs"
+  - title: "kernel/src/fs/ramdisk.rs — register new binaries"
+    file: "kernel/src/fs/ramdisk.rs"
+    lines: "See file"
+    summary: "kernel/src/fs/ramdisk.rs — register new binaries"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/fs/ramdisk.rs"
+realOsDifferences:
+  - "GNU make extensions (pattern rules, functions, recursive make)"
+  - "CMake, Meson, Ninja for cross-platform builds"
+  - "Autoconf/Automake for portability"
+  - "Package managers (apt, pkg) handle fetching, building, and installing software"
+successCriteria:
+  - "`make --version` (or equivalent) runs inside the OS."
+  - "A Makefile with inference rules, variables, and phony targets is parsed correctly."
+  - "Incremental builds work: only modified files are recompiled."
+  - "`make clean` removes generated files."
+  - "`ar` can create a static library from `.o` files."
+  - "Shell scripts with loops, conditionals, and command substitution work."
+  - "The multi-file demo project builds, runs, and incrementally rebuilds correctly."
+---
+
+## Why this phase matters
+
+Multi-file C projects can be built inside the OS using a `make`-compatible build tool and shell scripts. This transforms the OS from a "compile one file" environment into one where real software projects can be developed.
+
+## How it works in m3OS
+
+Phase 32 adds a POSIX-compatible `make` build tool and supporting utilities, enabling multi-file C projects to be built inside the OS. This transforms the OS from a "compile one file" environment into one where real software projects can be developed with incremental builds.
+
+## How it builds on earlier phases
+
+This phase builds on Compiler Bootstrap and turns that foundation into Build Tools.
+
+## Implementation outline
+
+- Cross-compile pdpmake (or chosen make) with musl.
+- Add `make` binary to disk image at `/usr/bin/make`.
+- Verify basic Makefile parsing and rule execution.
+- Cross-compile `ar`, `install`, `touch`, `wc`, `stat` utilities.
+- Add them to the disk image.
+- Create the demo multi-file project in the disk image.
+- Boot, run `make` in the project directory, verify incremental builds work.
+- Test shell scripting: write a `build.sh` that automates a build-and-test cycle.
+
+## Task progress snapshot
+
+No checklist tasks were discovered for this phase yet.
+
+## Documentation targets
+
+- Documentation deliverables have not been listed yet.
+
+## Deferred follow-on work
+
+- GNU make extensions
+- CMake, Meson, or other meta-build systems
+- `ld` as a standalone linker (TCC has a built-in linker)
+- `nm`, `objdump`, or other binary inspection tools
+- Autoconf/configure script support
+
+## Source materials
+
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/32-build-tools.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/32-build-tools.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/32-build-tools-tasks.md)

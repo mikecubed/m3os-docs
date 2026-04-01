@@ -1,0 +1,83 @@
+---
+phase: 10
+title: "Secure Boot"
+status: in-progress
+category: foundations
+summary: "Sign the kernel's EFI binary so it can boot on real hardware with UEFI Secure Boot enabled, without needing to disable the firmware security check."
+learningGoal: "Understand how UEFI Secure Boot works and why it exists."
+buildsOn:
+  - "framebuffer-and-shell"
+extends: []
+replaces: []
+components:
+  - "boot-path"
+  - "process-model"
+learningObjectives:
+  - "Understand how UEFI Secure Boot works and why it exists."
+  - "Learn the key hierarchy: PK → KEK → db → signed binary."
+  - "Understand the difference between personal Secure Boot (self-signed + enrolled) and distribution Secure Boot (shim + Microsoft CA)."
+  - "See how the build pipeline can be extended to include a signing step."
+keyFiles: []
+codeSpotlights: []
+realOsDifferences:
+  - "Applying to the Microsoft UEFI CA program (months, legal entity required)."
+  - "Signing the shim binary with Microsoft's key."
+  - "The shim then trusts the distro's own key for subsequent stages."
+  - "**Via shim's MOK** (`mokutil --import`): the easiest path on machines that already boot through shim. The key lives in shim's MOK list, not the UEFI firmware db."
+  - "**Direct UEFI db enrollment** (`efi-updatevar` or firmware setup): adds the key to the firmware's own signature database, works without shim, but requires putting the firmware into Setup Mode and re-enrolling the PK/KEK hierarchy."
+successCriteria:
+  - "`cargo xtask sign <unsigned-efi>` produces a verified `*-signed.efi`."
+  - "`cargo xtask image --sign` produces `boot-uefi-m3os-signed.img` (and `.vhdx`)."
+  - "The signed EFI passes `sbverify --cert m3os.crt <signed-efi>`."
+  - "The unsigned EFI fails `sbverify --cert m3os.crt <unsigned-efi>`."
+  - "The kernel boots on real hardware with Secure Boot enabled after enrolling the cert."
+  - "Booting the unsigned or untrusted image with Secure Boot on is rejected by firmware."
+---
+
+## Why this phase matters
+
+Sign the kernel's EFI binary so it can boot on real hardware with UEFI Secure Boot enabled, without needing to disable the firmware security check.
+
+## How it works in m3OS
+
+Phase 10 adds a host-side signing workflow so m³OS can produce Secure Boot-friendly artifacts for real UEFI hardware. The implementation has three pieces:
+
+## How it builds on earlier phases
+
+This phase builds on Framebuffer And Shell and turns that foundation into Secure Boot.
+
+## Implementation outline
+
+- Generate a 4096-bit RSA key pair and self-signed X.509 certificate with `openssl`.
+- Add `cargo xtask sign <unsigned-efi>` for signing any EFI executable with optional `--key` / `--cert` overrides.
+- Extend `cargo xtask image` with `--sign` so the build produces a signed bootable disk image in addition to the unsigned image.
+- Document the one-time certificate enrollment. Two paths exist — choose based on the target machine (see below).
+- Verify the signed binary boots with `mokutil --sb-state` or `dmesg` reporting Secure Boot enabled.
+- Put the firmware into **Setup Mode** (clear the Platform Key via UEFI setup).
+- Enroll your own PK, KEK, and db certificates using `efi-updatevar` or the firmware setup UI.
+- The firmware then trusts your signed binary directly, without shim.
+
+## Task progress snapshot
+
+10 of 13 tracked tasks are complete.
+
+## Documentation targets
+
+- Explain the UEFI Secure Boot key hierarchy (PK / KEK / db / dbx).
+- Document the personal signing workflow end-to-end.
+- Explain what the shim chain is and why it is needed for distribution but not here.
+- Note the limitations: this key is trusted only on machines where it has been enrolled.
+- Link to the implementation notes in [`../10-secure-boot.md`](../10-secure-boot.md).
+
+## Deferred follow-on work
+
+- Key rotation and revocation.
+- Submitting to the Microsoft UEFI CA for public distribution.
+- Measured boot / TPM attestation (verifying the kernel hash against a TPM PCR).
+- Signing individual kernel modules (not applicable to a monolithic or microkernel design where all trusted code is in the single EFI binary).
+
+## Source materials
+
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/10-secure-boot.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/10-secure-boot.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/10-secure-boot-tasks.md)

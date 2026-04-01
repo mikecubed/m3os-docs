@@ -1,0 +1,93 @@
+---
+phase: 8
+title: "Storage And VFS"
+status: complete
+category: infrastructure
+summary: "Expose files through userspace services so programs can read named resources instead of relying on embedded data or ad hoc kernel hooks."
+learningGoal: "Understand how a microkernel can provide filesystem access through servers."
+buildsOn:
+  - "core-servers"
+extends: []
+replaces: []
+components:
+  - "vfs"
+learningObjectives:
+  - "Understand how a microkernel can provide filesystem access through servers."
+  - "Learn path routing and mount-like behavior without building a full POSIX layer."
+  - "Keep storage read-only at first to reduce complexity."
+keyFiles:
+  - path: "kernel/src/fs/protocol.rs"
+    summary: "Phase 8 defines three label numbers in kernel/src/fs/protocol.rs. All use the existing"
+  - path: "kernel/initrd/hello.txt"
+    summary: "The paths kernel/initrd/hello.txt and kernel/initrd/readme.txt must exist in the repository"
+  - path: "kernel/initrd/readme.txt"
+    summary: "The paths kernel/initrd/hello.txt and kernel/initrd/readme.txt must exist in the repository"
+codeSpotlights:
+  - title: "Phase 8"
+    file: "kernel/src/fs/protocol.rs"
+    lines: "See file"
+    summary: "Phase 8 defines three label numbers in kernel/src/fs/protocol.rs. All use the existing"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/fs/protocol.rs"
+  - title: "Hello"
+    file: "kernel/initrd/hello.txt"
+    lines: "See file"
+    summary: "The paths kernel/initrd/hello.txt and kernel/initrd/readme.txt must exist in the repository"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/initrd/hello.txt"
+  - title: "Readme"
+    file: "kernel/initrd/readme.txt"
+    lines: "See file"
+    summary: "The paths kernel/initrd/hello.txt and kernel/initrd/readme.txt must exist in the repository"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/initrd/readme.txt"
+realOsDifferences:
+  - "Mature operating systems add caching, writeback, permissions, journaling, block-layer abstractions, and many filesystem drivers. A toy OS should start with read-only access because it teaches layering and naming without dragging in crash consistency problems."
+successCriteria:
+  - "A userspace program can open a file by path and read its contents."
+  - "The VFS and filesystem backend have clear ownership boundaries."
+  - "Failures such as missing files are reported predictably."
+  - "The disk-image content used for demos is documented."
+---
+
+## Why this phase matters
+
+Expose files through userspace services so programs can read named resources instead of relying on embedded data or ad hoc kernel hooks.
+
+## How it works in m3OS
+
+Phase 8 adds the first file-access layer to m³OS. The additions are:
+### Why route file access through IPC?
+The same policy/mechanism argument from Phase 7 applies here. The kernel should own only the mechanism — endpoint delivery, scheduling, memory protection. Policy questions (which process can read which path, how to handle missing files, what backends exist) belong in userspace servers.
+Routing through `vfs_server` instead of letting clients call `fat_server` directly also creates the ownership boundary needed for Phase 9+: adding a second backend (tmpfs, network share) only requires changing `vfs_server`'s routing table, not every client.
+
+## How it builds on earlier phases
+
+This phase builds on Core Servers and turns that foundation into Storage And VFS.
+
+## Implementation outline
+
+- Define a small file-oriented IPC protocol.
+- Build `vfs_server` as a router instead of a full filesystem implementation.
+- Add one filesystem backend with a narrow scope.
+- Place a few test files in the boot media and verify they can be read.
+- Keep caching and mutation out of the first milestone.
+
+## Task progress snapshot
+
+11 of 11 tracked tasks are complete.
+
+## Documentation targets
+
+- explain the VFS versus filesystem-server split
+- document the first file IPC contract
+- explain why the first storage milestone is read-only
+
+## Deferred follow-on work
+
+- writable filesystems
+- page cache and buffering
+- permissions and access control
+
+## Source materials
+
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/08-storage-and-vfs.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/08-storage-and-vfs.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/08-storage-and-vfs-tasks.md)

@@ -11,6 +11,10 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
+    "content:discover": "tsx scripts/discover-content.ts",
+    "content:generate-components": "tsx scripts/generate-components.ts",
+    "content:generate": "tsx scripts/generate-phase-docs.ts",
+    "content:prepare": "tsx scripts/prepare-phase-synthesis.ts",
     "check": "astro check",
     "lint": "eslint .",
     "format": "prettier --check .",
@@ -40,6 +44,7 @@
     "eslint-plugin-astro": "^1.6.0",
     "prettier": "^3.8.1",
     "prettier-plugin-astro": "^0.14.1",
+    "tsx": "^4.20.6",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.58.0",
     "vitest": "^4.1.2"

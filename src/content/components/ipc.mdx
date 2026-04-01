@@ -1,0 +1,22 @@
+---
+title: "IPC Engine"
+introducedIn: "ipc-core"
+touchedBy:
+  - "core-servers"
+summary: "The IPC engine is the microkernel core: it turns isolated tasks into cooperating services through message passing."
+responsibilities:
+  - "Move messages between isolated tasks."
+  - "Represent communication rights through explicit capabilities."
+  - "Wake and block tasks around rendezvous points."
+keyFiles:
+  - path: "kernel/src/ipc/mod.rs"
+    summary: "kernel/src/ipc/mod.rs — module overview and syscall dispatcher"
+  - path: "kernel/src/ipc/endpoint.rs"
+    summary: "kernel/src/ipc/endpoint.rs — rendezvous endpoint implementation"
+  - path: "kernel/src/ipc/notification.rs"
+    summary: "kernel/src/ipc/notification.rs — async notification objects"
+  - path: "kernel/src/ipc/capability.rs"
+    summary: "kernel/src/ipc/capability.rs — per-task capability table"
+---
+
+The ipc engine is introduced in IPC Core and later touched by 1 phase(s).

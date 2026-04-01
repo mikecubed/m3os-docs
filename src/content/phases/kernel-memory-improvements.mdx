@@ -1,0 +1,121 @@
+---
+phase: 33
+title: "Kernel Memory Improvements"
+status: complete
+category: foundations
+summary: "The kernel heap allocator is robust, efficient, and recoverable. Out-of-memory conditions no longer panic the kernel — the allocator grows on demand and retries failed allocations. A slab allocator handles fixed-size kernel objects with O(1) performance. Userspace `munmap()` actually reclaims memory, and the userspace heap coalesces free blocks."
+learningGoal: "Understand the trade-offs between allocator designs: linked-list, buddy, slab."
+buildsOn:
+  - "build-tools"
+extends: []
+replaces: []
+components:
+  - "memory-manager"
+  - "process-model"
+learningObjectives:
+  - "Understand the trade-offs between allocator designs: linked-list, buddy, slab."
+  - "Learn why OOM-kill and graceful degradation matter more than panicking."
+  - "See how slab allocators exploit fixed-size allocation patterns for near-zero fragmentation."
+  - "Understand virtual memory reclamation and why `munmap()` must return frames."
+keyFiles:
+  - path: "kernel-core/src/buddy.rs"
+    summary: "New: buddy allocator data structure + 13 tests"
+  - path: "kernel-core/src/slab.rs"
+    summary: "New: slab cache data structure + 7 tests"
+  - path: "kernel/src/mm/heap.rs"
+    summary: "RetryAllocator wrapper, heap_stats()"
+  - path: "kernel/src/mm/frame_allocator.rs"
+    summary: "Buddy integration, contiguous alloc, frame_stats()"
+  - path: "kernel/src/mm/slab.rs"
+    summary: "New: kernel slab cache instances"
+  - path: "kernel/src/mm/mod.rs"
+    summary: "Init sequence: buddy + slab after heap"
+  - path: "kernel/src/arch/x86_64/syscall.rs"
+    summary: "Real munmap, meminfo syscall"
+  - path: "kernel/src/process/mod.rs"
+    summary: "MemoryMapping tracking"
+  - path: "userspace/syscall-lib/src/heap.rs"
+    summary: "Sorted free list, coalescing dealloc"
+  - path: "userspace/syscall-lib/src/lib.rs"
+    summary: "meminfo() syscall wrapper"
+  - path: "userspace/coreutils-rs/src/meminfo.rs"
+    summary: "New: meminfo command"
+codeSpotlights:
+  - title: "New: buddy allocator data structure + 13 tests"
+    file: "kernel-core/src/buddy.rs"
+    lines: "See file"
+    summary: "New: buddy allocator data structure + 13 tests"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel-core/src/buddy.rs"
+  - title: "New: slab cache data structure + 7 tests"
+    file: "kernel-core/src/slab.rs"
+    lines: "See file"
+    summary: "New: slab cache data structure + 7 tests"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel-core/src/slab.rs"
+  - title: "RetryAllocator wrapper, heap_stats()"
+    file: "kernel/src/mm/heap.rs"
+    lines: "See file"
+    summary: "RetryAllocator wrapper, heap_stats()"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/mm/heap.rs"
+realOsDifferences:
+  - "**Buddy allocator** manages physical pages (zone allocator with ZONE_DMA, ZONE_NORMAL, ZONE_HIGHMEM)."
+  - "**SLAB/SLUB/SLOB** provides object-level caching on top of the buddy allocator."
+  - "**vmalloc** handles virtually contiguous but physically discontiguous allocations."
+  - "**OOM killer** selects and kills processes when memory is exhausted rather than panicking."
+  - "**Memory compaction** moves pages to create larger contiguous blocks."
+  - "**Transparent Huge Pages (THP)** opportunistically uses 2 MiB pages."
+successCriteria:
+  - "Allocation-heavy workloads (many fork/exec cycles) no longer panic with OOM."
+  - "The kernel heap grows on demand and the retry path works."
+  - "Slab-allocated objects (Task, FD) allocate and free in O(1)."
+  - "`munmap()` returns physical frames; a program that maps and unmaps in a loop does not exhaust memory."
+  - "Userspace programs that allocate and free many small objects do not fragment the heap excessively (coalescing verified)."
+  - "`heap_stats()` shows reasonable utilization under load."
+  - "All existing tests pass without regression."
+---
+
+## Why this phase matters
+
+The kernel heap allocator is robust, efficient, and recoverable. Out-of-memory conditions no longer panic the kernel — the allocator grows on demand and retries failed allocations. A slab allocator handles fixed-size kernel objects with O(1) performance. Userspace `munmap()` actually reclaims memory, and the userspace heap coalesces free blocks.
+
+## How it works in m3OS
+
+The roadmap entry defines the learning scope for this phase; a deeper implementation doc has not been matched yet.
+
+## How it builds on earlier phases
+
+This phase builds on Build Tools and turns that foundation into Kernel Memory Improvements.
+
+## Implementation outline
+
+- Implement OOM retry wrapper around the global allocator.
+- Verify: allocation-heavy workloads no longer panic (heap grows and retries).
+- Implement buddy allocator for page-granularity allocations.
+- Implement slab allocator caches for Task, FD, endpoint, pipe, socket objects.
+- Implement working `munmap()` with frame reclamation and TLB invalidation.
+- Add free-block coalescing to userspace `BrkAllocator`.
+- Add `heap_stats()` and verify with a stress-test program.
+- Run existing test suite to verify no regressions.
+
+## Task progress snapshot
+
+68 of 68 tracked tasks are complete.
+
+## Documentation targets
+
+- Documentation deliverables have not been listed yet.
+
+## Deferred follow-on work
+
+- OOM killer (kill processes instead of failing allocations)
+- Memory compaction and defragmentation
+- Transparent Huge Pages
+- NUMA-aware allocation
+- Kernel memory accounting and cgroups
+- vmalloc for large virtually-contiguous allocations
+- Memory pressure notifications
+
+## Source materials
+
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/33-kernel-memory-improvements.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/33-kernel-memory.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/33-kernel-memory-tasks.md)

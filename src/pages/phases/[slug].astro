@@ -51,7 +51,19 @@ const relatedPhases = findRelatedPhases(phase.id, phases);
     </article>
     <article class="panel">
       <p class="eyebrow">Components touched</p>
-      <p>{phase.data.components.join(', ') || 'None yet'}</p>
+      {
+        phase.data.components.length > 0 ? (
+          <ul>
+            {phase.data.components.map((componentSlug) => (
+              <li>
+                <a href={withBase(`/components/${componentSlug}/`)}>{componentSlug}</a>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p>None yet</p>
+        )
+      }
     </article>
   </section>
 

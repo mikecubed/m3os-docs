@@ -1,0 +1,20 @@
+---
+title: "Interrupt Router"
+introducedIn: "interrupts"
+touchedBy:
+  - "hardware-discovery"
+  - "ion-shell"
+  - "smp"
+  - "mouse-input"
+  - "audio"
+summary: "The interrupt router connects CPU exceptions and hardware IRQs to the kernel handlers that keep the system responsive."
+responsibilities:
+  - "Install interrupt and exception handlers."
+  - "Route hardware interrupts to the correct kernel entry points."
+  - "Preserve enough fault context for debugging and recovery."
+keyFiles:
+  - path: "kernel/src/arch/x86_64/interrupts.rs"
+    summary: "Stack demand paging"
+---
+
+The interrupt router is introduced in Interrupts and later touched by 5 phase(s).

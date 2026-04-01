@@ -1,0 +1,85 @@
+---
+phase: 16
+title: "Network"
+status: planned
+category: infrastructure
+summary: "Add a minimal but real TCP/IP stack so the OS can send and receive packets over a network. A virtio-net NIC in QEMU is the hardware target. The end goal is a working `ping` and a simple TCP connection."
+learningGoal: "Understand the layered network model by implementing each layer from scratch."
+buildsOn:
+  - "hardware-discovery"
+extends: []
+replaces: []
+components:
+  - "network-stack"
+learningObjectives:
+  - "Understand the layered network model by implementing each layer from scratch."
+  - "See how the kernel mediates between the NIC driver and userspace sockets."
+  - "Learn what the virtio transport protocol looks like at the register level."
+keyFiles:
+  - path: "kernel/src/net/*"
+    summary: "(kernel/src/net/*) and runs as net_task. This is a temporary kernel-mode"
+codeSpotlights:
+  - title: "(kernel/src/net/*) and runs as net_task. This is a temporary kernel-mode"
+    file: "kernel/src/net/*"
+    lines: "See file"
+    summary: "(kernel/src/net/*) and runs as net_task. This is a temporary kernel-mode"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/net/*"
+realOsDifferences:
+  - "Production network stacks handle retransmission timers, SACK, TCP congestion control (CUBIC, BBR), scatter-gather DMA, checksum offload, VLAN tagging, IPv6, DNS, TLS, and non-blocking I/O via `epoll`. They are typically 50,000–200,000 lines of code. This phase implements a toy single-connection stack with no retransmit timer and no congestion control — enough to demonstrate every layer of the model but not suitable for real traffic."
+successCriteria:
+  - "`ping 10.0.2.2` receives ICMP echo replies from the QEMU gateway."
+  - "A UDP echo client can send a datagram and receive it back."
+  - "A TCP client can connect to a host listener, exchange a line of text, and close cleanly."
+  - "A TCP server running inside the OS can accept a connection from the host."
+---
+
+## Why this phase matters
+
+Add a minimal but real TCP/IP stack so the OS can send and receive packets over a network. A virtio-net NIC in QEMU is the hardware target. The end goal is a working `ping` and a simple TCP connection.
+
+## How it works in m3OS
+
+The roadmap entry defines the learning scope for this phase; a deeper implementation doc has not been matched yet.
+
+## How it builds on earlier phases
+
+This phase builds on Hardware Discovery and turns that foundation into Network.
+
+## Implementation outline
+
+- Use the PCI device list from Phase 15 to find the virtio-net device.
+- Initialize the virtio device: feature negotiation, virtqueue setup.
+- Implement the Ethernet and ARP layers.
+- Implement IPv4 and ICMP; test with `ping 10.0.2.2` (QEMU default gateway).
+- Implement UDP; test with a simple echo server.
+- Implement TCP state machine: SYN, SYN-ACK, ACK, data, FIN.
+- Expose socket syscalls through the POSIX compatibility layer, routing to net_server via IPC.
+
+## Task progress snapshot
+
+No checklist tasks were discovered for this phase yet.
+
+## Documentation targets
+
+- explain the virtio transport: descriptor rings, available ring, used ring
+- document the Ethernet → ARP → IP → TCP/UDP layering and how each layer calls the next
+- explain the TCP state machine with a diagram
+- document the socket API and how syscalls route to net_server via IPC
+- explain the ARP cache: why it exists, what happens on a miss
+
+## Deferred follow-on work
+
+- TCP retransmission timer and congestion control
+- IPv6
+- DNS resolution
+- TLS / DTLS
+- `epoll` / `select` / `poll` for non-blocking sockets
+- multiple simultaneous TCP connections
+- checksum offload via virtio features
+- DHCP client
+
+## Source materials
+
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/16-network.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/16-network.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/16-network-tasks.md)

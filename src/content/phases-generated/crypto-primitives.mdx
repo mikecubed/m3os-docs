@@ -1,0 +1,78 @@
+---
+phase: 42
+title: "Crypto Primitives"
+status: planned
+category: foundations
+summary: "The OS has a cryptography library providing hash functions, symmetric encryption, and asymmetric key operations. This is the foundation layer that SSH (Phase 43) and future security features build upon."
+learningGoal: "Understand the core cryptographic building blocks: hashing, symmetric encryption, asymmetric encryption, key exchange."
+buildsOn:
+  - "expanded-coreutils"
+extends: []
+replaces: []
+components:
+  - "network-stack"
+learningObjectives:
+  - "Understand the core cryptographic building blocks: hashing, symmetric encryption, asymmetric encryption, key exchange."
+  - "Learn why you never implement your own crypto in production, but implementing it for learning is incredibly valuable."
+  - "See how Diffie-Hellman key exchange enables two parties to agree on a shared secret over an insecure channel."
+  - "Understand the difference between authentication (proving identity) and encryption (hiding content)."
+keyFiles: []
+codeSpotlights: []
+realOsDifferences:
+  - "Hardware-accelerated crypto (AES-NI, SHA extensions) for performance"
+  - "OpenSSL or LibreSSL as the standard crypto library (huge, complex, battle-tested)"
+  - "Kernel-level crypto API (Linux crypto subsystem) for disk encryption, IPsec, etc."
+  - "HSMs or TPMs for key storage"
+successCriteria:
+  - "SHA-256 of known test vectors matches expected output."
+  - "Ed25519 keypair generation, signing, and verification work correctly."
+  - "X25519 key exchange produces matching shared secrets on both sides."
+  - "AES-256 or ChaCha20-Poly1305 encrypt/decrypt round-trips correctly."
+  - "`sha256sum /bin/tcc` produces a stable, correct hash."
+  - "`genkey` creates an Ed25519 keypair saved to files."
+  - "CSPRNG produces non-repeating output seeded from `getrandom`."
+---
+
+## Why this phase matters
+
+The OS has a cryptography library providing hash functions, symmetric encryption, and asymmetric key operations. This is the foundation layer that SSH (Phase 43) and future security features build upon.
+
+## How it works in m3OS
+
+The roadmap entry defines the learning scope for this phase; a deeper implementation doc has not been matched yet.
+
+## How it builds on earlier phases
+
+This phase builds on Expanded Coreutils and turns that foundation into Crypto Primitives.
+
+## Implementation outline
+
+- Choose implementation strategy (BearSSL recommended for balance of learning and reliability).
+- Cross-compile the crypto library with musl, targeting static linking.
+- Verify SHA-256 produces correct test vectors inside the OS.
+- Verify Ed25519 sign/verify with test vectors.
+- Verify X25519 key exchange with test vectors.
+- Verify AES or ChaCha20 with test vectors.
+- Build `sha256sum` and `genkey` utilities.
+- Document the library's API for use by the SSH server in Phase 43.
+
+## Task progress snapshot
+
+No checklist tasks were discovered for this phase yet.
+
+## Documentation targets
+
+- Documentation deliverables have not been listed yet.
+
+## Deferred follow-on work
+
+- Hardware-accelerated crypto (AES-NI)
+- TLS/SSL protocol implementation
+- Certificate handling (X.509)
+- RSA implementation
+- Disk encryption
+- Key management infrastructure (keyring, agent)
+
+## Source materials
+
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/42-crypto-primitives.md)

@@ -1,0 +1,96 @@
+---
+phase: 12
+title: "POSIX Compat"
+status: planned
+category: userspace
+summary: "Implement enough Linux-compatible syscalls and bundle musl libc so that ordinary C programs compiled on the host can run unmodified inside the OS."
+learningGoal: "Understand what a syscall ABI compatibility layer actually involves."
+buildsOn:
+  - "process-model"
+extends: []
+replaces: []
+components:
+  - "vfs"
+  - "memory-manager"
+learningObjectives:
+  - "Understand what a syscall ABI compatibility layer actually involves."
+  - "See why musl is a practical first libc target."
+  - "Learn which Linux syscalls are load-bearing for compiled programs."
+keyFiles:
+  - path: "kernel/initrd/"
+    summary: "for each C source in userspace/. The resulting ELF is placed in kernel/initrd/"
+  - path: "kernel/src/fs/ramdisk.rs"
+    summary: "and embedded via include_bytes! in kernel/src/fs/ramdisk.rs."
+  - path: "kernel/src/mm/user_mem.rs"
+    summary: "Both functions in kernel/src/mm/user_mem.rs follow the same pattern:"
+codeSpotlights:
+  - title: "Initrd"
+    file: "kernel/initrd/"
+    lines: "See file"
+    summary: "for each C source in userspace/. The resulting ELF is placed in kernel/initrd/"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/initrd/"
+  - title: "and embedded via include_bytes! in kernel/src/fs/ramdisk.rs"
+    file: "kernel/src/fs/ramdisk.rs"
+    lines: "See file"
+    summary: "and embedded via include_bytes! in kernel/src/fs/ramdisk.rs."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/fs/ramdisk.rs"
+  - title: "Both functions in kernel/src/mm/user_mem.rs follow the same pattern:"
+    file: "kernel/src/mm/user_mem.rs"
+    lines: "See file"
+    summary: "Both functions in kernel/src/mm/user_mem.rs follow the same pattern:"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/mm/user_mem.rs"
+realOsDifferences:
+  - "Real Linux-compatible layers (WSL, FreeBSD's Linux ABI, Darling) implement hundreds of syscalls and handle subtleties like signal masks, `/proc` reads, `epoll`, and `futex`-based threading. This phase targets only the subset needed for a single-threaded C compiler and basic file utilities. Threading and `futex` are deferred."
+successCriteria:
+  - "A C program that calls `printf`, `malloc`, `fopen`, and `exit` runs correctly."
+  - "Programs compiled with `cc -static -o hello hello.c` (targeting musl) execute inside the OS without modification."
+  - "Standard I/O reaches the console server through the syscall path."
+  - "The existing custom syscall ABI still works for native Rust userspace code."
+---
+
+## Why this phase matters
+
+Implement enough Linux-compatible syscalls and bundle musl libc so that ordinary C programs compiled on the host can run unmodified inside the OS.
+
+## How it works in m3OS
+
+The roadmap entry defines the learning scope for this phase; a deeper implementation doc has not been matched yet.
+
+## How it builds on earlier phases
+
+This phase builds on Process Model and turns that foundation into POSIX Compat.
+
+## Implementation outline
+
+- Audit which syscall numbers Linux assigns to the ~40 musl-required calls.
+- Add a second dispatch table in the syscall gate that maps Linux numbers to internal kernel functions. The existing custom ABI remains untouched.
+- Compile musl on the host with `--target x86_64-unknown-none`, patching only the syscall wrapper stubs to use `syscall` with Linux numbers.
+- Write a minimal `crt0.s` that satisfies the System V entry convention.
+- Bundle musl headers and the compiled `libc.a` in the disk image.
+- Validate with a "hello world" C binary: compile on host, copy to image, run inside OS.
+
+## Task progress snapshot
+
+0 of 38 tracked tasks are complete.
+
+## Documentation targets
+
+- document the Linux syscall number mapping table and dispatch strategy
+- explain what musl needs vs. what glibc needs and why musl is the right choice
+- document the C runtime entry sequence (`_start` → `__libc_start_main` → `main`)
+- explain which syscalls are stubbed, which are real, and what the gaps mean
+
+## Deferred follow-on work
+
+- `futex` and pthreads
+- `epoll` / `poll` / `select`
+- signal delivery through the Linux signal ABI
+- `/proc` filesystem entries
+- dynamic linker support (`PT_INTERP`, `LD_LIBRARY_PATH`)
+- `mprotect` and memory permission changes
+
+## Source materials
+
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/12-posix-compat.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/12-posix-compatibility-layer.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/12-posix-compat-tasks.md)

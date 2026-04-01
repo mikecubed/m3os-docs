@@ -1,0 +1,97 @@
+---
+phase: 38
+title: "Filesystem Enhancements"
+status: planned
+category: infrastructure
+summary: "The filesystem supports symlinks, hard links, proper permission enforcement, a `/proc` filesystem for process introspection, and basic device nodes (`/dev/null`, `/dev/zero`, `/dev/urandom`). These are the filesystem primitives that Unix tools and build systems assume exist."
+learningGoal: "Understand the difference between hard links and symbolic links at the inode level."
+buildsOn:
+  - "io-multiplexing"
+extends: []
+replaces: []
+components:
+  - "process-model"
+  - "vfs"
+learningObjectives:
+  - "Understand the difference between hard links and symbolic links at the inode level."
+  - "Learn how `/proc` provides kernel introspection without dedicated syscalls."
+  - "See how Unix permission enforcement (DAC) works: owner/group/other bits checked on every file operation."
+  - "Understand device nodes and the major/minor number scheme."
+keyFiles: []
+codeSpotlights: []
+realOsDifferences:
+  - "**Dentry cache** for fast path lookup with negative caching."
+  - "**Inode cache** for recently accessed inodes."
+  - "**Page cache** for file data (unified with VM)."
+  - "**Overlay filesystems** (overlayfs, unionfs)."
+  - "**Extended attributes** (xattr) for SELinux labels, ACLs, capabilities."
+  - "**Full procfs** with hundreds of entries per process."
+  - "**sysfs** for device/driver introspection."
+  - "**devtmpfs** with udev rules for dynamic device creation."
+  - "**inotify/fanotify** for filesystem event monitoring."
+successCriteria:
+  - "`symlink(\"/bin/sh0\", \"/tmp/mysh\")` creates a working symlink."
+  - "`readlink(\"/tmp/mysh\")` returns `\"/bin/sh0\"`."
+  - "Symlink chain resolution works (A→B→C) with loop detection."
+  - "Hard links share an inode: modify via one path, see changes via the other."
+  - "`unlink()` of a hard-linked file only removes it when link count hits 0."
+  - "A non-root user cannot read a file with mode 0600 owned by another user."
+  - "`umask(022)` causes `mkdir()` to create directories with mode 0755."
+  - "`cat /proc/self/status` shows the process's own info."
+  - "`cat /proc/meminfo` shows memory statistics."
+  - "`cat /dev/urandom | hexdump | head` produces random output."
+  - "`echo test > /dev/null` succeeds silently."
+  - "`dd if=/dev/zero bs=4096 count=1` produces 4096 zero bytes."
+  - "All existing tests pass without regression."
+---
+
+## Why this phase matters
+
+The filesystem supports symlinks, hard links, proper permission enforcement, a `/proc` filesystem for process introspection, and basic device nodes (`/dev/null`, `/dev/zero`, `/dev/urandom`). These are the filesystem primitives that Unix tools and build systems assume exist.
+
+## How it works in m3OS
+
+The roadmap entry defines the learning scope for this phase; a deeper implementation doc has not been matched yet.
+
+## How it builds on earlier phases
+
+This phase builds on I/O Multiplexing and turns that foundation into Filesystem Enhancements.
+
+## Implementation outline
+
+- Implement symlinks in tmpfs (create, readlink, path resolution with follow).
+- Implement symlinks in ext2.
+- Add symlink loop detection (max 40 hops, return `ELOOP`).
+- Implement hard links in ext2 (link count management).
+- Add permission checking to `open()`, `exec()`, directory operations.
+- Implement `umask()` syscall with per-process mask.
+- Implement `/proc` filesystem (start with `/proc/<pid>/status` and `/proc/meminfo`).
+- Add `/dev/null`, `/dev/zero`, `/dev/urandom`, `/dev/full` device nodes.
+- Implement `statfs`/`fstatfs`.
+- Write `ln` utility for creating links.
+- Test: `ln -s /bin/sh0 /tmp/mysh && /tmp/mysh` works via symlink.
+- Test: permission enforcement blocks unauthorized access.
+
+## Task progress snapshot
+
+No checklist tasks were discovered for this phase yet.
+
+## Documentation targets
+
+- Documentation deliverables have not been listed yet.
+
+## Deferred follow-on work
+
+- Extended attributes (xattr)
+- Access Control Lists (ACLs)
+- inotify / fanotify (filesystem events)
+- sysfs
+- Full /proc (cgroups, net, sys subdirectories)
+- File locking (flock, lockf)
+- Overlay filesystems
+- Page cache for file data
+- mknod syscall for arbitrary device creation
+
+## Source materials
+
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/38-filesystem-enhancements.md)

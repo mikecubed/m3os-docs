@@ -1,0 +1,133 @@
+---
+phase: 27
+title: "User Accounts"
+status: planned
+category: userspace
+summary: "The OS supports multiple user accounts with login authentication, file ownership, and permission enforcement. A `login` program prompts for username and password before granting shell access. This is the foundation for multi-user operation and secure remote access."
+learningGoal: "Understand how Unix user/group identity works at the kernel level (UID/GID)."
+buildsOn:
+  - "text-editor"
+extends: []
+replaces: []
+components:
+  - "process-model"
+  - "vfs"
+  - "boot-path"
+learningObjectives:
+  - "Understand how Unix user/group identity works at the kernel level (UID/GID)."
+  - "Learn how file permissions are checked on every `open`/`exec`/`mkdir` call."
+  - "See how `setuid`/`setgid` enable privilege transitions."
+  - "Understand password hashing — why plaintext passwords are never stored."
+keyFiles:
+  - path: "kernel/src/process/mod.rs"
+    summary: "The Process struct (kernel/src/process/mod.rs) carries four"
+  - path: "kernel/src/arch/x86_64/syscall.rs"
+    summary: "kernel/src/arch/x86_64/syscall.rs:"
+  - path: "kernel-core/src/fs/tmpfs.rs"
+    summary: "FileData and DirData in kernel-core/src/fs/tmpfs.rs each hold"
+  - path: "kernel/src/fs/ext2.rs"
+    summary: "ext2 driver (kernel/src/fs/ext2.rs) reads and writes these fields"
+  - path: "userspace/syscall-lib/src/sha256.rs"
+    summary: "userspace/syscall-lib/src/sha256.rs (FIPS 180-4, no external"
+  - path: "xtask/src/main.rs"
+    summary: "populate_ext2_files() in xtask/src/main.rs, which uses debugfs"
+  - path: "userspace/init/src/main.rs"
+    summary: "Init (userspace/init/src/main.rs) was modified to:"
+  - path: "userspace/login/"
+    summary: "Rust no_std binary. Implements the full authentication cycle: prompt,"
+  - path: "userspace/su/"
+    summary: "Rust no_std binary. su <username> (defaults to root). Any user can"
+  - path: "userspace/passwd/"
+    summary: "setgid syscalls are unconditional until setuid-bit support is added.)"
+  - path: "userspace/adduser/"
+    summary: "Rust no_std binary. Root-only. Scans /etc/passwd for the maximum"
+  - path: "userspace/id/"
+    summary: "group files. Creates the home directory and sets ownership."
+  - path: "userspace/whoami/"
+    summary: "/etc/passwd and /etc/group, prints uid=N(name) gid=N(name)."
+  - path: "userspace/syscall-lib/"
+    summary: "Phase 27 added to userspace/syscall-lib/:"
+codeSpotlights:
+  - title: "The Process struct (kernel/src/process/mod.rs) carries four"
+    file: "kernel/src/process/mod.rs"
+    lines: "See file"
+    summary: "The Process struct (kernel/src/process/mod.rs) carries four"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/process/mod.rs"
+  - title: "kernel/src/arch/x86_64/syscall.rs:"
+    file: "kernel/src/arch/x86_64/syscall.rs"
+    lines: "See file"
+    summary: "kernel/src/arch/x86_64/syscall.rs:"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/arch/x86_64/syscall.rs"
+  - title: "FileData and DirData in kernel-core/src/fs/tmpfs.rs each hold"
+    file: "kernel-core/src/fs/tmpfs.rs"
+    lines: "See file"
+    summary: "FileData and DirData in kernel-core/src/fs/tmpfs.rs each hold"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel-core/src/fs/tmpfs.rs"
+realOsDifferences:
+  - "PAM (Pluggable Authentication Modules) for flexible auth backends"
+  - "NSS (Name Service Switch) for looking up users from LDAP, NIS, etc."
+  - "Supplementary groups (a user can belong to multiple groups)"
+  - "setuid/setgid binaries for controlled privilege escalation"
+  - "Fine-grained capabilities (Linux capabilities, not just root vs. non-root)"
+  - "SELinux/AppArmor for mandatory access control"
+successCriteria:
+  - "Boot reaches a `login:` prompt instead of an immediate shell."
+  - "Entering correct credentials for `root` drops into a root shell."
+  - "Entering wrong credentials is rejected with an error message."
+  - "`id` shows the correct UID/GID after login."
+  - "Files created by `user` are owned by UID 1000."
+  - "`user` cannot read `/etc/shadow` (permission denied)."
+  - "`user` cannot delete files owned by `root` in protected directories."
+  - "`su root` from `user` prompts for root's password and grants a root shell."
+  - "`passwd` changes the current user's password, and the new password works on next login."
+---
+
+## Why this phase matters
+
+The OS supports multiple user accounts with login authentication, file ownership, and permission enforcement. A `login` program prompts for username and password before granting shell access. This is the foundation for multi-user operation and secure remote access.
+
+## How it works in m3OS
+
+Phase 27 adds multi-user support to m3OS: per-process UID/GID identity, file ownership and Unix permission enforcement across all filesystem backends, SHA-256 password hashing, and a login-based boot flow. Six new userspace programs (`login`, `su`, `passwd`, `adduser`, `id`, `whoami`) provide authentication and account management.
+After Phase 27, the system boots to a `login:` prompt instead of dropping directly into a shell. Two default accounts exist: `root` (UID 0) and `user` (UID 1000).
+
+## How it builds on earlier phases
+
+This phase builds on Text Editor and turns that foundation into User Accounts.
+
+## Implementation outline
+
+- Add UID/GID fields to the kernel process structure; default to 0 (root) for init.
+- Implement `getuid`, `setuid`, and related syscalls.
+- Add permission mode and owner fields to VFS inodes.
+- Implement permission checking in VFS operations.
+- Implement `chmod` and `chown` syscalls.
+- Write the `login` program: read `/etc/passwd`, verify password hash from `/etc/shadow`.
+- Modify init to spawn `login` instead of directly spawning the shell.
+- Write `su`, `passwd`, `id`, `whoami`, `adduser` utilities.
+- Create default `/etc/passwd`, `/etc/shadow`, `/etc/group` in the disk image.
+
+## Task progress snapshot
+
+No checklist tasks were discovered for this phase yet.
+
+## Documentation targets
+
+- Documentation deliverables have not been listed yet.
+
+## Deferred follow-on work
+
+- ext2 filesystem (Phase 28)
+- PAM or pluggable authentication
+- Supplementary groups
+- ACLs (Access Control Lists)
+- Mandatory access control (SELinux-style)
+- Home directory creation on first login
+- User quotas
+- Account lockout after failed attempts
+
+## Source materials
+
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/27-user-accounts.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/27-user-accounts.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/27-user-accounts-tasks.md)

@@ -1,0 +1,80 @@
+---
+phase: 15
+title: "Hardware Discovery"
+status: planned
+category: infrastructure
+summary: "Replace the hardcoded, single-core interrupt model with proper hardware discovery via ACPI and PCI, and switch from the legacy 8259 PIC to the APIC. This unlocks multi-core support and arbitrary device discovery in later phases."
+learningGoal: "Understand how ACPI tables describe the hardware topology to the OS."
+buildsOn:
+  - "shell-and-tools"
+extends: []
+replaces: []
+components:
+  - "boot-path"
+  - "interrupt-router"
+learningObjectives:
+  - "Understand how ACPI tables describe the hardware topology to the OS."
+  - "See how the APIC model replaces the legacy 8259 PIC and why it must."
+  - "Learn what PCI configuration space is and how devices are enumerated."
+keyFiles: []
+codeSpotlights: []
+realOsDifferences:
+  - "Production kernels use ACPI's AML bytecode interpreter to handle dynamic hardware configuration (hotplug, power transitions, embedded controller queries). PCI enumeration extends to PCIe extended config space (4 KB per function) and uses MCFG tables for MMIO-mapped access. IRQ routing on modern systems runs through MSI/MSI-X rather than the I/O APIC. This phase uses only the static descriptor tables and legacy port-I/O PCI access, which is sufficient for a single-machine QEMU target."
+successCriteria:
+  - "The kernel boots using the LAPIC timer for preemption instead of the PIT."
+  - "Keyboard interrupts are delivered via the I/O APIC without regression."
+  - "The legacy 8259 PIC is fully masked and disabled."
+  - "A boot log entry prints the full PCI device list with vendor ID and class codes."
+  - "ACPI table parsing logs the CPU count and APIC IDs found in the MADT."
+---
+
+## Why this phase matters
+
+Replace the hardcoded, single-core interrupt model with proper hardware discovery via ACPI and PCI, and switch from the legacy 8259 PIC to the APIC. This unlocks multi-core support and arbitrary device discovery in later phases.
+
+## How it works in m3OS
+
+The roadmap entry defines the learning scope for this phase; a deeper implementation doc has not been matched yet.
+
+## How it builds on earlier phases
+
+This phase builds on Shell And Tools and turns that foundation into Hardware Discovery.
+
+## Implementation outline
+
+- Parse the RSDP address from `BootInfo` (UEFI already locates it).
+- Walk the RSDT/XSDT and collect pointers to each SDT.
+- Parse the MADT and record the Local APIC base address and all I/O APIC descriptors.
+- Identity-map the Local APIC MMIO page and write the initialization sequence.
+- Program the I/O APIC redirection table for the IRQs the kernel currently handles.
+- Disable the 8259 PIC.
+- Switch the scheduler's timer source from the PIT to the LAPIC timer.
+- Implement PCI config space reads (port I/O: address port 0xCF8, data port 0xCFC).
+- Enumerate all PCI functions and store the device list in a static kernel array.
+
+## Task progress snapshot
+
+No checklist tasks were discovered for this phase yet.
+
+## Documentation targets
+
+- explain the ACPI table chain: RSDP → RSDT/XSDT → individual SDTs
+- document the MADT structure and what each entry type means
+- explain the Local APIC vs. I/O APIC split and which handles what
+- document PCI config space layout and how the scan loop works
+- explain why the legacy PIC cannot be used on multi-core systems
+
+## Deferred follow-on work
+
+- ACPI AML interpreter and dynamic hardware events
+- PCIe extended config space (MCFG)
+- MSI and MSI-X interrupt routing
+- PCI device power management (D-states)
+- ACPI S-states (sleep, hibernate)
+- PCIe hotplug
+
+## Source materials
+
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/15-hardware-discovery.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/15-hardware-discovery.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/15-hardware-discovery-tasks.md)

@@ -1,0 +1,96 @@
+---
+phase: 6
+title: "IPC Core"
+status: complete
+category: foundations
+summary: "Turn the kernel into a real microkernel by making userspace services communicate through explicit message passing and capabilities."
+learningGoal: "Understand why microkernels move services out of ring 0."
+buildsOn:
+  - "userspace-entry"
+extends: []
+replaces: []
+components:
+  - "ipc"
+  - "scheduler"
+learningObjectives:
+  - "Understand why microkernels move services out of ring 0."
+  - "Learn synchronous rendezvous IPC semantics."
+  - "Introduce capability tables as the security boundary."
+keyFiles:
+  - path: "kernel/src/ipc/mod.rs"
+    summary: "kernel/src/ipc/mod.rs — module overview and syscall dispatcher"
+  - path: "kernel/src/ipc/endpoint.rs"
+    summary: "kernel/src/ipc/endpoint.rs — rendezvous endpoint implementation"
+  - path: "kernel/src/ipc/notification.rs"
+    summary: "kernel/src/ipc/notification.rs — async notification objects"
+  - path: "kernel/src/ipc/capability.rs"
+    summary: "kernel/src/ipc/capability.rs — per-task capability table"
+  - path: "kernel/src/task/scheduler.rs"
+    summary: "kernel/src/task/scheduler.rs — IPC scheduler primitives"
+codeSpotlights:
+  - title: "kernel/src/ipc/mod.rs — module overview and syscall dispatcher"
+    file: "kernel/src/ipc/mod.rs"
+    lines: "See file"
+    summary: "kernel/src/ipc/mod.rs — module overview and syscall dispatcher"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/ipc/mod.rs"
+  - title: "kernel/src/ipc/endpoint.rs — rendezvous endpoint implementation"
+    file: "kernel/src/ipc/endpoint.rs"
+    lines: "See file"
+    summary: "kernel/src/ipc/endpoint.rs — rendezvous endpoint implementation"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/ipc/endpoint.rs"
+  - title: "kernel/src/ipc/notification.rs — async notification objects"
+    file: "kernel/src/ipc/notification.rs"
+    lines: "See file"
+    summary: "kernel/src/ipc/notification.rs — async notification objects"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/ipc/notification.rs"
+realOsDifferences:
+  - "Real microkernels often include more message registers, stronger formal models, priority-aware scheduling interactions, and carefully tuned fast paths. This project should keep the IPC contract small and explicit so the reader can trace every state change during a message exchange."
+successCriteria:
+  - "A client can call a server and receive a reply."
+  - "Invalid capabilities are rejected safely."
+  - "Server loops use the intended `reply_recv` pattern."
+  - "IRQ-driven notifications can wake a userspace task."
+---
+
+## Why this phase matters
+
+Turn the kernel into a real microkernel by making userspace services communicate through explicit message passing and capabilities.
+
+## How it works in m3OS
+
+Phase 6 turns m³OS into a real microkernel by wiring up the IPC subsystem that all future userspace servers depend on.  By the end of this phase the kernel:
+Everything from Phase 7 onward — the shell, console server, VFS — sits on top of this foundation.  If the IPC contract is clean, those higher layers are straightforward.  If it is muddled, nothing above it is trustworthy.
+
+## How it builds on earlier phases
+
+This phase builds on Userspace Entry and turns that foundation into IPC Core.
+
+## Implementation outline
+
+- Define kernel IPC objects and task wait states.
+- Create a per-process capability table with explicit validation.
+- Implement synchronous message transfer first.
+- Add reply-and-wait server flow once the basic path is stable.
+- Add notification objects for interrupts and one-way signals.
+
+## Task progress snapshot
+
+14 of 14 tracked tasks are complete.
+
+## Documentation targets
+
+- explain the rendezvous model and why it was chosen
+- document the capability table model
+- describe the difference between call/reply and notifications
+
+## Deferred follow-on work
+
+- large page-grant transfers
+- IPC timeouts and cancellation
+- advanced scheduling policies around IPC
+
+## Source materials
+
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/06-ipc-core.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/06-ipc-core.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/06-ipc-core-tasks.md)

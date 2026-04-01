@@ -1,0 +1,81 @@
+---
+phase: 45
+title: "Ports System"
+status: planned
+category: infrastructure
+summary: "A simple \"ports\" system enables building and installing third-party software inside the OS from source recipes. A port is a directory containing a `Makefile`, patches, and a description file that automates downloading (or bundling), compiling, and installing a piece of software."
+learningGoal: "Understand how BSD ports and Gentoo portage work: source-based package management."
+buildsOn:
+  - "rust-cross-compilation"
+extends: []
+replaces: []
+components:
+  - "terminal"
+  - "vfs"
+learningObjectives:
+  - "Understand how BSD ports and Gentoo portage work: source-based package management."
+  - "Learn what \"porting\" software means: identifying dependencies, patching for compatibility, and verifying correct behavior on a new platform."
+  - "See how a package system provides reproducible builds."
+keyFiles: []
+codeSpotlights: []
+realOsDifferences:
+  - "Binary package distribution (apt, pacman, pkg) — precompiled packages avoid build times"
+  - "Cryptographic signing for package integrity"
+  - "Version constraints and conflict resolution"
+  - "Automatic security updates"
+  - "Mirror networks for distribution"
+  - "Build farms for cross-compilation"
+successCriteria:
+  - "`port install lua` builds Lua from source inside the OS and installs it."
+  - "`lua -e \"print('hello from m3os')\"` runs successfully."
+  - "`port list` shows available ports."
+  - "`port info lua` shows Lua's version and description."
+  - "`port remove lua` uninstalls the package."
+  - "At least 5 ports build and install successfully."
+  - "Dependency resolution works: installing a port that depends on `zlib` builds `zlib` first."
+---
+
+## Why this phase matters
+
+A simple "ports" system enables building and installing third-party software inside the OS from source recipes. A port is a directory containing a `Makefile`, patches, and a description file that automates downloading (or bundling), compiling, and installing a piece of software.
+
+## How it works in m3OS
+
+The roadmap entry defines the learning scope for this phase; a deeper implementation doc has not been matched yet.
+
+## How it builds on earlier phases
+
+This phase builds on Rust Cross Compilation and turns that foundation into Ports System.
+
+## Implementation outline
+
+- Design the `Portfile` format (keep it simple: shell variables).
+- Write the `port` script/program.
+- Create the ports tree directory structure in the disk image.
+- Port Lua as the first test case (small, portable, no dependencies).
+- Verify: `port install lua` builds and installs Lua, `lua -e "print('hello')"` works.
+- Port remaining initial packages, adding patches as needed.
+- Implement dependency resolution in the `port` command.
+- Track installed packages.
+- Document how to create a new port.
+
+## Task progress snapshot
+
+No checklist tasks were discovered for this phase yet.
+
+## Documentation targets
+
+- Documentation deliverables have not been listed yet.
+
+## Deferred follow-on work
+
+- Binary package format (precompiled packages)
+- Package signing and verification
+- Version conflict resolution
+- Automatic updates
+- Mirror/repository support
+- Cross-compilation of ports on the host
+
+## Source materials
+
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/45-ports-system.md)

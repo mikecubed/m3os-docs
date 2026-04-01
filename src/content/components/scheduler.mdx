@@ -1,18 +1,19 @@
 ---
-title: Scheduler
-introducedIn: tasking
+title: "Scheduler"
+introducedIn: "tasking"
 touchedBy:
-  - userspace-entry
-summary: The scheduler decides which runnable task executes next and forms the bridge from a single-threaded kernel to a real system.
+  - "ipc-core"
+  - "true-smp-multitasking"
+  - "threading-primitives"
+  - "cross-compiled-toolchains"
+summary: "The scheduler decides which runnable work executes next and turns a single control flow into a real operating system."
 responsibilities:
-  - Track runnable tasks.
-  - Select the next task to execute.
-  - Coordinate context switching.
+  - "Track runnable tasks."
+  - "Select the next unit of work to execute."
+  - "Coordinate task switching and reclamation."
 keyFiles:
-  - path: kernel-core/src/task/scheduler.rs
-    summary: Scheduler policy and task selection.
-  - path: kernel-core/src/task/switch.S
-    summary: Assembly context-switch stub.
+  - path: "kernel/src/task/scheduler.rs"
+    summary: "kernel/src/task/scheduler.rs — IPC scheduler primitives"
 ---
 
-The scheduler is where the OS starts to feel alive. Even a minimal round-robin loop exposes the core tradeoff between simplicity, fairness, and future extensibility.
+The scheduler is introduced in Tasking and later touched by 4 phase(s).

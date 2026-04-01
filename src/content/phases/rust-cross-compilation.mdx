@@ -1,0 +1,77 @@
+---
+phase: 44
+title: "Rust Cross Compilation"
+status: planned
+category: productivity
+summary: "Rust programs compiled on the host run natively inside the OS. A documented toolchain setup enables writing Rust code on the host, cross-compiling to an x86-64 ELF binary linked against musl, and deploying it to the OS's disk image. Stretch goal: a minimal Rust program compiles inside the OS itself."
+learningGoal: "Understand Rust's cross-compilation model: targets, sysroots, and linkers."
+buildsOn:
+  - "ssh-server"
+extends: []
+replaces: []
+components:
+  - "process-model"
+learningObjectives:
+  - "Understand Rust's cross-compilation model: targets, sysroots, and linkers."
+  - "Learn how `#![no_std]` Rust programs interact with a minimal libc."
+  - "See the difference between `std` programs (full libc) and `no_std` programs (bare syscalls) on a non-Linux OS."
+  - "Experience building a custom Rust target specification."
+keyFiles: []
+codeSpotlights: []
+realOsDifferences:
+  - "Full `std` library ports with OS-specific backends"
+  - "Cargo registry access for pulling dependencies"
+  - "CI/CD pipelines for continuous cross-compilation"
+  - "Debug symbol support and remote debugging"
+successCriteria:
+  - "`hello-rust` runs inside the OS and prints its message."
+  - "A Rust program using `std::fs` can read and write files."
+  - "A Rust program using `std::net` can open TCP connections."
+  - "The xtask build system can cross-compile and package Rust programs."
+  - "The cross-compilation workflow is documented and reproducible."
+  - "At least 3 non-trivial Rust demonstration programs work."
+---
+
+## Why this phase matters
+
+Rust programs compiled on the host run natively inside the OS. A documented toolchain setup enables writing Rust code on the host, cross-compiling to an x86-64 ELF binary linked against musl, and deploying it to the OS's disk image. Stretch goal: a minimal Rust program compiles inside the OS itself.
+
+## How it works in m3OS
+
+The roadmap entry defines the learning scope for this phase; a deeper implementation doc has not been matched yet.
+
+## How it builds on earlier phases
+
+This phase builds on SSH Server and turns that foundation into Rust Cross Compilation.
+
+## Implementation outline
+
+- Set up `x86_64-unknown-linux-musl` target on the host.
+- Write and cross-compile `hello-rust` — verify it runs in the OS.
+- Identify and implement any missing syscalls that `std` needs.
+- Write the demonstration programs.
+- Extend xtask to cross-compile and package Rust userspace programs.
+- Create the custom m3os target specification for `no_std` programs.
+- Write a `syscall` crate for native m3os programs.
+- Document the full cross-compilation workflow.
+- (Stretch) Investigate porting mrustc or rustc.
+
+## Task progress snapshot
+
+No checklist tasks were discovered for this phase yet.
+
+## Documentation targets
+
+- Documentation deliverables have not been listed yet.
+
+## Deferred follow-on work
+
+- Native `std` backend for m3os (custom os module)
+- Running `cargo` inside the OS
+- Crate registry access from inside the OS
+- Remote debugging (gdb stub)
+- Dynamic linking of Rust programs
+
+## Source materials
+
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/44-rust-cross-compilation.md)

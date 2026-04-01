@@ -1,0 +1,90 @@
+---
+phase: 43
+title: "SSH Server"
+status: planned
+category: infrastructure
+summary: "An SSH server runs inside the OS, providing encrypted remote shell access. Users can connect from any standard SSH client (`ssh user@host`) with password or public key authentication. This replaces the telnet server for untrusted networks and is a major milestone: the OS is now a secure, networked, multi-user system."
+learningGoal: "Understand the SSH protocol: transport layer (encryption), user authentication layer, and connection layer (channels, sessions)."
+buildsOn:
+  - "crypto-primitives"
+extends: []
+replaces: []
+components:
+  - "network-stack"
+  - "process-model"
+  - "terminal"
+learningObjectives:
+  - "Understand the SSH protocol: transport layer (encryption), user authentication layer, and connection layer (channels, sessions)."
+  - "Learn how key exchange (Diffie-Hellman / X25519) establishes a shared secret."
+  - "See how public key authentication works without transmitting the private key."
+  - "Understand why SSH is the universal standard for remote system administration."
+keyFiles: []
+codeSpotlights: []
+realOsDifferences:
+  - "SFTP and SCP for file transfer"
+  - "Port forwarding and tunneling"
+  - "X11 forwarding"
+  - "Agent forwarding"
+  - "ProxyJump / ProxyCommand"
+  - "Match blocks for conditional configuration"
+  - "Kerberos/GSSAPI authentication"
+  - "Certificate-based authentication"
+  - "Audit logging"
+successCriteria:
+  - "`sshd` starts at boot and listens on port 22."
+  - "`ssh user@host` from a standard OpenSSH client connects successfully."
+  - "Password authentication works."
+  - "Public key authentication works with `authorized_keys`."
+  - "The remote shell is fully functional (commands, pipes, editor, compiler)."
+  - "Multiple simultaneous SSH sessions work."
+  - "Host key fingerprint is stable across reboots."
+  - "Connection is encrypted (verified by inspecting traffic with tcpdump/wireshark)."
+  - "Closing the SSH client cleanly terminates the remote session."
+  - "Invalid credentials are rejected."
+---
+
+## Why this phase matters
+
+An SSH server runs inside the OS, providing encrypted remote shell access. Users can connect from any standard SSH client (`ssh user@host`) with password or public key authentication. This replaces the telnet server for untrusted networks and is a major milestone: the OS is now a secure, networked, multi-user system.
+
+## How it works in m3OS
+
+The roadmap entry defines the learning scope for this phase; a deeper implementation doc has not been matched yet.
+
+## How it builds on earlier phases
+
+This phase builds on Crypto Primitives and turns that foundation into SSH Server.
+
+## Implementation outline
+
+- Cross-compile Dropbear with musl (or begin SSH protocol implementation).
+- Generate Ed25519 host key at first boot.
+- Implement SSH transport: version exchange, key exchange, encrypted packets.
+- Implement password authentication against `/etc/shadow`.
+- Implement session channel with PTY allocation.
+- Implement shell execution (fork + setsid + exec login).
+- Test from host with `ssh -p 2222 user@localhost`.
+- Implement public key authentication.
+- Add sshd to init's startup sequence.
+- Test multiple simultaneous SSH sessions.
+
+## Task progress snapshot
+
+No checklist tasks were discovered for this phase yet.
+
+## Documentation targets
+
+- Documentation deliverables have not been listed yet.
+
+## Deferred follow-on work
+
+- SFTP / SCP file transfer
+- Port forwarding and tunneling
+- SSH client (for connecting from the OS to other machines)
+- Key agent
+- Certificate authentication
+- Connection rate limiting and brute-force protection
+
+## Source materials
+
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/43-ssh-server.md)

@@ -1,0 +1,91 @@
+---
+phase: 46
+title: "System Services"
+status: planned
+category: infrastructure
+summary: "The OS has a service manager, system logging, and scheduled task execution. Services (sshd, telnetd, etc.) are managed by a unified init/service system that handles startup ordering, restart on failure, and clean shutdown. The OS behaves like a real server that can be administered remotely."
+learningGoal: "Understand how init systems (SysV init, systemd, runit) manage service lifecycles."
+buildsOn:
+  - "ports-system"
+extends: []
+replaces: []
+components:
+  - "network-stack"
+  - "process-model"
+learningObjectives:
+  - "Understand how init systems (SysV init, systemd, runit) manage service lifecycles."
+  - "Learn how syslog provides centralized logging for all system services."
+  - "See how cron enables scheduled automation."
+  - "Understand daemon processes: double-fork, setsid, and why they exist."
+keyFiles: []
+codeSpotlights: []
+realOsDifferences:
+  - "systemd: unit files, socket activation, cgroups, journal, timer units — enormous scope"
+  - "runit: simple supervision tree, process 1/2/3 stages"
+  - "OpenRC: dependency-based init with parallel startup"
+  - "launchd (macOS): combines init, cron, inetd, and more"
+  - "Mailto on job output"
+  - "Timezone-aware scheduling"
+  - "Randomized delay"
+  - "Access control (cron.allow, cron.deny)"
+successCriteria:
+  - "Services defined in `/etc/services.d/` start automatically at boot in dependency order."
+  - "`service status sshd` shows the service is running with its PID."
+  - "Killing a `restart=always` service causes it to be automatically restarted."
+  - "`service stop telnetd` cleanly stops the telnet server."
+  - "Log messages from services appear in `/var/log/messages`."
+  - "`logger \"test message\"` writes to the system log."
+  - "A cron job scheduled for every minute executes on time."
+  - "`shutdown` cleanly stops all services and halts the system."
+  - "`reboot` cleanly restarts the system."
+  - "`who` shows currently logged-in users."
+---
+
+## Why this phase matters
+
+The OS has a service manager, system logging, and scheduled task execution. Services (sshd, telnetd, etc.) are managed by a unified init/service system that handles startup ordering, restart on failure, and clean shutdown. The OS behaves like a real server that can be administered remotely.
+
+## How it works in m3OS
+
+The roadmap entry defines the learning scope for this phase; a deeper implementation doc has not been matched yet.
+
+## How it builds on earlier phases
+
+This phase builds on Ports System and turns that foundation into System Services.
+
+## Implementation outline
+
+- Enhance init to read service definitions from `/etc/services.d/`.
+- Implement dependency ordering (topological sort).
+- Implement the `service` command.
+- Implement service restart monitoring (SIGCHLD handler).
+- Write `syslogd`: listen on `/dev/log` (or a named pipe), write to log files.
+- Write the `logger` command.
+- Write `crond`: parse crontab format, sleep until next job, execute.
+- Write `crontab` command.
+- Write `shutdown`, `reboot`, `hostname`, `date`, `who` utilities.
+- Implement kernel reboot/shutdown syscalls.
+- Test full lifecycle: boot → services start → cron runs → remote login → shutdown.
+
+## Task progress snapshot
+
+No checklist tasks were discovered for this phase yet.
+
+## Documentation targets
+
+- Documentation deliverables have not been listed yet.
+
+## Deferred follow-on work
+
+- Socket activation (systemd-style)
+- Service sandboxing (cgroups, namespaces)
+- Journal (structured logging)
+- Log rotation
+- Remote syslog
+- NTP time synchronization
+- systemd-compatible unit files
+- Runlevels / targets
+
+## Source materials
+
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/46-system-services.md)

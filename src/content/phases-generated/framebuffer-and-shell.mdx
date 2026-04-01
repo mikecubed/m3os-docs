@@ -1,0 +1,70 @@
+---
+phase: 9
+title: "Framebuffer And Shell"
+status: complete
+category: productivity
+summary: "Make the OS pleasant to interact with by adding on-screen text output and a very small shell for manual exploration."
+learningGoal: "Understand how UI can remain a userspace concern in a microkernel."
+buildsOn:
+  - "storage-and-vfs"
+extends: []
+replaces: []
+components:
+  - "terminal"
+learningObjectives:
+  - "Understand how UI can remain a userspace concern in a microkernel."
+  - "Learn the basics of text rendering, input handling, and command dispatch."
+  - "End with a system that feels like an operating system rather than a kernel demo."
+keyFiles: []
+codeSpotlights: []
+realOsDifferences:
+  - "Real systems have richer terminal stacks, GPU drivers, process launch models, shells, libraries, and compatibility layers. A learning system should stop once text I/O and a few commands make the service architecture visible and satisfying to use."
+successCriteria:
+  - "Text appears on screen in addition to serial output."
+  - "Keyboard input reaches the shell through userspace services."
+  - "The shell can run a handful of built-in commands."
+  - "File-oriented commands such as `ls` and `cat` exercise the VFS path."
+---
+
+## Why this phase matters
+
+Make the OS pleasant to interact with by adding on-screen text output and a very small shell for manual exploration.
+
+## How it works in m3OS
+
+Phase 9 adds the first interactive layer to m³OS: a pixel framebuffer text console, keyboard IPC, and a tiny shell with built-in file commands. The additions are:
+
+## How it builds on earlier phases
+
+This phase builds on Storage And VFS and turns that foundation into Framebuffer And Shell.
+
+## Implementation outline
+
+- Parse framebuffer information from boot data and expose a simple drawing API.
+- Add text rendering with a fixed bitmap font.
+- Extend the console service to own the visible terminal state.
+- Build a tiny shell that speaks only to documented services.
+- Keep the command model simple and text-oriented.
+
+## Task progress snapshot
+
+12 of 12 tracked tasks are complete.
+
+## Documentation targets
+
+- explain framebuffer ownership and text rendering at a high level
+- document the shell command model and service dependencies
+- explain why the shell is intentionally tiny
+
+## Deferred follow-on work
+
+- pipes and redirection
+- job control
+- full-screen applications
+- advanced graphics or windowing
+
+## Source materials
+
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/09-framebuffer-and-shell.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/09-framebuffer-and-shell.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/09-framebuffer-and-shell-tasks.md)

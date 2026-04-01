@@ -15,6 +15,9 @@ export async function getStaticPaths() {
 
 const { component } = Astro.props;
 const { Content } = await render(component);
+const phaseTitleLookup = new Map(
+  (await getCollection('phases')).map((phase) => [phase.id, phase.data.title] as const),
+);
 ---
 
 <Layout title={`m3OS Docs | ${component.data.title}`}>
@@ -29,7 +32,7 @@ const { Content } = await render(component);
       <p class="eyebrow">Introduced in</p>
       <p>
         <a href={withBase(`/phases/${component.data.introducedIn}/`)}>
-          {component.data.introducedIn}
+          {phaseTitleLookup.get(component.data.introducedIn) ?? component.data.introducedIn}
         </a>
       </p>
     </article>
@@ -38,7 +41,9 @@ const { Content } = await render(component);
       <ul>
         {component.data.touchedBy.map((phaseSlug) => (
           <li>
-            <a href={withBase(`/phases/${phaseSlug}/`)}>{phaseSlug}</a>
+            <a href={withBase(`/phases/${phaseSlug}/`)}>
+              {phaseTitleLookup.get(phaseSlug) ?? phaseSlug}
+            </a>
           </li>
         ))}
       </ul>

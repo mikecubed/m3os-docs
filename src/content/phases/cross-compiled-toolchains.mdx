@@ -1,0 +1,65 @@
+---
+phase: 50
+title: "Cross Compiled Toolchains"
+status: planned
+category: productivity
+summary: "Three major development tools — git, Python, and Clang — are cross-compiled on the host and bundled on the m3OS disk image. Users can version-control code with git, run Python scripts, and compile optimized C/C++ programs with Clang, all inside the OS. This follows the same pattern as TCC (Phase 31): build on host with musl, copy to disk image, run inside the OS."
+learningGoal: "Understand how large C and C++ projects are cross-compiled with musl for static linking."
+buildsOn:
+  - "audio"
+extends: []
+replaces: []
+components:
+  - "boot-path"
+  - "memory-manager"
+  - "scheduler"
+learningObjectives:
+  - "Understand how large C and C++ projects are cross-compiled with musl for static linking."
+  - "Learn how `xtask` integrates external tool builds into the disk image pipeline."
+  - "See how demand paging (Phase 36) enables running binaries much larger than TCC."
+keyFiles: []
+codeSpotlights: []
+realOsDifferences: []
+successCriteria:
+  - "`git init && git add . && git commit -m \"test\"` works inside m3OS."
+  - "`git log --oneline` shows commit history."
+  - "`git diff` shows file changes."
+  - "`python3 -c \"print('hello from m3OS')\"` works."
+  - "`python3 -c \"import json; print(json.dumps({'os': 'm3OS'}))\"` works."
+  - "`python3 /usr/src/fibonacci.py` runs a script."
+  - "`clang -O2 /usr/src/hello.c -o /tmp/hello && /tmp/hello` works."
+  - "`clang++ /usr/src/hello.cpp -o /tmp/hello_cpp && /tmp/hello_cpp` works."
+  - "`clang -O2 /usr/src/tcc/tcc.c -o /tmp/tcc-opt` compiles TCC with optimization."
+---
+
+## Why this phase matters
+
+Three major development tools — git, Python, and Clang — are cross-compiled on the host and bundled on the m3OS disk image. Users can version-control code with git, run Python scripts, and compile optimized C/C++ programs with Clang, all inside the OS. This follows the same pattern as TCC (Phase 31): build on host with musl, copy to disk image, run inside the OS.
+
+## How it works in m3OS
+
+The roadmap entry defines the learning scope for this phase; a deeper implementation doc has not been matched yet.
+
+## How it builds on earlier phases
+
+This phase builds on Audio and turns that foundation into Cross Compiled Toolchains.
+
+## Implementation outline
+
+- Implementation steps have not been extracted yet.
+
+## Task progress snapshot
+
+No checklist tasks were discovered for this phase yet.
+
+## Documentation targets
+
+- Documentation deliverables have not been listed yet.
+
+## Deferred follow-on work
+
+- No deferred items were listed in the roadmap entry.
+
+## Source materials
+
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/50-cross-compiled-toolchains.md)

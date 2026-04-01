@@ -1,0 +1,40 @@
+---
+title: "Process Model"
+introducedIn: "userspace-entry"
+touchedBy:
+  - "secure-boot"
+  - "process-model"
+  - "writable-fs"
+  - "shell-and-tools"
+  - "directory-vfs"
+  - "signal-handlers"
+  - "userspace-init-shell"
+  - "smp"
+  - "text-editor"
+  - "user-accounts"
+  - "ext2-filesystem"
+  - "pty-subsystem"
+  - "telnet-server"
+  - "compiler-bootstrap"
+  - "kernel-memory-improvements"
+  - "filesystem-enhancements"
+  - "threading-primitives"
+  - "expanded-coreutils"
+  - "ssh-server"
+  - "rust-cross-compilation"
+  - "system-services"
+  - "mouse-input"
+  - "audio"
+  - "nodejs"
+  - "claude-code"
+summary: "The process model defines what a userspace program is in m3OS and how execution moves into and between processes."
+responsibilities:
+  - "Represent userspace processes and their lifecycle."
+  - "Track address spaces, execution state, and process relationships."
+  - "Coordinate process creation, exit, and transition to userspace."
+keyFiles:
+  - path: "kernel/src/process/mod.rs"
+    summary: "Referenced in the implementation notes."
+---
+
+The process model is introduced in Userspace Entry and later touched by 25 phase(s).

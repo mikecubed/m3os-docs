@@ -1,0 +1,75 @@
+---
+phase: 13
+title: "Writable FS"
+status: planned
+category: infrastructure
+summary: "Allow processes to create, write, and delete files so the OS has persistent and ephemeral mutable storage. A RAM-backed tmpfs provides scratch space; FAT32 gains write support for persistence across reboots."
+learningGoal: "Understand the difference between a page-backed in-memory filesystem and a disk-backed one."
+buildsOn:
+  - "posix-compat"
+extends: []
+replaces: []
+components:
+  - "process-model"
+  - "vfs"
+learningObjectives:
+  - "Understand the difference between a page-backed in-memory filesystem and a disk-backed one."
+  - "See how the VFS abstraction layer hides the difference from callers."
+  - "Learn the minimal write path for FAT32: directory entries, cluster chains, FAT table updates."
+keyFiles: []
+codeSpotlights: []
+realOsDifferences:
+  - "Production kernels use a page cache that unifies file data and anonymous memory, deferring writes to disk with periodic background flushing (pdflush/writeback threads). FAT32 on real systems is wrapped in transaction layers or replaced entirely with journaling filesystems (ext4, APFS, NTFS) to survive power loss. This phase writes through immediately and accepts the corruption risk, which is fine for a single-user development machine running in QEMU."
+successCriteria:
+  - "A program can create a file in `/tmp`, write text into it, close it, reopen it, and read the same text back."
+  - "A file created on the FAT32 partition survives a reboot and is visible to the host."
+  - "`unlink` removes a tmpfs file and frees its pages."
+  - "Directory creation and removal work on both backends."
+  - "Writing past the end of a FAT32 file allocates new clusters correctly."
+---
+
+## Why this phase matters
+
+Allow processes to create, write, and delete files so the OS has persistent and ephemeral mutable storage. A RAM-backed tmpfs provides scratch space; FAT32 gains write support for persistence across reboots.
+
+## How it works in m3OS
+
+Phase 13 adds a writable in-memory filesystem (tmpfs) mounted at `/tmp` and extends the Linux syscall ABI with file-mutation operations.  Userspace C programs compiled with musl can now create, write, read, and delete files using standard POSIX calls.
+
+## How it builds on earlier phases
+
+This phase builds on POSIX Compat and turns that foundation into Writable FS.
+
+## Implementation outline
+
+- Add a `WriteableFs` trait to the VFS server alongside the existing `ReadableFs`.
+- Implement tmpfs as a hash map from path to page list; no disk involved.
+- Mount tmpfs at `/tmp` during init; verify read/write round-trips.
+- Add the FAT32 write path: allocate clusters, update the FAT table, write directory entries.
+- Add `fsync` as a no-op on tmpfs and a flush call on FAT32.
+- Expose write-oriented syscalls through the POSIX compatibility layer.
+
+## Task progress snapshot
+
+No checklist tasks were discovered for this phase yet.
+
+## Documentation targets
+
+- explain how tmpfs stores file data as kernel page lists with no disk involvement
+- document the FAT32 write path: cluster allocation, FAT table update, directory entry creation
+- explain what `fsync` means and why tmpfs can ignore it
+- note the crash-safety gap: why a power loss during a FAT32 write may corrupt the filesystem
+
+## Deferred follow-on work
+
+- page cache and write-back buffering
+- journaling or copy-on-write crash recovery
+- file permissions and ownership bits
+- hard links and symbolic links
+- `mmap` of file-backed pages
+- extended attributes
+
+## Source materials
+
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/13-writable-fs.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/13-writable-filesystem.md)

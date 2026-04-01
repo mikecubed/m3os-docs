@@ -1,0 +1,38 @@
+---
+title: "Memory Manager"
+introducedIn: "memory-basics"
+touchedBy:
+  - "posix-compat"
+  - "shell-and-tools"
+  - "memory-reclamation"
+  - "signal-handlers"
+  - "text-editor"
+  - "kernel-memory-improvements"
+  - "expanded-memory"
+  - "mouse-input"
+  - "cross-compiled-toolchains"
+summary: "The memory manager owns frame allocation, virtual mappings, and the policies that let later phases isolate work safely."
+responsibilities:
+  - "Allocate and reclaim physical frames."
+  - "Manage kernel and userspace mappings."
+  - "Provide the memory primitives later subsystems build on."
+keyFiles:
+  - path: "kernel-core/src/buddy.rs"
+    summary: "The frame allocator uses a buddy allocator (kernel-core/src/buddy.rs) with 10 order"
+  - path: "kernel-core/src/slab.rs"
+    summary: "Slab allocator (kernel-core/src/slab.rs) provides fixed-size caches on top of the"
+  - path: "kernel/src/mm/user_mem.rs"
+    summary: "Both functions in kernel/src/mm/user_mem.rs follow the same pattern:"
+  - path: "kernel/src/mm/elf.rs"
+    summary: "kernel/src/mm/elf.rs — setup_abi_stack_with_envp (envp support)"
+  - path: "kernel/src/mm/frame_allocator.rs"
+    summary: "kernel/src/mm/frame_allocator.rs. Keep the same FrameAllocator trait interface"
+  - path: "kernel/src/mm/mod.rs"
+    summary: "Update free_process_page_table() in kernel/src/mm/mod.rs to walk all four"
+  - path: "kernel/src/mm/heap.rs"
+    summary: "RetryAllocator wrapper, heap_stats()"
+  - path: "kernel/src/mm/slab.rs"
+    summary: "New: kernel slab cache instances"
+---
+
+The memory manager is introduced in Memory Basics and later touched by 9 phase(s).

@@ -1,0 +1,86 @@
+---
+phase: 39
+title: "Unix Domain Sockets"
+status: planned
+category: infrastructure
+summary: "The OS supports `AF_UNIX` (Unix domain) sockets for high-performance local inter-process communication. Programs can create stream and datagram sockets bound to filesystem paths or abstract addresses. This is the primary IPC mechanism on Linux, used by D-Bus, X11, systemd, PostgreSQL, Docker, and many other systems."
+learningGoal: "Understand why Unix domain sockets exist: local IPC without network overhead."
+buildsOn:
+  - "filesystem-enhancements"
+extends: []
+replaces: []
+components:
+  - "network-stack"
+  - "vfs"
+learningObjectives:
+  - "Understand why Unix domain sockets exist: local IPC without network overhead."
+  - "Learn the difference between named sockets (filesystem path) and abstract sockets (Linux-specific, no filesystem entry)."
+  - "See how `socketpair()` creates connected socket pairs for parent-child communication."
+  - "Understand `SCM_RIGHTS` — passing file descriptors between processes over a socket."
+keyFiles: []
+codeSpotlights: []
+realOsDifferences:
+  - "**SCM_RIGHTS** — pass file descriptors between processes."
+  - "**SCM_CREDENTIALS** — pass sender's PID/UID/GID."
+  - "**SOCK_SEQPACKET** — connection-oriented with message boundaries."
+  - "**Abstract namespace** — sockets without filesystem entries."
+  - "**Autobind** — kernel-assigned abstract addresses."
+  - "**SO_PEERCRED** — query connected peer's credentials."
+  - "**Ancillary data** — arbitrary control messages."
+successCriteria:
+  - "`socketpair(AF_UNIX, SOCK_STREAM, 0, sv)` creates a working connected pair."
+  - "A server can `bind` + `listen` + `accept` on a named socket path."
+  - "A client can `connect` to the named socket and exchange data."
+  - "`poll()` and `epoll` work with Unix domain socket fds."
+  - "Datagram sockets preserve message boundaries."
+  - "`unlink()` removes a named socket from the filesystem."
+  - "Socket file permissions are enforced (non-root cannot connect to root-owned socket)."
+  - "All existing tests pass without regression."
+---
+
+## Why this phase matters
+
+The OS supports `AF_UNIX` (Unix domain) sockets for high-performance local inter-process communication. Programs can create stream and datagram sockets bound to filesystem paths or abstract addresses. This is the primary IPC mechanism on Linux, used by D-Bus, X11, systemd, PostgreSQL, Docker, and many other systems.
+
+## How it works in m3OS
+
+The roadmap entry defines the learning scope for this phase; a deeper implementation doc has not been matched yet.
+
+## How it builds on earlier phases
+
+This phase builds on Filesystem Enhancements and turns that foundation into Unix Domain Sockets.
+
+## Implementation outline
+
+- Add `AF_UNIX` socket type to the socket syscall dispatcher.
+- Implement `UnixSocket` kernel data structure with ring buffers.
+- Implement `socketpair()` — simplest case (no filesystem, pre-connected).
+- Implement `bind()` for named sockets (create socket file in VFS).
+- Implement `connect()` to named sockets (find socket file, establish connection).
+- Implement `listen()` + `accept()` for stream sockets.
+- Implement `read()`/`write()` for connected stream sockets.
+- Implement `sendto()`/`recvfrom()` for datagram sockets.
+- Add poll/epoll support for Unix socket fds.
+- Test: syslog-style server accepting connections on `/dev/log`.
+- Test: `socketpair()` for parent-child communication.
+
+## Task progress snapshot
+
+No checklist tasks were discovered for this phase yet.
+
+## Documentation targets
+
+- Documentation deliverables have not been listed yet.
+
+## Deferred follow-on work
+
+- SCM_RIGHTS (file descriptor passing)
+- SCM_CREDENTIALS (credential passing)
+- SOCK_SEQPACKET
+- Abstract namespace sockets
+- SO_PEERCRED
+- Autobind
+
+## Source materials
+
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/39-unix-domain-sockets.md)

@@ -1,0 +1,125 @@
+---
+phase: 28
+title: "Ext2 Filesystem"
+status: planned
+category: infrastructure
+summary: "Replace FAT32 as the primary persistent filesystem with ext2, which natively stores Unix ownership (uid/gid), permission modes, and timestamps in every inode. After this phase, file permissions set via `chmod`/`chown` survive reboots and the FAT32 permissions index file workaround from Phase 27 is no longer needed."
+learningGoal: "Understand on-disk filesystem layout: superblock, block group descriptors, inode tables, block/inode bitmaps."
+buildsOn:
+  - "user-accounts"
+extends: []
+replaces: []
+components:
+  - "vfs"
+  - "process-model"
+  - "boot-path"
+learningObjectives:
+  - "Understand on-disk filesystem layout: superblock, block group descriptors, inode tables, block/inode bitmaps."
+  - "Learn how inodes map file metadata (permissions, ownership, size, timestamps) to data blocks via direct, indirect, and double-indirect pointers."
+  - "See how directory entries are stored as linked lists within data blocks."
+  - "Understand block allocation strategies and free-space management."
+keyFiles:
+  - path: "kernel-core/src/fs/"
+    summary: "Add ext2 data structure definitions to kernel-core/src/fs/: superblock,"
+  - path: "kernel-core/src/fs/ext2.rs"
+    summary: "All on-disk structures are defined in kernel-core/src/fs/ext2.rs for"
+  - path: "kernel/src/fs/ext2.rs"
+    summary: "The kernel-side driver (kernel/src/fs/ext2.rs) wraps all I/O in the"
+  - path: "kernel/src/process/mod.rs"
+    summary: "The FdBackend enum in kernel/src/process/mod.rs has an Ext2Disk"
+  - path: "xtask/src/main.rs"
+    summary: "xtask/src/main.rs creates the ext2 disk image at build time:"
+codeSpotlights:
+  - title: "Add ext2 data structure definitions to kernel-core/src/fs/: superblock,"
+    file: "kernel-core/src/fs/"
+    lines: "See file"
+    summary: "Add ext2 data structure definitions to kernel-core/src/fs/: superblock,"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel-core/src/fs/"
+  - title: "All on-disk structures are defined in kernel-core/src/fs/ext2.rs for"
+    file: "kernel-core/src/fs/ext2.rs"
+    lines: "See file"
+    summary: "All on-disk structures are defined in kernel-core/src/fs/ext2.rs for"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel-core/src/fs/ext2.rs"
+  - title: "The kernel-side driver (kernel/src/fs/ext2.rs) wraps all I/O in the"
+    file: "kernel/src/fs/ext2.rs"
+    lines: "See file"
+    summary: "The kernel-side driver (kernel/src/fs/ext2.rs) wraps all I/O in the"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/fs/ext2.rs"
+realOsDifferences:
+  - "**ext3/ext4 journaling**: crash recovery via a write-ahead log. ext2 has no journal — an unclean shutdown requires `e2fsck` to repair."
+  - "**Extent trees** (ext4): replace block pointer lists for better large-file performance."
+  - "**Triple-indirect blocks**: ext2 supports triple-indirect for files >64 MB. We defer this — double-indirect handles up to ~64 MB with 4K blocks."
+  - "**Sparse superblock**: backup superblocks only in certain block groups."
+  - "**Directory indexing** (ext3+ htree): hash-based directory lookup for large directories. We use linear scan."
+  - "**Extended attributes** (xattr): ACLs, SELinux labels, etc."
+  - "**Block group locality**: real implementations try to allocate files near their directory's block group for locality. We use simple first-fit."
+  - "**Delayed allocation** (ext4): allocate blocks at writeback time, not at write time, for better layout."
+  - "**Online resize and defragmentation**."
+successCriteria:
+  - "Boot mounts an ext2 partition at `/data` (or `/`)."
+  - "Files created with `touch`/`edit` are stored on ext2 and survive reboot."
+  - "`ls -l` (or fstat) shows correct uid, gid, and permission mode from ext2 inodes."
+  - "`chmod 600 /etc/shadow` persists across reboot."
+  - "`chown user:user /home/user/file` persists across reboot."
+  - "Permission enforcement from Phase 27 works identically with ext2 backend."
+  - "`cargo xtask check` passes."
+  - "The ext2 image can be mounted and inspected on the host with standard Linux tools (`mount -o loop`, `debugfs`, `ls -la`)."
+  - "No regressions in existing functionality."
+---
+
+## Why this phase matters
+
+Replace FAT32 as the primary persistent filesystem with ext2, which natively stores Unix ownership (uid/gid), permission modes, and timestamps in every inode. After this phase, file permissions set via `chmod`/`chown` survive reboots and the FAT32 permissions index file workaround from Phase 27 is no longer needed.
+
+## How it works in m3OS
+
+Phase 28 replaces the FAT32 permissions overlay with a native ext2 filesystem implementation. ext2 stores Unix ownership (uid/gid), permission modes, and timestamps directly in inodes, eliminating the `.m3os_permissions` index file workaround from Phase 27.
+The implementation covers ext2 revision 0 with 4K blocks, direct + single-indirect + double-indirect block pointers, linked-list directory entries, and block/inode bitmap management. The ext2 partition is mounted at `/` and serves as the primary persistent filesystem.
+
+## How it builds on earlier phases
+
+This phase builds on User Accounts and turns that foundation into Ext2 Filesystem.
+
+## Implementation outline
+
+- Add ext2 on-disk structure definitions to `kernel-core` with unit tests.
+- Implement superblock and block group descriptor parsing.
+- Implement inode reading and block pointer traversal (direct + indirect).
+- Implement directory entry parsing and path resolution.
+- Implement read-only file access through the VFS layer.
+- Implement block/inode bitmap management (allocation and freeing).
+- Implement file creation, writing, truncation, and deletion.
+- Implement directory creation and deletion.
+- Implement `VfsMetadata` trait: chmod/chown modify inode fields directly.
+- Update xtask to create ext2 images with `mkfs.ext2`.
+- Mount ext2 as `/data` instead of FAT32.
+- Migrate `/etc/passwd`, `/etc/shadow`, `/etc/group` to ext2.
+- Remove FAT32 permissions index file code.
+
+## Task progress snapshot
+
+No checklist tasks were discovered for this phase yet.
+
+## Documentation targets
+
+- Documentation deliverables have not been listed yet.
+
+## Deferred follow-on work
+
+- ext3/ext4 journaling
+- Triple-indirect block pointers
+- Extended attributes (xattr)
+- Directory hash tree indexing
+- Sparse superblock backups
+- Block group locality heuristics
+- Online filesystem resize
+- `fsck` / filesystem repair tool
+- Symbolic links (stored in inode for short links, in data blocks for long)
+- Hard link count management beyond basic tracking
+- File timestamps beyond mtime (atime, ctime updates)
+
+## Source materials
+
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/28-ext2-filesystem.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/28-ext2-filesystem.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/28-ext2-filesystem-tasks.md)

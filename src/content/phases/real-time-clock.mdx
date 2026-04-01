@@ -1,0 +1,123 @@
+---
+phase: 34
+title: "Real Time Clock"
+status: complete
+category: foundations
+summary: "The OS knows what time it is. A CMOS RTC driver reads the hardware clock at boot to establish the current wall-clock time. `clock_gettime(CLOCK_REALTIME)` returns actual Unix timestamps, distinct from `CLOCK_MONOTONIC` which tracks time since boot. The `date` command displays the current date and time."
+learningGoal: "Understand the difference between wall-clock time (RTC, NTP) and monotonic time (tick counter)."
+buildsOn:
+  - "kernel-memory-improvements"
+extends: []
+replaces: []
+components:
+  - "vfs"
+  - "boot-path"
+learningObjectives:
+  - "Understand the difference between wall-clock time (RTC, NTP) and monotonic time (tick counter)."
+  - "Learn how the CMOS RTC hardware works (I/O ports 0x70/0x71, BCD encoding, update-in-progress bit)."
+  - "See why `CLOCK_REALTIME` and `CLOCK_MONOTONIC` are separate clocks and when each is appropriate."
+  - "Understand time representation: Unix epoch, `struct timespec`, UTC vs local time."
+keyFiles:
+  - path: "kernel/src/rtc.rs"
+    summary: "Reads the MC146818-compatible RTC via CMOS I/O ports:"
+  - path: "kernel-core/src/time.rs"
+    summary: "century=20 if the register returns 0."
+  - path: "kernel-core/src/lib.rs"
+    summary: "Added pub mod time"
+  - path: "kernel/src/main.rs"
+    summary: "Added mod rtc + init_rtc() call"
+  - path: "kernel/src/arch/x86_64/syscall.rs"
+    summary: "Updated clock_gettime/gettimeofday"
+  - path: "kernel/src/fs/ramdisk.rs"
+    summary: "Added date/uptime to initrd"
+  - path: "userspace/syscall-lib/src/lib.rs"
+    summary: "Added time wrappers + formatting"
+  - path: "userspace/coreutils-rs/src/date.rs"
+    summary: "New: date utility"
+  - path: "userspace/coreutils-rs/src/uptime.rs"
+    summary: "New: uptime utility"
+  - path: "userspace/coreutils-rs/Cargo.toml"
+    summary: "Added date/uptime binaries"
+  - path: "xtask/src/main.rs"
+    summary: "Added date/uptime to build list"
+  - path: "kernel/Cargo.toml"
+    summary: "Version bump 0.33.0 → 0.34.0"
+codeSpotlights:
+  - title: "Reads the MC146818-compatible RTC via CMOS I/O ports:"
+    file: "kernel/src/rtc.rs"
+    lines: "See file"
+    summary: "Reads the MC146818-compatible RTC via CMOS I/O ports:"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/rtc.rs"
+  - title: "century=20 if the register returns 0"
+    file: "kernel-core/src/time.rs"
+    lines: "See file"
+    summary: "century=20 if the register returns 0."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel-core/src/time.rs"
+  - title: "Added pub mod time"
+    file: "kernel-core/src/lib.rs"
+    lines: "See file"
+    summary: "Added pub mod time"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel-core/src/lib.rs"
+realOsDifferences:
+  - "**NTP** (Network Time Protocol) to synchronize wall-clock time with atomic clocks."
+  - "**HPET** or **TSC** for nanosecond-resolution timekeeping (vs our 10ms LAPIC ticks)."
+  - "**vDSO** to serve `clock_gettime()` from userspace without a syscall."
+  - "**Timezone databases** (tzdata) for local time conversion."
+  - "**RTC IRQ** (interrupt on alarm or periodic) for wakeup-from-sleep."
+  - "**adjtimex()** syscall for fine-grained clock steering."
+successCriteria:
+  - "`clock_gettime(CLOCK_REALTIME)` returns correct Unix timestamps (verified against host)."
+  - "`clock_gettime(CLOCK_MONOTONIC)` returns time since boot (unchanged from current behavior)."
+  - "`date` command displays the correct current date and time."
+  - "RTC read handles BCD vs binary mode correctly."
+  - "RTC read handles 12-hour vs 24-hour mode correctly."
+  - "Time conversion passes test vectors (known dates → Unix timestamps)."
+  - "Boot log shows the detected wall-clock time."
+---
+
+## Why this phase matters
+
+The OS knows what time it is. A CMOS RTC driver reads the hardware clock at boot to establish the current wall-clock time. `clock_gettime(CLOCK_REALTIME)` returns actual Unix timestamps, distinct from `CLOCK_MONOTONIC` which tracks time since boot. The `date` command displays the current date and time.
+
+## How it works in m3OS
+
+Phase 34 adds wall-clock time awareness to m3OS by reading the CMOS Real-Time Clock (RTC) at boot, computing the Unix epoch timestamp, and exposing it through the `clock_gettime()` and `gettimeofday()` syscalls. Userspace utilities `date` and `uptime` are provided.
+
+## How it builds on earlier phases
+
+This phase builds on Kernel Memory Improvements and turns that foundation into Real Time Clock.
+
+## Implementation outline
+
+- Write CMOS RTC read functions (with BCD conversion and atomic read loop).
+- Implement `rtc_to_unix_timestamp()` in kernel-core (host-testable).
+- Read RTC during kernel boot and store `BOOT_EPOCH_SECS`.
+- Update `clock_gettime()` to distinguish `CLOCK_REALTIME` vs `CLOCK_MONOTONIC`.
+- Update `gettimeofday()` to use wall-clock time.
+- Write `date` userspace utility.
+- Write host-side tests for time conversion (known dates → expected timestamps).
+- Verify: `date` inside the OS matches host system time (within a few seconds).
+
+## Task progress snapshot
+
+48 of 48 tracked tasks are complete.
+
+## Documentation targets
+
+- Documentation deliverables have not been listed yet.
+
+## Deferred follow-on work
+
+- NTP time synchronization
+- High-resolution timers (HPET, TSC)
+- vDSO for fast clock_gettime
+- Timezone support
+- RTC alarm / wakeup
+- adjtimex() clock steering
+- Hardware watchdog timer
+
+## Source materials
+
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/34-real-time-clock.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/34-timekeeping.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/34-real-time-clock-tasks.md)

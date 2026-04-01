@@ -1,0 +1,116 @@
+---
+phase: 29
+title: "PTY Subsystem"
+status: planned
+category: userspace
+summary: "Implement real pseudo-terminal (PTY) pairs so that multiple independent terminal sessions can run simultaneously. A PTY master/slave pair connects a terminal emulator (or network server) to a shell process, enabling remote access (telnet, SSH) and local terminal multiplexing."
+learningGoal: "Understand the Unix PTY model: master side (application) and slave side (shell)."
+buildsOn:
+  - "ext2-filesystem"
+extends: []
+replaces: []
+components:
+  - "terminal"
+  - "process-model"
+learningObjectives:
+  - "Understand the Unix PTY model: master side (application) and slave side (shell)."
+  - "Learn how terminal line discipline sits between the PTY pair, processing input/output."
+  - "See why PTYs are the mechanism that makes SSH, screen, tmux, and xterm work."
+  - "Understand the `openpty`/`posix_openpt`/`grantpt`/`unlockpt` API."
+keyFiles:
+  - path: "kernel-core/src/pty.rs"
+    summary: "**New** — PtyRingBuffer, PtyPairState, unit tests"
+  - path: "kernel-core/src/lib.rs"
+    summary: "Added pub mod pty"
+  - path: "kernel/src/pty.rs"
+    summary: "**New** — PTY_TABLE, alloc/free/close lifecycle"
+  - path: "kernel/src/main.rs"
+    summary: "Added mod pty"
+  - path: "kernel/src/tty.rs"
+    summary: "Removed old alloc_pty skeleton"
+  - path: "kernel/src/process/mod.rs"
+    summary: "Added session_id, controlling_tty, ControllingTty enum; PTY cleanup in close/cloexec"
+  - path: "kernel/src/arch/x86_64/syscall.rs"
+    summary: "PTY read/write/close/open/ioctl, setsid/getsid, fork session inheritance"
+  - path: "userspace/syscall-lib/src/lib.rs"
+    summary: "openpty(), setsid(), getsid() wrappers"
+  - path: "userspace/pty-test/"
+    summary: "**New** — PTY acceptance test program"
+  - path: "kernel/Cargo.toml"
+    summary: "Version bump to 0.29.0"
+codeSpotlights:
+  - title: "**New** — PtyRingBuffer, PtyPairState, unit tests"
+    file: "kernel-core/src/pty.rs"
+    lines: "See file"
+    summary: "**New** — PtyRingBuffer, PtyPairState, unit tests"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel-core/src/pty.rs"
+  - title: "Added pub mod pty"
+    file: "kernel-core/src/lib.rs"
+    lines: "See file"
+    summary: "Added pub mod pty"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel-core/src/lib.rs"
+  - title: "**New** — PTY_TABLE, alloc/free/close lifecycle"
+    file: "kernel/src/pty.rs"
+    lines: "See file"
+    summary: "**New** — PTY_TABLE, alloc/free/close lifecycle"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/pty.rs"
+realOsDifferences:
+  - "Legacy BSD PTYs (`/dev/ptyXX` + `/dev/ttyXX` pairs, fixed count)"
+  - "Unix98 PTYs (`/dev/ptmx` + `/dev/pts/N`, dynamically allocated) — this is what we implement"
+  - "The PTY layer in Linux is deeply integrated with the TTY subsystem, supporting multiple line disciplines, packet mode, and window size propagation."
+successCriteria:
+  - "Opening `/dev/ptmx` returns a master fd and allocates a `/dev/pts/N` slave."
+  - "Writing to the master fd appears as input on the slave fd."
+  - "Writing to the slave fd appears as output on the master fd."
+  - "termios settings (raw mode, echo, line discipline) work on the slave side."
+  - "A shell spawned on a PTY slave behaves identically to the console shell."
+  - "`setsid()` creates a new session; `TIOCSCTTY` assigns the controlling terminal."
+  - "`SIGHUP` is delivered to the foreground process group when the master fd is closed."
+  - "At least 8 simultaneous PTY pairs can be allocated."
+---
+
+## Why this phase matters
+
+Implement real pseudo-terminal (PTY) pairs so that multiple independent terminal sessions can run simultaneously. A PTY master/slave pair connects a terminal emulator (or network server) to a shell process, enabling remote access (telnet, SSH) and local terminal multiplexing.
+
+## How it works in m3OS
+
+Phase 29 implements pseudo-terminal (PTY) pairs, enabling multiple independent terminal sessions. A PTY master/slave pair connects a terminal emulator (or network server) to a shell process — this is the mechanism behind SSH, screen, tmux, and xterm.
+The implementation provides a fixed pool of 16 PTY pairs with bidirectional ring buffers, per-PTY terminal settings, line discipline processing on the slave side, session management (`setsid`/`getsid`), and controlling terminal association (`TIOCSCTTY`/`TIOCNOTTY`).
+
+## How it builds on earlier phases
+
+This phase builds on Ext2 Filesystem and turns that foundation into PTY Subsystem.
+
+## Implementation outline
+
+- Implement the PTY allocator: a table of PTY pairs, each with a ring buffer connecting master and slave.
+- Implement `/dev/ptmx` as a special device that allocates a new PTY pair.
+- Connect the slave side to the termios line discipline from Phase 22.
+- Implement `setsid()` syscall for creating new sessions.
+- Implement `TIOCSCTTY` ioctl to assign a controlling terminal.
+- Modify `fork`/`exec` in login/shell to open a PTY slave as stdin/stdout/stderr for new sessions.
+- Write a simple test program that spawns a shell on a PTY and relays I/O.
+- Verify that terminal features (raw mode, ANSI escapes, signals) work through PTYs.
+
+## Task progress snapshot
+
+No checklist tasks were discovered for this phase yet.
+
+## Documentation targets
+
+- Documentation deliverables have not been listed yet.
+
+## Deferred follow-on work
+
+- Packet mode (for flow control signaling)
+- Window size change propagation (`SIGWINCH` through PTY)
+- Terminal multiplexer (screen/tmux-style)
+- Dynamic PTY allocation beyond the fixed pool
+- `/dev/tty` (controlling terminal device node)
+
+## Source materials
+
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/29-pty-subsystem.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/29-pty-subsystem.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/29-pty-subsystem-tasks.md)

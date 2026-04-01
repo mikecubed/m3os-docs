@@ -1,0 +1,68 @@
+---
+phase: 53
+title: "Claude Code"
+status: planned
+category: productivity
+summary: "Claude Code — Anthropic's AI coding agent — runs natively inside m3OS. An AI agent operates on an operating system it helped design, implement, and document. This is the ouroboros milestone."
+learningGoal: "Understand the full software stack required for a modern AI-powered CLI tool: Node.js runtime, HTTPS/TLS, DNS, terminal interaction, subprocess management."
+buildsOn:
+  - "nodejs"
+extends: []
+replaces: []
+components:
+  - "process-model"
+  - "terminal"
+learningObjectives:
+  - "Understand the full software stack required for a modern AI-powered CLI tool: Node.js runtime, HTTPS/TLS, DNS, terminal interaction, subprocess management."
+  - "See how all previous phases combine into a single working system capable of running a complex real-world application."
+keyFiles:
+  - path: "kernel/src/"
+    summary: "Read kernel source code (kernel/src/)"
+codeSpotlights:
+  - title: "Read kernel source code (kernel/src/)"
+    file: "kernel/src/"
+    lines: "See file"
+    summary: "Read kernel source code (kernel/src/)"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/"
+realOsDifferences: []
+successCriteria:
+  - "`npm install -g @anthropic-ai/claude-code` succeeds."
+  - "`claude --version` prints the version."
+  - "`claude \"what files are in /usr/src/\"` lists files."
+  - "`claude \"write a hello world in C and compile it with tcc\"` creates and compiles a program."
+  - "Claude Code can read kernel source files."
+  - "Claude Code can make git commits."
+  - "Claude Code can create GitHub PRs via `gh`."
+---
+
+## Why this phase matters
+
+Claude Code — Anthropic's AI coding agent — runs natively inside m3OS. An AI agent operates on an operating system it helped design, implement, and document. This is the ouroboros milestone.
+
+## How it works in m3OS
+
+The roadmap entry defines the learning scope for this phase; a deeper implementation doc has not been matched yet.
+
+## How it builds on earlier phases
+
+This phase builds on Node.js and turns that foundation into Claude Code.
+
+## Implementation outline
+
+- Implementation steps have not been extracted yet.
+
+## Task progress snapshot
+
+No checklist tasks were discovered for this phase yet.
+
+## Documentation targets
+
+- Documentation deliverables have not been listed yet.
+
+## Deferred follow-on work
+
+- No deferred items were listed in the roadmap entry.
+
+## Source materials
+
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/53-claude-code.md)

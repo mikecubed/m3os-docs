@@ -1,0 +1,74 @@
+---
+phase: 7
+title: "Core Servers"
+status: complete
+category: infrastructure
+summary: "Use IPC to assemble the first useful userspace services and prove that the system can be structured as cooperating servers rather than one large kernel."
+learningGoal: "Understand service-oriented bootstrapping in a microkernel."
+buildsOn:
+  - "ipc-core"
+extends: []
+replaces: []
+components:
+  - "boot-path"
+  - "ipc"
+learningObjectives:
+  - "Understand service-oriented bootstrapping in a microkernel."
+  - "Learn how names, endpoints, and capabilities are handed out."
+  - "Practice separating policy from mechanism."
+keyFiles: []
+codeSpotlights: []
+realOsDifferences:
+  - "Production microkernels often have richer process managers, supervision trees, restart policies, and dynamic service discovery. The toy design should use a very small service set and a transparent bootstrap flow so the architecture is easier to learn."
+successCriteria:
+  - "`init` starts the first service set successfully."
+  - "Clients can discover the console service and send output to it."
+  - "Keyboard events flow through `kbd_server` rather than directly into the kernel UI path."
+  - "Service startup ordering is documented and easy to follow."
+---
+
+## Why this phase matters
+
+Use IPC to assemble the first useful userspace services and prove that the system can be structured as cooperating servers rather than one large kernel.
+
+## How it works in m3OS
+
+Phase 7 introduces the first layer of server infrastructure on top of the IPC engine built in Phase 6. The additions are:
+### Why structure output and input as servers?
+A common question is: "why not just call the serial driver and keyboard driver directly?"
+The microkernel answer is **policy/mechanism separation**:
+Moving these decisions out of the kernel has concrete benefits:
+
+## How it builds on earlier phases
+
+This phase builds on IPC Core and turns that foundation into Core Servers.
+
+## Implementation outline
+
+- Decide what the kernel launches directly and what `init` launches afterward.
+- Build the service registration model used for early discovery.
+- Move serial console behavior behind a console server.
+- Route keyboard notifications into a dedicated keyboard server.
+- Keep restart and crash handling simple but visible.
+
+## Task progress snapshot
+
+12 of 12 tracked tasks are complete.
+
+## Documentation targets
+
+- explain the server startup sequence
+- explain service discovery at a high level
+- explain why console and keyboard are split into separate services
+
+## Deferred follow-on work
+
+- automatic service restart policies
+- complex capability delegation tooling
+- dynamic driver loading
+
+## Source materials
+
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/07-core-servers.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/07-core-servers.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/07-core-servers-tasks.md)

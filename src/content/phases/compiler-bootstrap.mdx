@@ -1,0 +1,78 @@
+---
+phase: 31
+title: "Compiler Bootstrap"
+status: planned
+category: productivity
+summary: "Run a C compiler natively inside the OS. A C source file written at the shell prompt (using the editor from Phase 26) can be compiled and executed without leaving the OS. The ultimate target is self-hosting: the compiler compiles itself."
+learningGoal: "Understand what \"bootstrapping\" means: deriving a tool from itself."
+buildsOn:
+  - "telnet-server"
+extends: []
+replaces: []
+components:
+  - "boot-path"
+  - "process-model"
+learningObjectives:
+  - "Understand what \"bootstrapping\" means: deriving a tool from itself."
+  - "See what a compiler actually needs from an OS: file I/O, heap, process execution."
+  - "Learn why musl is the right libc target for a resource-constrained system."
+  - "Experience the edit-compile-run cycle inside your own OS."
+keyFiles: []
+codeSpotlights: []
+realOsDifferences:
+  - "Real systems ship with a full toolchain: compiler, assembler, linker, debugger, make, and a package manager. Bootstrapping a modern Linux distribution from source requires a carefully ordered multi-stage build (tarballs -> stage-1 gcc -> stage-2 gcc -> full system) documented by projects like Linux From Scratch. This phase achieves the same conceptual milestone — a system that can build and run its own tools — using TCC's single-file simplicity instead of a multi-stage GCC build."
+successCriteria:
+  - "`tcc --version` runs inside the OS and prints the version string."
+  - "`hello.c` compiled by TCC inside the OS runs and prints `hello, world`."
+  - "TCC successfully compiles itself inside the OS (self-hosting milestone)."
+  - "The self-compiled `tcc2` passes the same `hello.c` test."
+  - "No host tools are required after the disk image is built."
+---
+
+## Why this phase matters
+
+Run a C compiler natively inside the OS. A C source file written at the shell prompt (using the editor from Phase 26) can be compiled and executed without leaving the OS. The ultimate target is self-hosting: the compiler compiles itself.
+
+## How it works in m3OS
+
+Phase 31 adds a native C compiler (TCC -- Tiny C Compiler) to m3OS. A C source file written with the text editor can be compiled and executed without leaving the OS. The ultimate milestone is self-hosting: TCC compiles itself inside the OS, producing a working compiler binary.
+
+## How it builds on earlier phases
+
+This phase builds on Telnet Server and turns that foundation into Compiler Bootstrap.
+
+## Implementation outline
+
+- On the host: build TCC from source with `./configure --prefix=/usr --cc=x86_64-linux-musl-gcc`.
+- Verify the resulting binary is a static x86-64 ELF linked against musl.
+- Add TCC binary, musl `libc.a`, and the musl headers to the disk image build in xtask.
+- Boot the OS and verify `tcc --version` prints the expected string.
+- Write a `hello.c` inside the OS using the editor, compile it, and run it.
+- Compile a slightly larger program (e.g., a fibonacci calculator) to stress the heap.
+- Attempt the self-hosting milestone: `tcc /usr/src/tcc/tcc.c -o /tmp/tcc2`.
+- Verify the self-compiled TCC produces identical output for `hello.c`.
+
+## Task progress snapshot
+
+No checklist tasks were discovered for this phase yet.
+
+## Documentation targets
+
+- Explain what "bootstrapping" means and why it is a meaningful milestone.
+- Document what TCC needs from the OS and how each syscall maps to OS functionality.
+- Explain the musl libc build process and what headers/libs end up in the image.
+- Document Path B and when it is the right choice vs. Path A.
+- Write a short essay on the history of compiler bootstrapping (Ken Thompson's "Trusting Trust" lecture is the canonical reference).
+
+## Deferred follow-on work
+
+- GCC or Clang as the native compiler
+- Dynamic linking and shared libraries
+- Debugger support (`gdb` or `lldb`)
+- Multi-stage bootstrap to remove host-compiled binaries from the chain entirely
+
+## Source materials
+
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/31-compiler-bootstrap.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/31-compiler-bootstrap.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/31-compiler-bootstrap-tasks.md)

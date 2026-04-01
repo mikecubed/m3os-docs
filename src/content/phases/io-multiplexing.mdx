@@ -1,0 +1,83 @@
+---
+phase: 37
+title: "I/O Multiplexing"
+status: planned
+category: infrastructure
+summary: "Programs can wait on multiple file descriptors simultaneously without busy-waiting. `select()`, an improved `poll()`, and `epoll` provide scalable I/O readiness notification. Non-blocking I/O (`O_NONBLOCK`) works for sockets, pipes, and PTYs. Event-driven servers become possible."
+learningGoal: "Understand the I/O multiplexing problem: one thread, many connections."
+buildsOn:
+  - "expanded-memory"
+extends: []
+replaces: []
+components:
+  - "network-stack"
+learningObjectives:
+  - "Understand the I/O multiplexing problem: one thread, many connections."
+  - "Learn the evolution from `select()` (O(n) scan) to `poll()` (no fd limit) to `epoll` (O(1) event delivery)."
+  - "See how non-blocking I/O interacts with multiplexing to build efficient servers."
+  - "Understand level-triggered vs edge-triggered notification."
+keyFiles: []
+codeSpotlights: []
+realOsDifferences:
+  - "**io_uring** — the newest, highest-performance async I/O interface (submission/completion rings)."
+  - "**epoll** — the standard for network servers (nginx, Node.js, etc.)."
+  - "**signalfd, timerfd, eventfd** — unify signals, timers, and events as fds for epoll."
+  - "**splice/tee/vmsplice** — zero-copy data movement between fds."
+  - "**FUSE** — filesystem in userspace (via poll/epoll on /dev/fuse)."
+successCriteria:
+  - "`O_NONBLOCK` read on an empty pipe returns `EAGAIN` instead of blocking."
+  - "`poll()` blocks efficiently (no CPU spin) and wakes when data arrives."
+  - "`select()` works for read/write readiness on pipes and sockets."
+  - "`epoll_wait()` returns ready events for registered fds."
+  - "An epoll-based echo server handles 10+ simultaneous connections."
+  - "`accept4()` with `SOCK_NONBLOCK` creates non-blocking accepted sockets."
+  - "`fcntl(F_SETFL, O_NONBLOCK)` makes an existing fd non-blocking."
+  - "CPU usage is near zero when waiting for I/O (no busy-wait)."
+  - "All existing tests pass without regression."
+---
+
+## Why this phase matters
+
+Programs can wait on multiple file descriptors simultaneously without busy-waiting. `select()`, an improved `poll()`, and `epoll` provide scalable I/O readiness notification. Non-blocking I/O (`O_NONBLOCK`) works for sockets, pipes, and PTYs. Event-driven servers become possible.
+
+## How it works in m3OS
+
+The roadmap entry defines the learning scope for this phase; a deeper implementation doc has not been matched yet.
+
+## How it builds on earlier phases
+
+This phase builds on Expanded Memory and turns that foundation into I/O Multiplexing.
+
+## Implementation outline
+
+- Implement `O_NONBLOCK` for pipes (simplest case).
+- Implement `O_NONBLOCK` for sockets.
+- Implement `fcntl(F_GETFL/F_SETFL)` for non-blocking flag.
+- Rewrite `poll()` to use wait queues instead of busy-wait loop.
+- Implement `select()` on top of the improved poll infrastructure.
+- Implement `epoll_create1`, `epoll_ctl`, `epoll_wait`.
+- Implement `accept4()`.
+- Write test programs: echo server using poll, epoll-based multi-client server.
+- Verify the telnet server works with improved poll (no busy-wait).
+- Stress test with many concurrent connections.
+
+## Task progress snapshot
+
+No checklist tasks were discovered for this phase yet.
+
+## Documentation targets
+
+- Documentation deliverables have not been listed yet.
+
+## Deferred follow-on work
+
+- io_uring (submission/completion ring)
+- Edge-triggered epoll (EPOLLET) — complex semantics
+- signalfd, timerfd, eventfd
+- splice/tee/vmsplice (zero-copy)
+- POSIX AIO (aio_read, aio_write)
+- kqueue compatibility
+
+## Source materials
+
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/37-io-multiplexing.md)

@@ -1,0 +1,119 @@
+---
+phase: 30
+title: "Telnet Server"
+status: planned
+category: infrastructure
+summary: "A telnet server runs inside the OS, allowing remote users to log in over the network and get an interactive shell session. This is the first demonstration of the OS as a networked, multi-user system — a machine you can connect to from another computer (or another terminal on the host) and do real work."
+learningGoal: "Understand the telnet protocol: IAC (Interpret As Command) sequences, option negotiation, and NVT (Network Virtual Terminal) mapping."
+buildsOn:
+  - "pty-subsystem"
+extends: []
+replaces: []
+components:
+  - "network-stack"
+  - "process-model"
+  - "vfs"
+  - "boot-path"
+learningObjectives:
+  - "Understand the telnet protocol: IAC (Interpret As Command) sequences, option negotiation, and NVT (Network Virtual Terminal) mapping."
+  - "Learn how a network server forks per-connection processes, each with its own PTY."
+  - "See how login, PTY, and networking come together to provide remote shell access."
+  - "Understand why telnet was replaced by SSH (no encryption) and why it is still useful for learning and trusted networks."
+keyFiles:
+  - path: "userspace/telnetd/telnetd.c"
+    summary: "Telnet server implementation"
+  - path: "kernel/src/net/mod.rs"
+    summary: "Socket reference counting"
+  - path: "kernel/src/net/tcp.rs"
+    summary: "TCP connection limit increase"
+  - path: "kernel/src/arch/x86_64/syscall.rs"
+    summary: "poll() for PTY master + listening sockets"
+  - path: "kernel/src/process/mod.rs"
+    summary: "Socket refcount in fork/close/cloexec"
+  - path: "kernel/src/fs/ramdisk.rs"
+    summary: "telnetd.elf in initrd"
+  - path: "userspace/init/src/main.rs"
+    summary: "telnetd daemon spawn at boot"
+  - path: "xtask/src/main.rs"
+    summary: "Build + QEMU port forwarding"
+codeSpotlights:
+  - title: "Telnet server implementation"
+    file: "userspace/telnetd/telnetd.c"
+    lines: "See file"
+    summary: "Telnet server implementation"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/userspace/telnetd/telnetd.c"
+  - title: "Socket reference counting"
+    file: "kernel/src/net/mod.rs"
+    lines: "See file"
+    summary: "Socket reference counting"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/net/mod.rs"
+  - title: "TCP connection limit increase"
+    file: "kernel/src/net/tcp.rs"
+    lines: "See file"
+    summary: "TCP connection limit increase"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/net/tcp.rs"
+realOsDifferences:
+  - "inetd-style super-server launching (one daemon for all network services)"
+  - "TCP wrappers for access control"
+  - "Kerberos authentication"
+  - "Environment variable passing"
+  - "Full telnet option negotiation (dozens of options)"
+  - "The protocol is dramatically simpler (no crypto)."
+  - "It demonstrates all the same OS concepts (sockets + PTY + login + fork)."
+  - "It provides a working remote access prototype that SSH will later replace."
+successCriteria:
+  - "`telnetd` starts at boot and listens on port 23."
+  - "Connecting via `telnet` from the host reaches a `login:` prompt."
+  - "After login, the remote shell is fully functional (commands, pipes, editing)."
+  - "The text editor from Phase 26 works over the telnet connection."
+  - "Multiple simultaneous telnet sessions work (at least 4)."
+  - "Closing the telnet client cleanly terminates the remote session."
+  - "`who` or `w` (stretch) shows active telnet sessions."
+---
+
+## Why this phase matters
+
+A telnet server runs inside the OS, allowing remote users to log in over the network and get an interactive shell session. This is the first demonstration of the OS as a networked, multi-user system — a machine you can connect to from another computer (or another terminal on the host) and do real work.
+
+## How it works in m3OS
+
+Phase 30 adds `telnetd`, a telnet server that listens on TCP port 23, accepts remote connections, allocates a PTY pair per session, and relays data between the TCP socket and the terminal.  This is the first demonstration of m3OS as a networked, multi-user system -- a machine you can log into from another computer.
+
+## How it builds on earlier phases
+
+This phase builds on PTY Subsystem and turns that foundation into Telnet Server.
+
+## Implementation outline
+
+- Write a minimal telnet server in C (cross-compiled with musl).
+- Implement IAC parsing: strip telnet commands from the data stream.
+- Implement option negotiation for ECHO, SGA, and NAWS.
+- On accept: fork, allocate PTY, exec login on the slave side.
+- Main loop: `poll()` on both the socket fd and the PTY master fd, relay data.
+- Handle connection close: send `SIGHUP` to the session, clean up.
+- Add telnetd to init's startup sequence.
+- Configure QEMU with port forwarding: `-nic user,hostfwd=tcp::2323-:23`.
+- Test from host: `telnet localhost 2323`.
+
+## Task progress snapshot
+
+No checklist tasks were discovered for this phase yet.
+
+## Documentation targets
+
+- Documentation deliverables have not been listed yet.
+
+## Deferred follow-on work
+
+- Encryption (that's SSH, Phase 43)
+- inetd/xinetd super-server
+- TCP wrappers or IP-based access control
+- Telnet LINEMODE option
+- Environment variable passing (ENVIRON option)
+- Keep-alive / idle timeout
+
+## Source materials
+
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/30-telnet-server.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/30-telnet-server.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/30-telnet-server-tasks.md)

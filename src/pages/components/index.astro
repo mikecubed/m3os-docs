@@ -5,26 +5,31 @@ import Layout from '../../layouts/Layout.astro';
 import { withBase } from '../../lib/site-paths';
 
 const components = await getCollection('components');
+const phaseTitleLookup = new Map(
+  (await getCollection('phases')).map((phase) => [phase.id, phase.data.title] as const),
+);
 ---
 
 <Layout title="m3OS Docs | Components">
   <section class="section-heading">
     <p class="eyebrow">Component explorer</p>
     <h1>Trace responsibilities across the system</h1>
-    <p>
-      Component entries connect high-level concepts to the files and phases that shape them. This
-      page is ready for richer cross-linking once more `ostest` content is imported.
-    </p>
+      <p>
+        Component entries connect high-level concepts to the files and phases that shape them,
+        using the generated m3OS phase corpus now published in this site.
+      </p>
   </section>
 
   <div class="card-grid">
     {
       components.map((component) => (
         <article class="phase-card">
-          <div class="phase-card__header">
-            <p class="eyebrow">Introduced in</p>
-            <span class="status-badge status-badge--planned">{component.data.introducedIn}</span>
-          </div>
+            <div class="phase-card__header">
+              <p class="eyebrow">Introduced in</p>
+              <span class="status-badge status-badge--planned">
+                {phaseTitleLookup.get(component.data.introducedIn) ?? component.data.introducedIn}
+              </span>
+            </div>
           <h3>
             <a href={withBase(`/components/${component.id}/`)}>{component.data.title}</a>
           </h3>

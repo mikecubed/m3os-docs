@@ -1,0 +1,61 @@
+---
+phase: 52
+title: "Node.js"
+status: planned
+category: productivity
+summary: "Node.js runs natively inside m3OS. The V8 JavaScript engine, libuv event loop, and core Node.js modules (`fs`, `path`, `console`, `process`, `setTimeout`) work. With TLS and DNS from Phase 51, the `https` and `net` modules also work, enabling npm package installation."
+learningGoal: "Understand how V8's JIT compiler uses `mmap(PROT_EXEC)` and `mprotect()` to emit and execute machine code at runtime."
+buildsOn:
+  - "networking-and-github"
+extends: []
+replaces: []
+components:
+  - "process-model"
+learningObjectives:
+  - "Understand how V8's JIT compiler uses `mmap(PROT_EXEC)` and `mprotect()` to emit and execute machine code at runtime."
+  - "Learn how libuv's event loop wraps `epoll` for async I/O."
+  - "See how a Go-runtime-style M:N threading model (goroutines) compares to libuv's thread pool model."
+keyFiles: []
+codeSpotlights: []
+realOsDifferences: []
+successCriteria:
+  - "`node -e \"console.log('hello from m3OS')\"` works."
+  - "`node -e \"require('fs').writeFileSync('/tmp/test', 'ok')\"` works."
+  - "`node -e \"setTimeout(() => console.log('timer!'), 100)\"` fires the timer."
+  - "`node -e \"console.log(process.platform, process.arch)\"` prints `linux x64`."
+  - "`node -e \"require('https').get('https://httpbin.org/get', ...)\"` completes."
+  - "npm is bundled and `npm --version` works."
+  - "`npm install -g` installs a package to `/usr/lib/node_modules/`."
+---
+
+## Why this phase matters
+
+Node.js runs natively inside m3OS. The V8 JavaScript engine, libuv event loop, and core Node.js modules (`fs`, `path`, `console`, `process`, `setTimeout`) work. With TLS and DNS from Phase 51, the `https` and `net` modules also work, enabling npm package installation.
+
+## How it works in m3OS
+
+The roadmap entry defines the learning scope for this phase; a deeper implementation doc has not been matched yet.
+
+## How it builds on earlier phases
+
+This phase builds on Networking And GitHub and turns that foundation into Node.js.
+
+## Implementation outline
+
+- Implementation steps have not been extracted yet.
+
+## Task progress snapshot
+
+No checklist tasks were discovered for this phase yet.
+
+## Documentation targets
+
+- Documentation deliverables have not been listed yet.
+
+## Deferred follow-on work
+
+- No deferred items were listed in the roadmap entry.
+
+## Source materials
+
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/52-nodejs.md)

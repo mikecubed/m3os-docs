@@ -1,0 +1,91 @@
+---
+phase: 47
+title: "Doom"
+status: planned
+category: showcase
+summary: "DOOM runs inside the OS. The shareware `doom1.wad` loads from disk, renders to the framebuffer, and accepts keyboard input for gameplay. This is the \"it runs DOOM\" milestone — the classic proof that a hobby OS has reached a meaningful level of capability."
+learningGoal: "Understand what a real graphical application needs from the OS: raw framebuffer access, input events, timing, and large file I/O."
+buildsOn:
+  - "system-services"
+extends: []
+replaces: []
+components:
+  - "boot-path"
+learningObjectives:
+  - "Understand what a real graphical application needs from the OS: raw framebuffer access, input events, timing, and large file I/O."
+  - "Learn how the DOOM rendering pipeline works: BSP traversal, palette-indexed 320x200 software rendering, scaled blit to native resolution."
+  - "See how a minimal platform abstraction layer bridges a large C codebase to a new OS."
+  - "Experience porting a real program — the gap between \"all syscalls pass tests\" and \"a real program actually works\" teaches more than any unit test."
+keyFiles:
+  - path: "kernel/initrd/doom.elf"
+    summary: "Binary goes to kernel/initrd/doom.elf or the ext2 disk image."
+codeSpotlights:
+  - title: "Binary goes to kernel/initrd/doom.elf or the ext2 disk image"
+    file: "kernel/initrd/doom.elf"
+    lines: "See file"
+    summary: "Binary goes to kernel/initrd/doom.elf or the ext2 disk image."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/initrd/doom.elf"
+realOsDifferences:
+  - "**Linux framebuffer** (`/dev/fb0`) with `fbdev` ioctls for mode setting."
+  - "**DRM/KMS** (Direct Rendering Manager / Kernel Mode Setting) for modern GPU access."
+  - "**X11/Wayland** compositing window managers for multi-application graphics."
+  - "**OpenGL/Vulkan** hardware-accelerated 3D rendering."
+  - "**ALSA/PulseAudio** for sound output."
+  - "**evdev** (`/dev/input/event*`) for unified input events (keyboard, mouse, gamepad)."
+successCriteria:
+  - "`doom` binary starts from the shell and displays the DOOM title screen."
+  - "The framebuffer shows the game at a playable resolution."
+  - "Keyboard input works: arrow keys move, Ctrl fires, Space opens doors, Enter selects menu items."
+  - "The game runs at a playable frame rate (15+ FPS)."
+  - "WAD file loads from the ext2 disk without errors."
+  - "Exiting DOOM (quit menu or Ctrl-C) returns to the shell."
+  - "`cargo xtask run-gui` launches QEMU in GUI mode with the game playable."
+  - "The shareware episode (E1M1 through E1M8) is completable."
+---
+
+## Why this phase matters
+
+DOOM runs inside the OS. The shareware `doom1.wad` loads from disk, renders to the framebuffer, and accepts keyboard input for gameplay. This is the "it runs DOOM" milestone — the classic proof that a hobby OS has reached a meaningful level of capability.
+
+## How it works in m3OS
+
+The roadmap entry defines the learning scope for this phase; a deeper implementation doc has not been matched yet.
+
+## How it builds on earlier phases
+
+This phase builds on System Services and turns that foundation into Doom.
+
+## Implementation outline
+
+- Implement `sys_framebuffer_info` syscall — return dimensions, pitch, pixel format.
+- Implement `sys_framebuffer_mmap` syscall — map framebuffer into userspace.
+- Implement `sys_read_scancode` syscall — return raw PS/2 scancodes.
+- Clone doomgeneric source; write m3os platform layer (~200 lines).
+- Cross-compile with `musl-gcc -static`; add to xtask build.
+- Add `doom1.wad` to the ext2 disk image.
+- Boot with `cargo xtask run-gui` and test.
+- Tune scaling and input mapping.
+- Screenshot the running game for the README.
+
+## Task progress snapshot
+
+No checklist tasks were discovered for this phase yet.
+
+## Documentation targets
+
+- Documentation deliverables have not been listed yet.
+
+## Deferred follow-on work
+
+- Sound output (PC speaker beeps, Sound Blaster emulation)
+- Mouse input (PS/2 mouse driver)
+- Network multiplayer (IPX/UDP)
+- Save games to persistent storage (could work already via file I/O)
+- DOOM II and commercial WAD support
+- Higher-resolution rendering (GZDoom-style)
+- Hardware-accelerated rendering
+- Window manager / compositor for multi-app graphics
+
+## Source materials
+
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/47-doom.md)

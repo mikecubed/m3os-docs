@@ -1,0 +1,29 @@
+---
+title: "Network Stack"
+introducedIn: "network"
+touchedBy:
+  - "socket-api"
+  - "telnet-server"
+  - "io-multiplexing"
+  - "unix-domain-sockets"
+  - "crypto-primitives"
+  - "ssh-server"
+  - "system-services"
+  - "networking-and-github"
+summary: "The network stack grows the OS from a local system into one that can talk to other machines and higher-level services."
+responsibilities:
+  - "Move packets between device drivers, protocols, and userspace."
+  - "Expose transport primitives that later tools and services depend on."
+  - "Coordinate socket-facing kernel state."
+keyFiles:
+  - path: "kernel/src/net/*"
+    summary: "(kernel/src/net/*) and runs as net_task. This is a temporary kernel-mode"
+  - path: "kernel/src/net/"
+    summary: "kernel/src/net/ now that they are reachable from userspace through net_server."
+  - path: "kernel/src/net/mod.rs"
+    summary: "Socket reference counting"
+  - path: "kernel/src/net/tcp.rs"
+    summary: "TCP connection limit increase"
+---
+
+The network stack is introduced in Network and later touched by 8 phase(s).

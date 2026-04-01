@@ -1,0 +1,63 @@
+---
+phase: 36
+title: "Expanded Memory"
+status: planned
+category: foundations
+summary: "The kernel supports demand paging, large `mmap()` regions, and `mprotect()`. Virtual pages are mapped lazily — physical frames are allocated on first access via the page fault handler. This unlocks running large cross-compiled binaries (Clang, Python, Node.js, git) that allocate hundreds of megabytes via `mmap()` but only touch a fraction of the mapped pages. QEMU RAM is increased to support these workloads."
+learningGoal: "Understand demand paging: why real OSes don't back every virtual page with a physical frame at map time."
+buildsOn:
+  - "true-smp-multitasking"
+extends: []
+replaces: []
+components:
+  - "memory-manager"
+learningObjectives:
+  - "Understand demand paging: why real OSes don't back every virtual page with a physical frame at map time."
+  - "Learn how the page fault handler distinguishes lazy faults, stack growth, CoW, and true segfaults."
+  - "See how `mprotect()` enables JIT compilers (V8) and stack guard pages (Go runtime)."
+  - "Understand memory overcommit and why it's the default on Linux."
+keyFiles: []
+codeSpotlights: []
+realOsDifferences: []
+successCriteria:
+  - "`mmap(MAP_ANONYMOUS)` returns immediately without allocating physical frames."
+  - "First access to a lazy-mapped page triggers a page fault that allocates a frame."
+  - "Programs can `mmap()` 256 MB regions without exhausting physical memory."
+  - "`mprotect()` changes page permissions and flushes TLB."
+  - "Existing CoW fork (Phase 17) still works correctly alongside demand paging."
+  - "QEMU boots with 1 GB RAM."
+  - "ext2 partition is 1 GB."
+  - "A large cross-compiled binary (e.g., Python ~8 MB) loads and runs."
+---
+
+## Why this phase matters
+
+The kernel supports demand paging, large `mmap()` regions, and `mprotect()`. Virtual pages are mapped lazily — physical frames are allocated on first access via the page fault handler. This unlocks running large cross-compiled binaries (Clang, Python, Node.js, git) that allocate hundreds of megabytes via `mmap()` but only touch a fraction of the mapped pages. QEMU RAM is increased to support these workloads.
+
+## How it works in m3OS
+
+The roadmap entry defines the learning scope for this phase; a deeper implementation doc has not been matched yet.
+
+## How it builds on earlier phases
+
+This phase builds on True SMP Multitasking and turns that foundation into Expanded Memory.
+
+## Implementation outline
+
+- Implementation steps have not been extracted yet.
+
+## Task progress snapshot
+
+No checklist tasks were discovered for this phase yet.
+
+## Documentation targets
+
+- Documentation deliverables have not been listed yet.
+
+## Deferred follow-on work
+
+- No deferred items were listed in the roadmap entry.
+
+## Source materials
+
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/36-expanded-memory.md)

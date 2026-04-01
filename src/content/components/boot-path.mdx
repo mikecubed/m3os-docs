@@ -1,18 +1,35 @@
 ---
-title: Boot Path
-introducedIn: boot-foundation
+title: "Boot Path"
+introducedIn: "boot-foundation"
 touchedBy:
-  - memory-basics
-summary: The boot path moves the system from UEFI firmware to a running Rust kernel with usable diagnostics.
+  - "core-servers"
+  - "secure-boot"
+  - "shell-and-tools"
+  - "hardware-discovery"
+  - "userspace-init-shell"
+  - "ion-shell"
+  - "user-accounts"
+  - "ext2-filesystem"
+  - "telnet-server"
+  - "compiler-bootstrap"
+  - "build-tools"
+  - "real-time-clock"
+  - "doom"
+  - "cross-compiled-toolchains"
+summary: "The boot path moves the system from firmware and build tooling into a running kernel with visible early diagnostics."
 responsibilities:
-  - Build and launch the bootable image.
-  - Transfer control into `kernel_main`.
-  - Provide the first stable diagnostics channel.
+  - "Build and launch the bootable image."
+  - "Transfer control into the kernel entry point."
+  - "Provide the first reliable diagnostics channel."
 keyFiles:
-  - path: xtask/src/main.rs
-    summary: Host-side image creation and QEMU orchestration.
-  - path: kernel/src/main.rs
-    summary: Kernel entry and early runtime startup.
+  - path: "xtask/src/main.rs"
+    summary: "The host-side logic lives in xtask/src/main.rs."
+  - path: "kernel/src/serial.rs"
+    summary: "The serial implementation in kernel/src/serial.rs provides:"
+  - path: "xtask/vendor/"
+    summary: "pre-built binary is not found in xtask/vendor/"
+  - path: "xtask/vendor/ion"
+    summary: "xtask/vendor/ion; if absent, build it from source using the musl target. Copy"
 ---
 
-The boot path is the first contract the project must trust. It is both infrastructure and teaching surface: readers can see exactly how control moves from firmware into the kernel before later abstractions obscure the path.
+The boot path is introduced in Boot Foundation and later touched by 14 phase(s).

@@ -1,0 +1,87 @@
+---
+phase: 26
+title: "Text Editor"
+status: planned
+category: productivity
+summary: "A usable text editor runs inside the OS. Users can create, edit, and save files from the shell. This is the foundational tool that makes all subsequent \"do real work inside the OS\" phases possible — you cannot write code, configuration files, or documents without an editor."
+learningGoal: "Understand how terminal-based editors use raw mode, ANSI escape sequences, and screen coordinates to build a full-screen TUI."
+buildsOn:
+  - "smp"
+extends: []
+replaces: []
+components:
+  - "memory-manager"
+  - "process-model"
+  - "terminal"
+learningObjectives:
+  - "Understand how terminal-based editors use raw mode, ANSI escape sequences, and screen coordinates to build a full-screen TUI."
+  - "Learn how editors manage in-memory text buffers (gap buffer vs. line array)."
+  - "See how a real C program exercises the OS's terminal, file I/O, and signal subsystems together."
+keyFiles:
+  - path: "userspace/edit/"
+    summary: "Create userspace/edit/ crate (no_std, x86_64-unknown-none target)."
+codeSpotlights:
+  - title: "Create userspace/edit/ crate (no_std, x86_64-unknown-none target)"
+    file: "userspace/edit/"
+    lines: "See file"
+    summary: "Create userspace/edit/ crate (no_std, x86_64-unknown-none target)."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/userspace/edit/"
+realOsDifferences:
+  - "Real systems ship with multiple editors (vi, nano, emacs) and editor infrastructure like terminfo/termcap databases that abstract terminal capabilities. Our approach hardcodes VT100 escape sequences, which is fine because QEMU's serial console and virtually all modern terminal emulators support VT100. A production OS would also provide shared libraries for TUI development (ncurses), which we defer."
+  - "A notable side effect of this phase is establishing the pattern for Rust userspace programs that need heap allocation (`Vec`, `String`, `format!`). The userspace heap allocator built here will be reusable by future phases (compiler bootstrap, build tools, etc.)."
+successCriteria:
+  - "The editor launches from the shell and displays a full-screen TUI."
+  - "Arrow keys, Page Up/Down, Home/End move the cursor correctly."
+  - "Users can type text, delete characters, and insert new lines."
+  - "`Ctrl+S` (or equivalent) saves the file to persistent storage."
+  - "`Ctrl+Q` (or equivalent) quits the editor."
+  - "`Ctrl+F` (or equivalent) searches for text within the file."
+  - "Opening a nonexistent filename creates a new empty file on save."
+  - "The editor correctly handles files larger than the terminal height (scrolling)."
+---
+
+## Why this phase matters
+
+A usable text editor runs inside the OS. Users can create, edit, and save files from the shell. This is the foundational tool that makes all subsequent "do real work inside the OS" phases possible — you cannot write code, configuration files, or documents without an editor.
+
+## How it works in m3OS
+
+Phase 26 adds `edit`, a minimal full-screen text editor for m3OS. It is a no_std Rust binary based on kibi/kilo concepts: a line-based text buffer, VT100 escape sequences for screen control, raw terminal mode, and a single-file editing model.
+The editor is available at `/bin/edit` and is set as the `$EDITOR` environment variable.
+
+## How it builds on earlier phases
+
+This phase builds on SMP and turns that foundation into Text Editor.
+
+## Implementation outline
+
+- Extend `syscall-lib` with ioctl, lseek, termios, and winsize wrappers.
+- Add a userspace heap allocator (kibi uses `Vec`/`String` via `alloc`).
+- Create `userspace/edit/` crate (no_std, `x86_64-unknown-none` target).
+- Write an m3OS platform backend (~60-80 lines) implementing terminal I/O.
+- Port kibi's core modules, replacing `std::fs`/`std::io` with syscall-lib.
+- Verify raw mode, file save/load, and search work end-to-end.
+- Add to xtask build, initrd, and set `$EDITOR=/bin/edit`.
+
+## Task progress snapshot
+
+No checklist tasks were discovered for this phase yet.
+
+## Documentation targets
+
+- Documentation deliverables have not been listed yet.
+
+## Deferred follow-on work
+
+- ncurses or equivalent TUI library
+- terminfo/termcap database
+- Multiple file editing (split views, tabs)
+- Undo/redo (kilo supports single-level undo; full undo tree is deferred)
+- Plugin or macro system
+- Mouse support
+
+## Source materials
+
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/26-text-editor.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/26-text-editor.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/26-text-editor-tasks.md)

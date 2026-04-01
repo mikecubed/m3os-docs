@@ -1,0 +1,75 @@
+---
+phase: 41
+title: "Expanded Coreutils"
+status: planned
+category: productivity
+summary: "The OS ships with a comprehensive set of Unix utilities sufficient for daily development work. Moving beyond the minimal set from Phase 14, this phase adds text processing, file inspection, and system administration tools that developers expect."
+learningGoal: "Understand how small, composable Unix tools work together via pipes."
+buildsOn:
+  - "threading-primitives"
+extends: []
+replaces: []
+components:
+  - "process-model"
+  - "terminal"
+learningObjectives:
+  - "Understand how small, composable Unix tools work together via pipes."
+  - "Learn the Unix philosophy: each tool does one thing well."
+  - "See how porting existing tools (vs. writing from scratch) accelerates OS development."
+keyFiles: []
+codeSpotlights: []
+realOsDifferences:
+  - "Real systems use GNU coreutils (or BusyBox on embedded systems), which have decades of feature additions, locale support, and edge case handling. Our sbase-based utilities are intentionally minimal — they handle the common cases and skip exotic options."
+  - "Real systems also have a `/proc` filesystem providing rich kernel introspection. Our approach may use either a simplified `/proc` or dedicated syscalls, depending on what is simpler to implement."
+successCriteria:
+  - "All listed tools are present in `/bin` or `/usr/bin` and work from the shell."
+  - "Pipelines work: `cat file | sort | uniq -c | sort -rn | head -10`."
+  - "`find . -name \"*.c\" | xargs grep \"main\"` works."
+  - "`ps` shows running processes with PID, name, and status."
+  - "`free` shows total and available memory."
+  - "`diff file1 file2` shows differences; `patch` can apply the diff."
+  - "`less` provides scrollable file viewing with search."
+---
+
+## Why this phase matters
+
+The OS ships with a comprehensive set of Unix utilities sufficient for daily development work. Moving beyond the minimal set from Phase 14, this phase adds text processing, file inspection, and system administration tools that developers expect.
+
+## How it works in m3OS
+
+The roadmap entry defines the learning scope for this phase; a deeper implementation doc has not been matched yet.
+
+## How it builds on earlier phases
+
+This phase builds on Threading Primitives and turns that foundation into Expanded Coreutils.
+
+## Implementation outline
+
+- Set up sbase cross-compilation with musl on the host.
+- Port text processing tools first (head, tail, sort, uniq — most immediately useful).
+- Port file tools (find, xargs, tee).
+- Write system tools (ps, free, uptime) — these need kernel info, so implement a `/proc`-like interface or info syscalls.
+- Port diff and patch — essential for development workflows.
+- Port or write a pager (less/more).
+- Port remaining tools.
+- Test each tool with shell pipelines to verify composability.
+
+## Task progress snapshot
+
+No checklist tasks were discovered for this phase yet.
+
+## Documentation targets
+
+- Documentation deliverables have not been listed yet.
+
+## Deferred follow-on work
+
+- Full GNU coreutils compatibility
+- Locale and internationalization support
+- `/proc` filesystem (full implementation)
+- BusyBox-style multicall binary
+- man pages
+
+## Source materials
+
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/41-expanded-coreutils.md)
