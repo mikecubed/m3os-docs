@@ -124,6 +124,7 @@ The phase generator currently supports two important quality signals from the up
 
 - if `kernel/Cargo.toml` uses a `0.<phase>.x` version, phases below that version are treated as complete and the current version phase is treated as in progress
 - task docs with `###` subsections plus `**File:**` references can produce inline source-backed code spotlights when they also mention a concrete symbol or function name
+- if upstream docs include `**Source Ref:**`, generated source links and snippets use that ref when it exists locally; if the explicit ref is unavailable, the generator falls back to a matching `v0.<phase>.*` tag when present, then to the configured default ref
 
 Once live phase docs have been generated, the component stage derives subsystem pages from the
 published phase metadata:

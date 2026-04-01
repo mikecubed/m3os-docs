@@ -20,23 +20,23 @@ keyFiles: []
 codeSpotlights:
   - title: "Implement init as the first userspace process"
     file: "kernel/src/main.rs"
-    lines: "L189-L197"
+    lines: "L77-L85"
     summary: "**Symbol:** init_task"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/main.rs"
-    snippet: "    }\n\n    task::spawn(init_task, \"init\");\n    task::spawn_idle(idle_task);\n\n    log::info!(\"[kernel] entering scheduler — init will start service set\");\n    task::run()\n}"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.7.0/kernel/src/main.rs"
+    snippet: "    // Phase 7: Core Servers demo\n    //\n    // init_task creates a console IPC endpoint, registers it in the service\n    // registry, spawns the server tasks, and then yields.\n    // console_client_task demonstrates service discovery and IPC-based output.\n    task::spawn(init_task, \"init\");\n    task::spawn_idle(idle_task);\n\n    log::info!(\"[kernel] entering scheduler — init will start service set\");"
     snippetLanguage: "rust"
   - title: "Add a simple service registry for discovering early services"
     file: "kernel/src/ipc/registry.rs"
-    lines: "L9-L17"
+    lines: "L64-L72"
     summary: "**Symbol:** Registry, register, lookup"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/ipc/registry.rs"
-    snippet: "pub use kernel_core::ipc::registry::{MAX_SERVICES, RegistryError};\n\nuse kernel_core::ipc::registry::Registry;\n\nstatic REGISTRY: Mutex<Registry> = Mutex::new(Registry::new());\n\n/// Register a named service endpoint.\npub fn register(name: &str, ep_id: EndpointId) -> Result<(), RegistryError> {\n    REGISTRY.lock().register(name, ep_id)"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.7.0/kernel/src/ipc/registry.rs"
+    snippet: "// ---------------------------------------------------------------------------\n\nstruct Registry {\n    entries: [Option<Entry>; MAX_SERVICES],\n    count: usize,\n}\n\nimpl Registry {\n    const fn new() -> Self {"
     snippetLanguage: "rust"
   - title: "Add a simple service registry for discovering early services"
     file: "kernel-core/src/ipc/registry.rs"
     lines: "L32-L40"
     summary: "**Symbol:** Registry, register, lookup"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel-core/src/ipc/registry.rs"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.7.0/kernel-core/src/ipc/registry.rs"
     snippet: "\n/// Service registry — static name-to-endpoint mapping.\npub struct Registry {\n    entries: [Option<Entry>; MAX_SERVICES],\n    count: usize,\n}\n\nimpl Registry {\n    /// Create a new empty registry."
     snippetLanguage: "rust"
 realOsDifferences:
@@ -92,6 +92,6 @@ This phase builds on IPC Core and turns that foundation into Core Servers.
 
 ## Source materials
 
-- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/07-core-servers.md)
-- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/07-core-servers.md)
-- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/07-core-servers-tasks.md)
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/v0.7.0/docs/roadmap/07-core-servers.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/v0.7.0/docs/07-core-servers.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/v0.7.0/docs/roadmap/tasks/07-core-servers-tasks.md)

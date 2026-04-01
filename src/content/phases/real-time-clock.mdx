@@ -47,21 +47,21 @@ codeSpotlights:
     file: "kernel-core/src/time.rs"
     lines: "L23-L31"
     summary: "**Symbol:** days_in_month, is_leap_year"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel-core/src/time.rs"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.34.0/kernel-core/src/time.rs"
     snippet: "///\n/// Panics if `month` is 0 or greater than 12.\npub fn days_in_month(year: u32, month: u32) -> u32 {\n    match month {\n        1 => 31,\n        2 => {\n            if is_leap_year(year) {\n                29\n            } else {"
     snippetLanguage: "rust"
   - title: "Implement CMOS register read function"
     file: "kernel/src/rtc.rs"
     lines: "L27-L35"
     summary: "**Symbol:** cmos_read"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/rtc.rs"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.34.0/kernel/src/rtc.rs"
     snippet: "///\n/// Performs raw x86 port I/O. Must only be called in ring 0.\nunsafe fn cmos_read(register: u8) -> u8 {\n    let mut addr_port = Port::<u8>::new(0x70);\n    let mut data_port = Port::<u8>::new(0x71);\n    unsafe {\n        addr_port.write(register | 0x80); // bit 7 = disable NMI during read\n        let value = data_port.read();\n        // Re-enable NMI by writing the register index with bit 7 clear."
     snippetLanguage: "rust"
   - title: "Wire RTC module into kernel build"
     file: "kernel/src/main.rs"
     lines: "See file"
     summary: "- kernel/src/main.rs"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/main.rs"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.34.0/kernel/src/main.rs"
 realOsDifferences:
   - "**NTP** (Network Time Protocol) to synchronize wall-clock time with atomic clocks."
   - "**HPET** or **TSC** for nanosecond-resolution timekeeping (vs our 10ms LAPIC ticks)."
@@ -122,6 +122,6 @@ This phase builds on Kernel Memory Improvements and turns that foundation into R
 
 ## Source materials
 
-- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/34-real-time-clock.md)
-- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/34-timekeeping.md)
-- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/34-real-time-clock-tasks.md)
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/v0.34.0/docs/roadmap/34-real-time-clock.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/v0.34.0/docs/34-timekeeping.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/v0.34.0/docs/roadmap/tasks/34-real-time-clock-tasks.md)

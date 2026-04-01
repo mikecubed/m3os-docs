@@ -28,17 +28,17 @@ codeSpotlights:
     file: "userspace/ping/"
     lines: "See file"
     summary: "Write userspace/ping/ as a standalone ELF binary. Open an ICMP DGRAM socket,"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/userspace/ping/"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.23.0/userspace/ping/"
   - title: "Kernel entry"
     file: "kernel/src/main.rs"
     lines: "See file"
     summary: "Remove the ping builtin from kernel/src/main.rs and delete the associated"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/main.rs"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.23.0/kernel/src/main.rs"
   - title: "Net"
     file: "kernel/src/net/"
     lines: "See file"
     summary: "kernel/src/net/ now that they are reachable from userspace through net_server."
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/net/"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.23.0/kernel/src/net/"
 realOsDifferences:
   - "Linux's socket layer (`net/socket.c`) handles dozens of address families (AF_INET6, AF_UNIX, AF_NETLINK, AF_PACKET, AF_VSOCK, and more), non-blocking I/O through `epoll`, zero-copy sends via `sendfile` and `splice`, multicast group membership, `SO_REUSEPORT` for multi-process listeners, `io_uring` for async socket I/O, and a full `netfilter` hook chain for firewalling and NAT."
   - "The socket buffer (`sk_buff`) is a carefully optimized structure that avoids copies across protocol layers."
@@ -105,5 +105,5 @@ No checklist tasks were discovered for this phase yet.
 
 ## Source materials
 
-- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/23-socket-api.md)
-- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/23-socket-api-tasks.md)
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/v0.23.0/docs/roadmap/23-socket-api.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/v0.23.0/docs/roadmap/tasks/23-socket-api-tasks.md)

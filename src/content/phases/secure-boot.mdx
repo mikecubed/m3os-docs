@@ -21,9 +21,9 @@ keyFiles: []
 codeSpotlights:
   - title: "Add sign subcommand to xtask"
     file: "xtask/src/main.rs"
-    lines: "L76-L84"
+    lines: "L47-L55"
     summary: "**Symbol:** cmd_sign, sign_efi"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/xtask/src/main.rs"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.10.0/xtask/src/main.rs"
     snippet: "                std::process::exit(1);\n            });\n            cmd_sign(&sign_args);\n        }\n        Some(other) => {\n            eprintln!(\"Unknown subcommand: {other}\");\n            eprintln!(\"Usage: {}\", usage());\n            std::process::exit(1);\n        }"
     snippetLanguage: "rust"
 realOsDifferences:
@@ -79,6 +79,6 @@ This phase builds on Framebuffer And Shell and turns that foundation into Secure
 
 ## Source materials
 
-- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/10-secure-boot.md)
-- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/10-secure-boot.md)
-- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/10-secure-boot-tasks.md)
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/v0.10.0/docs/roadmap/10-secure-boot.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/v0.10.0/docs/10-secure-boot.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/v0.10.0/docs/roadmap/tasks/10-secure-boot-tasks.md)

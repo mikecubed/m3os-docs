@@ -30,24 +30,24 @@ keyFiles:
 codeSpotlights:
   - title: "Define kernel IPC objects for endpoints and notifications"
     file: "kernel/src/ipc/message.rs"
-    lines: "L2-L5"
+    lines: "L3-L11"
     summary: "- kernel/src/ipc/message.rs"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/ipc/message.rs"
-    snippet: "#![allow(dead_code)]\n\npub use kernel_core::ipc::message::Message;"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.6.0/kernel/src/ipc/message.rs"
+    snippet: "#![allow(dead_code)]\n//!\n//! A [`Message`] is the unit of information transferred in a single IPC\n//! rendezvous.  It is designed to fit entirely in CPU registers: one word for\n//! the label (method ID) and four words of inline data.\n//!\n//! # Design rationale\n//!\n//! Synchronous rendezvous IPC copies the message directly through the kernel —"
     snippetLanguage: "rust"
   - title: "Add a per-process capability table with validation"
     file: "kernel/src/ipc/capability.rs"
-    lines: "L2-L5"
+    lines: "L3-L11"
     summary: "- kernel/src/ipc/capability.rs"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/ipc/capability.rs"
-    snippet: "#![allow(dead_code)]\n\npub use kernel_core::ipc::capability::{CapError, CapHandle, Capability, CapabilityTable};"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.6.0/kernel/src/ipc/capability.rs"
+    snippet: "//! A **capability** is an unforgeable token that grants the holder specific\n//! rights to a kernel object.  In this implementation capabilities are integer\n//! handles — indices into a per-process [`CapabilityTable`].  The kernel\n//! validates every handle on every IPC syscall; raw integer forgery returns\n//! [`CapError::InvalidHandle`].\n//!\n//! # Capability types (Phase 6)\n//!\n//! | Variant | Grants |"
     snippetLanguage: "rust"
   - title: "Implement blocking recv and send primitives"
     file: "kernel/src/ipc/endpoint.rs"
-    lines: "L13-L21"
+    lines: "L179-L187"
     summary: "- kernel/src/ipc/endpoint.rs"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/ipc/endpoint.rs"
-    snippet: "//! |---|---|---|\n//! | [`recv`] | Server | Block until a sender arrives; return message label |\n//! | [`recv_msg`] | Server | Block until a sender arrives; return full [`Message`] |\n//! | [`send`] | Client | Block until a receiver is ready; deliver message |\n//! | [`call`] | Client | `send` + block waiting for a reply; returns label only |\n//! | [`call_msg`] | Client | `send` + block waiting for a reply; returns full [`Message`] |\n//! | [`reply`] | Server | Deliver a reply to the blocked caller |\n//! | [`reply_recv`] | Server | `reply` + immediately `recv` next message |\n//! | [`reply_recv_msg`] | Server | `reply` + immediately `recv_msg` next message |"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.6.0/kernel/src/ipc/endpoint.rs"
+    snippet: "        None => {\n            // Block; sender will call deliver_message + wake_task on us.\n            scheduler::block_current_on_recv();\n        }\n    }\n    // After waking (or immediate delivery), consume the pending message.\n    // None here is always an IPC/scheduler bug: the sender must call\n    // deliver_message before calling wake_task.\n    match scheduler::take_message(receiver) {"
     snippetLanguage: "rust"
 realOsDifferences:
   - "Real microkernels often include more message registers, stronger formal models, priority-aware scheduling interactions, and carefully tuned fast paths."
@@ -97,6 +97,6 @@ This phase builds on Userspace Entry and turns that foundation into IPC Core.
 
 ## Source materials
 
-- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/06-ipc-core.md)
-- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/06-ipc-core.md)
-- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/06-ipc-core-tasks.md)
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/v0.6.0/docs/roadmap/06-ipc-core.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/v0.6.0/docs/06-ipc-core.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/v0.6.0/docs/roadmap/tasks/06-ipc-core-tasks.md)

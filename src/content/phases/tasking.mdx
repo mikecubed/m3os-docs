@@ -19,24 +19,24 @@ keyFiles: []
 codeSpotlights:
   - title: "Define the kernel task structure and task states"
     file: "kernel/src/task/mod.rs"
-    lines: "L70-L78"
+    lines: "L52-L60"
     summary: "**Symbols:** Task, TaskState"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/task/mod.rs"
-    snippet: "\n// ---------------------------------------------------------------------------\n// Task ID\n// ---------------------------------------------------------------------------\n\n// TaskId is re-exported from kernel_core::types above.\n\n// ---------------------------------------------------------------------------\n// Task state"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.4.0/kernel/src/task/mod.rs"
+    snippet: "\n// ---------------------------------------------------------------------------\n// Task ID\n// ---------------------------------------------------------------------------\n\n/// Unique identifier for a kernel task.\n///\n/// Not yet consumed outside this module; the allow silences the dead-code\n/// lint for the inner field so the identifier is available for future use"
     snippetLanguage: "rust"
   - title: "Add a round-robin scheduler and ready queue"
     file: "kernel/src/task/scheduler.rs"
-    lines: "L29-L37"
+    lines: "L36-L44"
     summary: "**Symbol:** Scheduler"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/task/scheduler.rs"
-    snippet: "// ---------------------------------------------------------------------------\n\npub(super) static SCHEDULER: Mutex<Scheduler> = Mutex::new(Scheduler::new());\n\n// ---------------------------------------------------------------------------\n// Per-core helpers\n// ---------------------------------------------------------------------------\n\n/// Get the current core's reschedule flag."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.4.0/kernel/src/task/scheduler.rs"
+    snippet: "// ---------------------------------------------------------------------------\n\nstatic SCHEDULER: Mutex<Scheduler> = Mutex::new(Scheduler::new());\n\n/// Set by the timer ISR; cleared by the scheduler loop before picking a task.\nstatic RESCHEDULE: AtomicBool = AtomicBool::new(false);\n\n/// RSP of the scheduler loop (boot stack).  Written by `switch_context` when\n/// transitioning scheduler → task; read by `yield_now` to switch back."
     snippetLanguage: "rust"
   - title: "Trigger scheduling from the timer interrupt"
     file: "kernel/src/arch/x86_64/interrupts.rs"
-    lines: "L303-L311"
+    lines: "L27-L35"
     summary: "**Symbol:** timer_handler"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/arch/x86_64/interrupts.rs"
-    snippet: "\n    // Hardware IRQs\n    idt[InterruptIndex::Timer as u8].set_handler_fn(timer_handler);\n    idt[InterruptIndex::Keyboard as u8].set_handler_fn(keyboard_handler);\n    idt[InterruptIndex::VirtioNet as u8].set_handler_fn(virtio_net_handler);\n\n    // APIC spurious interrupt vector — must NOT send EOI.\n    idt[InterruptIndex::Spurious as u8].set_handler_fn(spurious_handler);"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.4.0/kernel/src/arch/x86_64/interrupts.rs"
+    snippet: "\n    // Hardware IRQs\n    idt[InterruptIndex::Timer as u8].set_handler_fn(timer_handler);\n    idt[InterruptIndex::Keyboard as u8].set_handler_fn(keyboard_handler);\n\n    idt\n});\n\n/// Load the IDT."
     snippetLanguage: "rust"
 realOsDifferences:
   - "Mature schedulers handle priorities, CPU affinity, latency targets, and many blocking sources. A toy round-robin scheduler is intentionally unsophisticated because it makes context switching and task states easy to inspect and reason about."
@@ -83,6 +83,6 @@ This phase builds on Interrupts and turns that foundation into Tasking.
 
 ## Source materials
 
-- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/04-tasking.md)
-- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/05-tasking.md)
-- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/04-tasking-tasks.md)
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/v0.4.0/docs/roadmap/04-tasking.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/v0.4.0/docs/05-tasking.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/v0.4.0/docs/roadmap/tasks/04-tasking-tasks.md)

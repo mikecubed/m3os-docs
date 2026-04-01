@@ -43,23 +43,23 @@ keyFiles:
 codeSpotlights:
   - title: "fcntl stub"
     file: "kernel/src/arch/x86_64/syscall.rs"
-    lines: "L441-L449"
+    lines: "L383-L391"
     summary: "**Symbol:** sys_fcntl"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/arch/x86_64/syscall.rs"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.21.0/kernel/src/arch/x86_64/syscall.rs"
     snippet: "        63 => sys_linux_uname(arg0),\n        // Phase 21: fcntl stub\n        72 => sys_fcntl(arg0, arg1, arg2),\n        // Phase 13: filesystem mutation syscalls\n        74 => sys_linux_fsync(arg0),\n        // Phase 21: gettimeofday stub — return approximate time from LAPIC tick count\n        96 => sys_gettimeofday(arg0),\n        76 => sys_linux_truncate(arg0, arg1),\n        77 => sys_linux_ftruncate(arg0, arg1),"
     snippetLanguage: "rust"
   - title: "build_ion() in xtask"
     file: "xtask/src/main.rs"
-    lines: "L294-L302"
+    lines: "L241-L249"
     summary: "**Symbol:** build_ion"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/xtask/src/main.rs"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.21.0/xtask/src/main.rs"
     snippet: "/// If the ion.elf binary already exists and is newer than ion's Cargo.toml,\n/// the build is skipped (cache hit).\nfn build_ion() {\n    let root = workspace_root();\n    let initrd = root.join(\"kernel/initrd\");\n    let ion_elf = initrd.join(\"ion.elf\");\n\n    // If a pre-built ion.elf exists, skip the build.\n    if ion_elf.exists() && ion_elf.metadata().map(|m| m.len() > 0).unwrap_or(false) {"
     snippetLanguage: "rust"
   - title: "Ramdisk entries for ion"
     file: "kernel/src/fs/ramdisk.rs"
     lines: "See file"
     summary: "**Why it matters:** Ion must be discoverable at /bin/ion for exec to find it."
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/fs/ramdisk.rs"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.21.0/kernel/src/fs/ramdisk.rs"
 realOsDifferences:
   - "Production Linux distributions ship bash, dash, zsh, or fish as `/bin/sh` or the default interactive shell."
   - "These are either C programs linked against glibc or statically linked against musl (Alpine Linux uses busybox ash linked with musl)."
@@ -125,6 +125,6 @@ This phase builds on Userspace Init Shell and turns that foundation into Ion She
 
 ## Source materials
 
-- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/21-ion-shell.md)
-- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/19-ion-shell.md)
-- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/21-ion-shell-tasks.md)
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/v0.21.0/docs/roadmap/21-ion-shell.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/v0.21.0/docs/19-ion-shell.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/v0.21.0/docs/roadmap/tasks/21-ion-shell-tasks.md)

@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
@@ -126,6 +127,8 @@ export function generatePhaseDocuments(
   }
 
   const currentPhaseOrder = resolveCurrentPhaseOrder(worklist.source.sourcePath);
+  const availableGitTags = listGitTags(worklist.source.sourcePath);
+  const sourceRefCache = new Map<string, boolean>();
 
   return worklist.phases.map((phase) => {
     const phaseDocument = readSourceDocument(worklist.source.sourcePath, phase.sourceDocuments.phaseDoc);
@@ -136,6 +139,16 @@ export function generatePhaseDocuments(
     const taskDocuments = phase.sourceDocuments.taskLists.map((taskList) =>
       parseTaskDocument(readSourceText(worklist.source.sourcePath, taskList)),
     );
+    const sourceRef = resolvePhaseSourceRef({
+      availableGitTags,
+      fallbackRef: worklist.source.ref,
+      phaseOrder: phase.phaseOrder,
+      phaseDocument,
+      roadmapDocument,
+      sourceRefCache,
+      sourceRoot: worklist.source.sourcePath,
+      taskDocuments,
+    });
     const taskSummary = summarizeTasks(taskDocuments);
     const buildsOn = resolveBuildDependencies({
       dependencyLookup,
@@ -179,16 +192,24 @@ export function generatePhaseDocuments(
     const keyFiles = extractKeyFiles({
       documents: [
         {
-          githubUrl: phase.sourceDocuments.roadmapEntry?.githubUrl,
+          githubUrl: phase.sourceDocuments.roadmapEntry
+            ? buildGitHubUrl(
+                worklist.source.repoUrl,
+                sourceRef,
+                phase.sourceDocuments.roadmapEntry.relativePath,
+              )
+            : undefined,
           markdown: roadmapDocument,
         },
         {
-          githubUrl: phase.sourceDocuments.phaseDoc?.githubUrl,
+          githubUrl: phase.sourceDocuments.phaseDoc
+            ? buildGitHubUrl(worklist.source.repoUrl, sourceRef, phase.sourceDocuments.phaseDoc.relativePath)
+            : undefined,
           markdown: phaseDocument,
         },
       ],
       repoUrl: worklist.source.repoUrl,
-      repoRef: worklist.source.ref,
+      repoRef: sourceRef,
     });
     const components = inferComponents(
       keyFiles,
@@ -203,7 +224,7 @@ export function generatePhaseDocuments(
     const codeSpotlights = createCodeSpotlights({
       keyFiles,
       sourceRoot: worklist.source.sourcePath,
-      repoRef: worklist.source.ref,
+      repoRef: sourceRef,
       repoUrl: worklist.source.repoUrl,
       taskDocuments,
     });
@@ -234,7 +255,9 @@ export function generatePhaseDocuments(
         phaseTitleLookup,
         previousPhaseSlug: phase.previousPhaseSlug,
         roadmapEntry: phase.sourceDocuments.roadmapEntry,
+        repoUrl: worklist.source.repoUrl,
         slug: phase.slug,
+        sourceRef,
         summary,
         taskSummary,
         taskLists: phase.sourceDocuments.taskLists,
@@ -334,6 +357,119 @@ function parseTaskDocument(markdown: string): ParsedTaskDocument {
     totalTrackCount: trackStatusSummary.total,
     totalTaskCount: taskMatches.length,
   };
+}
+
+function resolvePhaseSourceRef(input: {
+  availableGitTags: readonly string[];
+  fallbackRef: string;
+  phaseOrder: number;
+  phaseDocument: ParsedMarkdownDocument;
+  roadmapDocument: ParsedMarkdownDocument;
+  sourceRefCache: Map<string, boolean>;
+  sourceRoot: string;
+  taskDocuments: readonly ParsedTaskDocument[];
+}): string {
+  const candidateRefs = [
+    extractSourceRef(input.phaseDocument.raw),
+    extractSourceRef(input.roadmapDocument.raw),
+    ...input.taskDocuments.map((taskDocument) => extractSourceRef(taskDocument.raw)),
+  ].filter((ref): ref is string => ref !== undefined);
+
+  for (const candidateRef of candidateRefs) {
+    if (isGitRefAvailable(input.sourceRoot, candidateRef, input.sourceRefCache)) {
+      return candidateRef;
+    }
+  }
+
+  const versionTagRef = findVersionTagForPhase(input.availableGitTags, input.phaseOrder);
+
+  if (versionTagRef) {
+    return versionTagRef;
+  }
+
+  return input.fallbackRef;
+}
+
+function extractSourceRef(markdown: string): string | undefined {
+  const sourceRefMatch = markdown.match(/^\*\*Source Ref:\*\*\s*`?([^`\n]+)`?\s*$/imu);
+  return sourceRefMatch?.[1]?.trim();
+}
+
+function isGitRefAvailable(
+  sourceRoot: string,
+  ref: string,
+  cache: Map<string, boolean>,
+): boolean {
+  const cacheKey = `${sourceRoot}::${ref}`;
+  const cachedResult = cache.get(cacheKey);
+
+  if (cachedResult !== undefined) {
+    return cachedResult;
+  }
+
+  const gitDirectory = path.join(sourceRoot, '.git');
+
+  if (!existsSync(gitDirectory)) {
+    cache.set(cacheKey, true);
+    return true;
+  }
+
+  try {
+    execFileSync('git', ['rev-parse', '--verify', `${ref}^{commit}`], {
+      cwd: sourceRoot,
+      stdio: 'ignore',
+    });
+    cache.set(cacheKey, true);
+    return true;
+  } catch {
+    cache.set(cacheKey, false);
+    return false;
+  }
+}
+
+function listGitTags(sourceRoot: string): string[] {
+  const gitDirectory = path.join(sourceRoot, '.git');
+
+  if (!existsSync(gitDirectory)) {
+    return [];
+  }
+
+  try {
+    return execFileSync('git', ['tag', '--list'], {
+      cwd: sourceRoot,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    })
+      .split(/\r?\n/u)
+      .map((tag) => tag.trim())
+      .filter((tag) => tag.length > 0);
+  } catch {
+    return [];
+  }
+}
+
+function findVersionTagForPhase(availableGitTags: readonly string[], phaseOrder: number): string | undefined {
+  const matchingVersionTags = availableGitTags
+    .filter((tag) => tag.startsWith(`v0.${phaseOrder}.`))
+    .sort(compareVersionTagsDescending);
+
+  return matchingVersionTags[0];
+}
+
+function compareVersionTagsDescending(left: string, right: string): number {
+  const leftParts = left.replace(/^v/u, '').split('.').map((part) => Number.parseInt(part, 10));
+  const rightParts = right.replace(/^v/u, '').split('.').map((part) => Number.parseInt(part, 10));
+  const maxLength = Math.max(leftParts.length, rightParts.length);
+
+  for (let index = 0; index < maxLength; index += 1) {
+    const difference = (rightParts[index] ?? 0) - (leftParts[index] ?? 0);
+
+    if (difference !== 0) {
+      return difference;
+    }
+  }
+
+  return 0;
 }
 
 function parseExplicitTaskStatus(markdown: string): PhaseStatus | undefined {
@@ -741,7 +877,9 @@ function renderBody(input: {
   phaseTitleLookup: ReadonlyMap<string, string>;
   previousPhaseSlug?: string;
   roadmapEntry?: SourceDocumentEntry;
+  repoUrl: string;
   slug: string;
+  sourceRef: string;
   summary: string;
   taskLists: readonly SourceDocumentEntry[];
   taskSummary: {
@@ -803,10 +941,14 @@ function renderBody(input: {
     '## Source materials',
     '',
     ...(input.roadmapEntry
-      ? [`- [Roadmap entry](${input.roadmapEntry.githubUrl})`]
+      ? [`- [Roadmap entry](${buildGitHubUrl(input.repoUrl, input.sourceRef, input.roadmapEntry.relativePath)})`]
       : ['- Roadmap entry not found.']),
-    ...(input.phaseDoc ? [`- [Implementation document](${input.phaseDoc.githubUrl})`] : []),
-    ...input.taskLists.map((taskList) => `- [Task list](${taskList.githubUrl})`),
+    ...(input.phaseDoc
+      ? [`- [Implementation document](${buildGitHubUrl(input.repoUrl, input.sourceRef, input.phaseDoc.relativePath)})`]
+      : []),
+    ...input.taskLists.map(
+      (taskList) => `- [Task list](${buildGitHubUrl(input.repoUrl, input.sourceRef, taskList.relativePath)})`,
+    ),
   ].join('\n');
 }
 
@@ -1115,11 +1257,11 @@ function createSpotlightFromCandidate(
     sourceRoot: string;
   },
 ): GeneratedCodeSpotlight {
-  const snippet = extractSourceSnippet(input.sourceRoot, candidate.file, candidate.symbolHints);
+  const snippet = extractSourceSnippet(input.sourceRoot, input.repoRef, candidate.file, candidate.symbolHints);
 
   return {
     file: candidate.file,
-    githubUrl: `${input.repoUrl}/blob/${input.repoRef}/${candidate.file}`,
+    githubUrl: buildGitHubUrl(input.repoUrl, input.repoRef, candidate.file),
     lines: snippet?.lines ?? 'See file',
     summary: candidate.summary,
     title: candidate.title,
@@ -1134,6 +1276,7 @@ function createSpotlightFromCandidate(
 
 function extractSourceSnippet(
   sourceRoot: string,
+  sourceRef: string,
   filePath: string,
   symbolHints: readonly string[],
 ): SourceSnippet | undefined {
@@ -1141,17 +1284,12 @@ function extractSourceSnippet(
     return undefined;
   }
 
-  const absolutePath = path.join(sourceRoot, filePath);
+  const sourceText = readSourceFileAtRef(sourceRoot, sourceRef, filePath);
 
-  if (!existsSync(absolutePath)) {
+  if (!sourceText) {
     return undefined;
   }
 
-  if (!statSync(absolutePath).isFile()) {
-    return undefined;
-  }
-
-  const sourceText = readFileSync(absolutePath, 'utf8');
   const sourceLines = sourceText.split(/\r?\n/u);
   const matchLineIndex = findSnippetLineIndex(sourceLines, symbolHints);
 
@@ -1168,6 +1306,43 @@ function extractSourceSnippet(
     lines: `L${startLineIndex + 1}-L${endLineIndex}`,
     snippet,
   };
+}
+
+function readSourceFileAtRef(
+  sourceRoot: string,
+  sourceRef: string,
+  filePath: string,
+): string | undefined {
+  const normalizedPath = toPosixPath(filePath);
+  const gitDirectory = path.join(sourceRoot, '.git');
+
+  if (existsSync(gitDirectory)) {
+    try {
+      return execFileSync('git', ['show', `${sourceRef}:${normalizedPath}`], {
+        cwd: sourceRoot,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+      });
+    } catch {
+      // Fall through to the working tree when the ref is unavailable locally.
+    }
+  }
+
+  const absolutePath = path.join(sourceRoot, normalizedPath);
+
+  if (!existsSync(absolutePath) || !statSync(absolutePath).isFile()) {
+    return undefined;
+  }
+
+  return readFileSync(absolutePath, 'utf8');
+}
+
+function buildGitHubUrl(repoUrl: string, repoRef: string, relativePath: string): string {
+  return `${repoUrl}/blob/${repoRef}/${toPosixPath(relativePath)}`;
+}
+
+function toPosixPath(value: string): string {
+  return value.replace(/\\/gu, '/');
 }
 
 function findSnippetLineIndex(

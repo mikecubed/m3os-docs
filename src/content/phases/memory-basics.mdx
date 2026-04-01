@@ -25,22 +25,22 @@ codeSpotlights:
     file: "kernel/src/mm/memory_map.rs"
     lines: "L6-L14"
     summary: "**Symbol:** init"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/mm/memory_map.rs"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.2.0/kernel/src/mm/memory_map.rs"
     snippet: "static MEMORY_MAP_INIT: AtomicBool = AtomicBool::new(false);\n\npub fn init(regions: &'static [MemoryRegion]) {\n    assert!(\n        !MEMORY_MAP_INIT.swap(true, Ordering::AcqRel),\n        \"memory_map::init called more than once\"\n    );\n    MEMORY_REGIONS.call_once(|| regions);"
     snippetLanguage: "rust"
   - title: "Implement a simple frame allocator"
     file: "kernel/src/mm/frame_allocator.rs"
     lines: "L30-L38"
     summary: "**Symbols:** FrameAllocator, init, allocate_frame, free_frame"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/mm/frame_allocator.rs"
-    snippet: "/// allocations.  The free-list frames are drained into the buddy allocator during\n/// `init_buddy()`.\nstruct FrameAllocator {\n    /// Physical address of the first free frame, or 0 if the list is empty.\n    head: u64,\n    /// Number of frames currently free (free-list or buddy).\n    free_count: usize,\n    /// Total number of usable frames discovered at init (>= 1 MiB).\n    total_frames: usize,"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.2.0/kernel/src/mm/frame_allocator.rs"
+    snippet: "    }\n\n    fn init(&mut self, regions: &'static [MemoryRegion]) {\n        self.regions = Some(regions);\n        self.region_index = 0;\n        self.next_addr = 0;\n        self.frames_allocated = 0;\n\n        // Advance to the first allocatable region"
     snippetLanguage: "rust"
   - title: "Add safe wrappers around page-table manipulation"
     file: "kernel/src/mm/paging.rs"
     lines: "L13-L21"
     summary: "**Symbols:** init, GlobalFrameAlloc"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/mm/paging.rs"
-    snippet: "/// - **Must be called exactly once.** A second call panics to prevent aliased\n///   `&'static mut` references to the active L4 table (which would be UB).\npub unsafe fn init(physical_memory_offset: VirtAddr) -> OffsetPageTable<'static> {\n    unsafe {\n        assert!(\n            INIT_GUARD.get().is_none(),\n            \"paging::init called more than once\"\n        );\n        INIT_GUARD.call_once(|| ());"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.2.0/kernel/src/mm/paging.rs"
+    snippet: "/// - **Must be called exactly once.** A second call panics to prevent aliased\n///   `&'static mut` references to the active L4 table (which would be UB).\npub unsafe fn init(physical_memory_offset: VirtAddr) -> OffsetPageTable<'static> {\n    assert!(\n        INIT_GUARD.get().is_none(),\n        \"paging::init called more than once\"\n    );\n    INIT_GUARD.call_once(|| ());"
     snippetLanguage: "rust"
 realOsDifferences:
   - "Real kernels support far more memory states, NUMA, large pages, reclaim strategies, copy-on-write, and demand paging. For a toy OS, a fixed heap and a simple allocator are better because they teach the mechanics without hiding them behind complex policy."
@@ -87,6 +87,6 @@ This phase builds on Boot Foundation and turns that foundation into Memory Basic
 
 ## Source materials
 
-- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/02-memory-basics.md)
-- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/03-memory.md)
-- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/02-memory-basics-tasks.md)
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/v0.2.0/docs/roadmap/02-memory-basics.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/v0.2.0/docs/03-memory.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/v0.2.0/docs/roadmap/tasks/02-memory-basics-tasks.md)

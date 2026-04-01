@@ -50,23 +50,23 @@ keyFiles:
 codeSpotlights:
   - title: "Add UID/GID fields to Process struct"
     file: "kernel/src/process/mod.rs"
-    lines: "L464-L472"
+    lines: "L403-L411"
     summary: "**Symbol:** uid, gid, euid, egid fields on Process"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/process/mod.rs"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.27.1/kernel/src/process/mod.rs"
     snippet: "    pub fs_base: u64,\n    /// Real user ID (Phase 27). 0 = root.\n    pub uid: u32,\n    /// Real group ID (Phase 27). 0 = root.\n    pub gid: u32,\n    /// Effective user ID (Phase 27). Used for permission checks.\n    pub euid: u32,\n    /// Effective group ID (Phase 27). Used for permission checks.\n    pub egid: u32,"
     snippetLanguage: "rust"
   - title: "Update identity syscalls to return real fields"
     file: "kernel/src/arch/x86_64/syscall.rs"
-    lines: "L462-L470"
+    lines: "L441-L449"
     summary: "**Symbol:** sys_linux_getuid, sys_linux_getgid, sys_linux_geteuid, sys_linux_getegid"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/arch/x86_64/syscall.rs"
-    snippet: "        100 => sys_times(arg0),\n        // Phase 27: user/group identity syscalls\n        102 => sys_linux_getuid(),\n        104 => sys_linux_getgid(),\n        105 => sys_linux_setuid(arg0),\n        106 => sys_linux_setgid(arg0),\n        107 => sys_linux_geteuid(),\n        108 => sys_linux_getegid(),\n        113 => sys_linux_setreuid(arg0, arg1),"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.27.1/kernel/src/arch/x86_64/syscall.rs"
+    snippet: "        93 => sys_linux_fchown(arg0, arg1, arg2),\n        // Phase 27: user/group identity syscalls\n        102 => sys_linux_getuid(),\n        104 => sys_linux_getgid(),\n        105 => sys_linux_setuid(arg0),\n        106 => sys_linux_setgid(arg0),\n        107 => sys_linux_geteuid(),\n        108 => sys_linux_getegid(),\n        113 => sys_linux_setreuid(arg0, arg1),"
     snippetLanguage: "rust"
   - title: "Extend ramdisk nodes with metadata"
     file: "kernel/src/fs/ramdisk.rs"
     lines: "See file"
     summary: "**Why it matters:** Ramdisk files (initrd binaries) need permission bits so exec permission checks work."
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/fs/ramdisk.rs"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.27.1/kernel/src/fs/ramdisk.rs"
 realOsDifferences:
   - "Real Unix systems use PAM (Pluggable Authentication Modules) for flexible auth backends."
   - "NSS (Name Service Switch) enables looking up users from LDAP, NIS, etc."
@@ -133,6 +133,6 @@ This phase builds on Text Editor and turns that foundation into User Accounts.
 
 ## Source materials
 
-- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/27-user-accounts.md)
-- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/27-user-accounts.md)
-- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/27-user-accounts-tasks.md)
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/v0.27.1/docs/roadmap/27-user-accounts.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/v0.27.1/docs/27-user-accounts.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/v0.27.1/docs/roadmap/tasks/27-user-accounts-tasks.md)

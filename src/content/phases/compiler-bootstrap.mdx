@@ -21,23 +21,23 @@ keyFiles: []
 codeSpotlights:
   - title: "Obtain TCC source"
     file: "xtask/src/main.rs"
-    lines: "L492-L500"
+    lines: "L376-L384"
     summary: "**Symbol:** build_tcc"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/xtask/src/main.rs"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.31.1/xtask/src/main.rs"
     snippet: "///   target/tcc-staging/usr/src/hello.c      — test program\n///   target/tcc-staging/usr/src/tcc/         — TCC source for self-hosting\nfn build_tcc() -> Option<PathBuf> {\n    let root = workspace_root();\n    let staging = root.join(\"target/tcc-staging\");\n    let tcc_bin = staging.join(\"usr/bin/tcc\");\n\n    // Check if we already have a complete cached build. Validate sentinel\n    // artifacts to avoid reusing a partially-populated staging dir from an"
     snippetLanguage: "rust"
   - title: "sys_open FD lifecycle audit"
     file: "kernel/src/arch/x86_64/syscall.rs"
-    lines: "L1281-L1289"
+    lines: "L1233-L1241"
     summary: "**Symbol:** alloc_fd"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/arch/x86_64/syscall.rs"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.31.1/kernel/src/arch/x86_64/syscall.rs"
     snippet: "    };\n\n    let read_fd = match alloc_fd(3, read_entry) {\n        Some(fd) => fd,\n        None => {\n            // No FDs reference this pipe yet — free the slot directly.\n            crate::pipe::free_pipe(pipe_id);\n            return NEG_EMFILE;\n        }"
     snippetLanguage: "rust"
   - title: "Edit-compile-run cycle"
     file: "userspace/edit/src/main.rs"
     lines: "L1092-L1100"
     summary: "- userspace/edit/src/main.rs"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/userspace/edit/src/main.rs"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.31.1/userspace/edit/src/main.rs"
     snippet: "// ---------------------------------------------------------------------------\n\nsyscall_lib::entry_point!(edit_main);\n\nfn edit_main(args: &[&str]) -> i32 {\n    register_sigwinch_handler();\n\n    let mut editor = Editor::new();"
     snippetLanguage: "rust"
 realOsDifferences:
@@ -94,6 +94,6 @@ This phase builds on Telnet Server and turns that foundation into Compiler Boots
 
 ## Source materials
 
-- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/31-compiler-bootstrap.md)
-- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/31-compiler-bootstrap.md)
-- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/31-compiler-bootstrap-tasks.md)
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/v0.31.1/docs/roadmap/31-compiler-bootstrap.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/v0.31.1/docs/31-compiler-bootstrap.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/v0.31.1/docs/roadmap/tasks/31-compiler-bootstrap-tasks.md)

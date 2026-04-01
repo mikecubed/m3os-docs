@@ -27,12 +27,12 @@ codeSpotlights:
     file: "kernel/src/fs/fat32.rs"
     lines: "See file"
     summary: "FAT32 volume driver (kernel/src/fs/fat32.rs) — BPB parsing, cluster chain"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/fs/fat32.rs"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.24.0/kernel/src/fs/fat32.rs"
   - title: "virtio-blk driver (kernel/src/blk/virtio_blk.rs) — sector-level I/O via"
     file: "kernel/src/blk/virtio_blk.rs"
     lines: "See file"
     summary: "virtio-blk driver (kernel/src/blk/virtio_blk.rs) — sector-level I/O via"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/blk/virtio_blk.rs"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.24.0/kernel/src/blk/virtio_blk.rs"
 realOsDifferences:
   - "Production block I/O stacks are built around asynchronous submission queues (Linux `io_uring`, NVMe submission/completion queues, Windows I/O completion ports) so that a thread is never stalled waiting for a single sector."
   - "The page cache decouples the filesystem from disk latency: writes land in RAM first and are flushed in batches by writeback threads."
@@ -98,6 +98,6 @@ No checklist tasks were discovered for this phase yet.
 
 ## Source materials
 
-- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/24-persistent-storage.md)
-- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/24-persistent-storage.md)
-- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/24-persistent-storage-tasks.md)
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/v0.24.0/docs/roadmap/24-persistent-storage.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/v0.24.0/docs/24-persistent-storage.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/v0.24.0/docs/roadmap/tasks/24-persistent-storage-tasks.md)

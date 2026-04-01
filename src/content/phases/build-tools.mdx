@@ -36,23 +36,23 @@ keyFiles:
 codeSpotlights:
   - title: "sys_fstat / sys_stat returns meaningful st_mtime"
     file: "kernel/src/arch/x86_64/syscall.rs"
-    lines: "L352-L360"
+    lines: "L341-L349"
     summary: "- kernel/src/arch/x86_64/syscall.rs"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/arch/x86_64/syscall.rs"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.32.0/kernel/src/arch/x86_64/syscall.rs"
     snippet: "        // stat(path, buf) and lstat(path, buf) — no symlinks, both delegate to fstatat.\n        4 => sys_linux_fstatat(u64::MAX, arg0, arg1),\n        5 => sys_linux_fstat(arg0, arg1),\n        6 => sys_linux_fstatat(u64::MAX, arg0, arg1),\n        // Phase 22: poll stub — report all requested fds as ready.\n        // Ion uses poll() to multiplex between signal pipe and stdin.\n        7 => sys_poll(arg0, arg1, arg2),\n        8 => sys_linux_lseek(arg0, arg1, arg2),\n        // Phase 21: mprotect stub (musl stack guard)"
     snippetLanguage: "rust"
   - title: "utimensat / utimensat_now wrappers in syscall-lib"
     file: "userspace/syscall-lib/src/lib.rs"
-    lines: "L1053-L1061"
+    lines: "L1039-L1047"
     summary: "**Symbol:** utimensat"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/userspace/syscall-lib/src/lib.rs"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.32.0/userspace/syscall-lib/src/lib.rs"
     snippet: "\n// ===========================================================================\n// Phase 32: stat and utimensat wrappers\n// ===========================================================================\n\n/// x86_64 Linux stat struct (144 bytes).\n#[repr(C)]\n#[derive(Clone, Copy)]\npub struct Stat {"
     snippetLanguage: "rust"
   - title: "Evaluate pdpmake source"
     file: "xtask/src/main.rs"
-    lines: "L367-L375"
+    lines: "L361-L369"
     summary: "**Symbol:** build_pdpmake"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/xtask/src/main.rs"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.32.0/xtask/src/main.rs"
     snippet: "/// build with `musl-gcc -static -O2`, and place the resulting binary in\n/// kernel/initrd/make.elf.\nfn build_pdpmake() {\n    let root = workspace_root();\n    let initrd = root.join(\"kernel/initrd\");\n    let make_elf = initrd.join(\"make.elf\");\n\n    // Check cache.\n    if make_elf.exists() && make_elf.metadata().map(|m| m.len() > 0).unwrap_or(false) {"
     snippetLanguage: "rust"
 realOsDifferences:
@@ -111,6 +111,6 @@ This phase builds on Compiler Bootstrap and turns that foundation into Build Too
 
 ## Source materials
 
-- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/32-build-tools.md)
-- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/32-build-tools.md)
-- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/32-build-tools-tasks.md)
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/v0.32.0/docs/roadmap/32-build-tools.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/v0.32.0/docs/32-build-tools.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/v0.32.0/docs/roadmap/tasks/32-build-tools-tasks.md)

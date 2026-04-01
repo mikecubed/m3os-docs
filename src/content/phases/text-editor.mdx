@@ -23,23 +23,23 @@ keyFiles:
 codeSpotlights:
   - title: "Add `ioctl()` wrapper"
     file: "userspace/syscall-lib/src/lib.rs"
-    lines: "L424-L432"
+    lines: "L346-L354"
     summary: "**Symbol:** ioctl"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/userspace/syscall-lib/src/lib.rs"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.26.0/userspace/syscall-lib/src/lib.rs"
     snippet: "/// used by the TCGETS/TCSETS ioctls (36 bytes).\n///\n/// This is the kernel ioctl copy format, **not** the libc/musl userland\n/// `struct termios` layout (which is 60 bytes).\n#[repr(C)]\n#[derive(Clone, Copy)]\npub struct Termios {\n    pub c_iflag: u32,\n    pub c_oflag: u32,"
     snippetLanguage: "rust"
   - title: "Create userspace heap allocator"
     file: "userspace/syscall-lib/src/heap.rs"
-    lines: "L21-L29"
+    lines: "L20-L28"
     summary: "**Symbol:** BrkAllocator"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/userspace/syscall-lib/src/heap.rs"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.26.0/userspace/syscall-lib/src/heap.rs"
     snippet: "\n/// A simple brk-based allocator with a free list.\npub struct BrkAllocator {\n    /// Start of the free list (first free block).\n    free_list: core::cell::UnsafeCell<*mut BlockHeader>,\n    /// Current program break (top of heap).\n    brk_current: AtomicU64,\n    /// Whether brk has been initialized.\n    initialized: core::cell::UnsafeCell<bool>,"
     snippetLanguage: "rust"
   - title: "Verify allocator works"
     file: "userspace/edit/src/main.rs"
     lines: "See file"
     summary: "**Why it matters:** A broken allocator would cause silent corruption or panics in the editor."
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/userspace/edit/src/main.rs"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.26.0/userspace/edit/src/main.rs"
 realOsDifferences:
   - "Real systems ship with multiple editors (vi, nano, emacs) and editor infrastructure like terminfo/termcap databases that abstract terminal capabilities. Our approach hardcodes VT100 escape sequences, which is fine because QEMU's serial console and virtually all modern terminal emulators support VT100."
   - "A production OS would also provide shared libraries for TUI development (ncurses), which we defer."
@@ -97,6 +97,6 @@ This phase builds on SMP and turns that foundation into Text Editor.
 
 ## Source materials
 
-- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/26-text-editor.md)
-- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/26-text-editor.md)
-- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/26-text-editor-tasks.md)
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/v0.26.0/docs/roadmap/26-text-editor.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/v0.26.0/docs/26-text-editor.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/v0.26.0/docs/roadmap/tasks/26-text-editor-tasks.md)

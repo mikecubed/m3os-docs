@@ -29,17 +29,17 @@ codeSpotlights:
     file: "kernel-core/src/fb.rs"
     lines: "See file"
     summary: "Host-testable CSI state machine in kernel-core/src/fb.rs"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel-core/src/fb.rs"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.22.2/kernel-core/src/fb.rs"
   - title: "The Termios struct is defined in kernel-core/src/tty.rs and is"
     file: "kernel-core/src/tty.rs"
     lines: "See file"
     summary: "The Termios struct is defined in kernel-core/src/tty.rs and is"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel-core/src/tty.rs"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.22.2/kernel-core/src/tty.rs"
   - title: "The stdin buffer (kernel/src/stdin.rs) is a 4096-byte circular buffer"
     file: "kernel/src/stdin.rs"
     lines: "See file"
     summary: "The stdin buffer (kernel/src/stdin.rs) is a 4096-byte circular buffer"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/stdin.rs"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.22.2/kernel/src/stdin.rs"
 realOsDifferences:
   - "Linux's TTY subsystem is one of the oldest and most complex parts of the kernel. The line discipline (`N_TTY` and others) runs in ring 0, not in a userspace server."
   - "The PTY implementation in `drivers/tty/pty.c` handles hundreds of `ioctl` codes, flow control via `VSTART`/`VSTOP` (XON/XOFF), modem control lines, packet mode, and the `/dev/pts` devpts filesystem."
@@ -102,6 +102,6 @@ No checklist tasks were discovered for this phase yet.
 
 ## Source materials
 
-- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/22-tty-pty.md)
-- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/23-tty-terminal.md)
-- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/22-tty-pty-tasks.md)
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/v0.22.2/docs/roadmap/22-tty-pty.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/v0.22.2/docs/23-tty-terminal.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/v0.22.2/docs/roadmap/tasks/22-tty-pty-tasks.md)

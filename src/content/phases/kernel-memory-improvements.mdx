@@ -45,21 +45,21 @@ codeSpotlights:
     file: "kernel/src/mm/heap.rs"
     lines: "L21-L29"
     summary: "**Symbol:** RetryAllocator"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/mm/heap.rs"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.33.0/kernel/src/mm/heap.rs"
     snippet: "/// sizes before retrying. This avoids the limitations of `alloc_error_handler`\n/// which cannot retry the failed allocation.\nstruct RetryAllocator {\n    inner: LockedHeap,\n}\n\nunsafe impl Sync for RetryAllocator {}\n\nunsafe impl GlobalAlloc for RetryAllocator {"
     snippetLanguage: "rust"
   - title: "Remove diverging `alloc_error_handler` retry path"
     file: "kernel/src/main.rs"
     lines: "L1-L9"
     summary: "**Symbol:** alloc_error_handler"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/main.rs"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.33.0/kernel/src/main.rs"
     snippet: "#![no_std]\n#![no_main]\n#![feature(alloc_error_handler)]\n#![feature(abi_x86_interrupt)]\n#![cfg_attr(test, feature(custom_test_frameworks))]\n#![cfg_attr(test, test_runner(crate::testing::test_runner))]\n#![cfg_attr(test, reexport_test_harness_main = \"test_main\")]\n\nextern crate alloc;"
     snippetLanguage: "rust"
   - title: "Implement buddy allocator data structure in `kernel-core`"
     file: "kernel-core/src/buddy.rs"
     lines: "L26-L34"
     summary: "**Symbol:** BuddyAllocator"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel-core/src/buddy.rs"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.33.0/kernel-core/src/buddy.rs"
     snippet: "/// O(log n) behavior bounded by MAX_ORDER + 1 levels. The bitmap enables\n/// O(1) buddy-merge checks without scanning the free list.\npub struct BuddyAllocator {\n    /// Per-order free lists: each entry is a PFN of a free block at that order.\n    free_lists: [Vec<usize>; MAX_ORDER + 1],\n    /// Per-order bitmaps: bit at `block_index(pfn, order)` is set iff that block\n    /// is free.  Stored as Vec<u64> for efficient bit manipulation.\n    bitmaps: [Vec<u64>; MAX_ORDER + 1],\n    /// Per-order free block counts."
     snippetLanguage: "rust"
 realOsDifferences:
@@ -122,6 +122,6 @@ This phase builds on Build Tools and turns that foundation into Kernel Memory Im
 
 ## Source materials
 
-- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/33-kernel-memory-improvements.md)
-- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/33-kernel-memory.md)
-- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/33-kernel-memory-tasks.md)
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/v0.33.0/docs/roadmap/33-kernel-memory-improvements.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/v0.33.0/docs/33-kernel-memory.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/v0.33.0/docs/roadmap/tasks/33-kernel-memory-tasks.md)

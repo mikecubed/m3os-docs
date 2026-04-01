@@ -23,7 +23,7 @@ codeSpotlights:
     file: "kernel/src/net/*"
     lines: "See file"
     summary: "(kernel/src/net/*) and runs as net_task. This is a temporary kernel-mode"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/net/*"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.16.0/kernel/src/net/*"
 realOsDifferences:
   - "Production network stacks handle retransmission timers, SACK, TCP congestion control (CUBIC, BBR), scatter-gather DMA, checksum offload, VLAN tagging, IPv6, DNS, TLS, and non-blocking I/O via `epoll`. They are typically 50,000-200,000 lines of code. This phase implements a toy single-connection stack with no retransmit timer and no congestion control — enough to demonstrate every layer of the model but not suitable for real traffic."
 successCriteria:
@@ -76,6 +76,6 @@ No checklist tasks were discovered for this phase yet.
 
 ## Source materials
 
-- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/16-network.md)
-- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/16-network.md)
-- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/16-network-tasks.md)
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/v0.16.0/docs/roadmap/16-network.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/v0.16.0/docs/16-network.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/v0.16.0/docs/roadmap/tasks/16-network-tasks.md)

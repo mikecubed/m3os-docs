@@ -20,24 +20,24 @@ keyFiles: []
 codeSpotlights:
   - title: "Define a minimal process abstraction"
     file: "kernel/src/process/mod.rs"
-    lines: "L7-L15"
+    lines: "L1-L9"
     summary: "**Symbols:** Process, ProcessState"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/process/mod.rs"
-    snippet: "//! # Design\n//!\n//! Each [`Process`] has its own kernel stack (allocated here, leaked so\n//! the stack lives for the kernel lifetime) and a unique [`Pid`].  The\n//! [`PROCESS_TABLE`] spinlock-protected global table is the single source\n//! of truth for all live processes.\n//!\n//! Phase 14: each process has its own file descriptor table (`fd_table`).\n//! FDs 0/1/2 are initialized as stdin/stdout/stderr on process creation."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.5.0/kernel/src/process/mod.rs"
+    snippet: "//! Minimal process abstraction for Phase 5.\n//!\n//! A `Process` holds the virtual addresses needed to enter userspace and\n//! any cleanup information. Full process lifecycle (spawn, wait, exit)\n//! is deferred to Phase 6+.\n\npub use crate::mm::user_space::{USER_CODE_BASE, USER_STACK_TOP};\n\n/// A minimal userspace process descriptor."
     snippetLanguage: "rust"
   - title: "Build a user address space"
     file: "kernel/src/mm/user_space.rs"
-    lines: "L104-L112"
+    lines: "L100-L108"
     summary: "**Symbol:** copy_to_user"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/mm/user_space.rs"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.5.0/kernel/src/mm/user_space.rs"
     snippet: "/// The bounds check is sized to the **code** region (`USER_CODE_PAGES * 4096`);\n/// do not use this helper to write to the stack or any other user region.\npub fn copy_to_user(virt_base: u64, src: &[u8]) -> Result<(), &'static str> {\n    let max_bytes = (USER_CODE_PAGES * 4096) as usize;\n    if src.len() > max_bytes {\n        return Err(\"copy_to_user: src exceeds mapped user code region\");\n    }\n    // Safety: caller guarantees virt_base is mapped and we've checked the length.\n    let dst = unsafe { core::slice::from_raw_parts_mut(virt_base as *mut u8, src.len()) };"
     snippetLanguage: "rust"
   - title: "Implement the transition into ring 3"
     file: "kernel/src/arch/x86_64/mod.rs"
-    lines: "L46-L54"
+    lines: "L37-L45"
     summary: "**Symbol:** enter_userspace"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/arch/x86_64/mod.rs"
-    snippet: "///   address (highest address; stack grows downward).\n/// * Must be called after `init()` so that GDT user segments are loaded.\npub unsafe fn enter_userspace(entry: u64, user_stack_top: u64) -> ! {\n    unsafe {\n        use core::arch::asm;\n        asm!(\n            \"push {ss}\",\n            \"push {rsp}\",\n            \"push {rflags}\","
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.5.0/kernel/src/arch/x86_64/mod.rs"
+    snippet: "///   address (highest address; stack grows downward).\n/// * Must be called after `init()` so that GDT user segments are loaded.\npub unsafe fn enter_userspace(entry: u64, user_stack_top: u64) -> ! {\n    use core::arch::asm;\n    // Push the five values that `iretq` pops in order:\n    //   SS, RSP, RFLAGS, CS, RIP\n    // RFLAGS: bit 9 (IF) set → interrupts enabled in userspace.\n    asm!(\n        \"push {ss}\","
     snippetLanguage: "rust"
 realOsDifferences:
   - "Production kernels have richer executable loading, memory permissions, security policies, and per-thread user contexts. This milestone should focus on a tiny, single-purpose userspace program so the privilege transition remains easy to follow."
@@ -85,6 +85,6 @@ This phase builds on Tasking and turns that foundation into Userspace Entry.
 
 ## Source materials
 
-- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/05-userspace-entry.md)
-- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/06-userspace-entry.md)
-- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/05-userspace-entry-tasks.md)
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/v0.5.0/docs/roadmap/05-userspace-entry.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/v0.5.0/docs/06-userspace-entry.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/v0.5.0/docs/roadmap/tasks/05-userspace-entry-tasks.md)

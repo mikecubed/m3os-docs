@@ -34,21 +34,21 @@ codeSpotlights:
     file: "kernel-core/src/fs/ext2.rs"
     lines: "L84-L92"
     summary: "**Symbol:** Ext2Superblock"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel-core/src/fs/ext2.rs"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.28.1/kernel-core/src/fs/ext2.rs"
     snippet: "/// ext2 superblock — 1024 bytes at byte offset 1024 on disk.\n#[derive(Debug, Clone, Copy)]\npub struct Ext2Superblock {\n    pub inodes_count: u32,\n    pub blocks_count: u32,\n    pub r_blocks_count: u32,\n    pub free_blocks_count: u32,\n    pub free_inodes_count: u32,\n    pub first_data_block: u32,"
     snippetLanguage: "rust"
   - title: "Implement `read_inode()`"
     file: "kernel/src/fs/ext2.rs"
     lines: "L118-L126"
     summary: "**Symbol:** read_inode"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/fs/ext2.rs"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.28.1/kernel/src/fs/ext2.rs"
     snippet: "\n    /// Read an inode by number (1-based).\n    pub fn read_inode(&self, inode_num: u32) -> Result<Ext2Inode, Ext2Error> {\n        let group =\n            kernel_core::fs::ext2::inode_block_group(inode_num, self.superblock.inodes_per_group);\n        let index = kernel_core::fs::ext2::inode_index_in_group(\n            inode_num,\n            self.superblock.inodes_per_group,\n        );"
     snippetLanguage: "rust"
   - title: "Replace `mkfs.fat` with `mkfs.ext2`"
     file: "xtask/src/main.rs"
     lines: "See file"
     summary: "**Why it matters:** The data partition must be ext2 format for native Unix metadata support."
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/xtask/src/main.rs"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.28.1/xtask/src/main.rs"
 realOsDifferences:
   - "**ext3/ext4 journaling**: crash recovery via a write-ahead log. ext2 has no journal — an unclean shutdown requires `e2fsck` to repair."
   - "**Extent trees** (ext4): replace block pointer lists for better large-file performance."
@@ -125,6 +125,6 @@ This phase builds on User Accounts and turns that foundation into Ext2 Filesyste
 
 ## Source materials
 
-- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/28-ext2-filesystem.md)
-- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/28-ext2-filesystem.md)
-- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/28-ext2-filesystem-tasks.md)
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/v0.28.1/docs/roadmap/28-ext2-filesystem.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/v0.28.1/docs/28-ext2-filesystem.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/v0.28.1/docs/roadmap/tasks/28-ext2-filesystem-tasks.md)

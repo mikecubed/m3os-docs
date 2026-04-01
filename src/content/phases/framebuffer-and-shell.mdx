@@ -19,16 +19,16 @@ keyFiles: []
 codeSpotlights:
   - title: "Parse framebuffer information for text-mode rendering"
     file: "kernel/src/fb/mod.rs"
-    lines: "L7-L15"
+    lines: "L8-L16"
     summary: "**Symbol:** init"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/fb/mod.rs"
-    snippet: "//! Public API\n//! ----------\n//! * `init(fb)`   — call once from `kernel_main` before `task::run()`.\n//! * `write_str(s)` — thread-safe via an internal `spin::Mutex`.\n\n#![allow(dead_code)]\n\nuse bootloader_api::info::{FrameBuffer, FrameBufferInfo, PixelFormat};\nuse kernel_core::fb::{AnsiParser, ConsoleCmd, SgrParams};"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.9.0/kernel/src/fb/mod.rs"
+    snippet: "//! Public API\n//! ----------\n//! * `init(fb)`   — call once from `kernel_main` before `task::run()`.\n//! * `write_str(s)` — thread-safe via an internal `spin::Mutex`.\n\n#![allow(dead_code)]\n\nuse bootloader_api::info::{FrameBuffer, FrameBufferInfo, PixelFormat};\nuse spin::Mutex;"
     snippetLanguage: "rust"
   - title: "Implement line input with basic editing"
     file: "userspace/shell/src/main.rs"
     lines: "L29-L37"
     summary: "**Symbol:** read_line"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/userspace/shell/src/main.rs"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.9.0/userspace/shell/src/main.rs"
     snippet: "\n        let mut line_buf = [0u8; MAX_LINE];\n        let len = read_line(&mut line_buf);\n        if len == 0 {\n            continue;\n        }\n\n        // Parse and execute the command line.\n        execute_line(&line_buf[..len]);"
     snippetLanguage: "rust"
 realOsDifferences:
@@ -79,6 +79,6 @@ This phase builds on Storage And VFS and turns that foundation into Framebuffer 
 
 ## Source materials
 
-- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/09-framebuffer-and-shell.md)
-- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/09-framebuffer-and-shell.md)
-- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/09-framebuffer-and-shell-tasks.md)
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/v0.9.0/docs/roadmap/09-framebuffer-and-shell.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/v0.9.0/docs/09-framebuffer-and-shell.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/v0.9.0/docs/roadmap/tasks/09-framebuffer-and-shell-tasks.md)

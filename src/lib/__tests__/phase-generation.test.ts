@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -19,6 +20,13 @@ function writeMarkdownFile(rootDirectory: string, relativePath: string, content:
   const absolutePath = path.join(rootDirectory, relativePath);
   mkdirSync(path.dirname(absolutePath), { recursive: true });
   writeFileSync(absolutePath, content, 'utf8');
+}
+
+function runGit(rootDirectory: string, ...args: string[]): void {
+  execFileSync('git', args, {
+    cwd: rootDirectory,
+    stdio: 'ignore',
+  });
 }
 
 afterEach(() => {
@@ -476,5 +484,258 @@ Remove the \`pick_next()\` guard so all cores can choose runnable work.
     expect(smpDocument?.content).toContain('lines: "L1-L7"');
     expect(smpDocument?.content).toContain('snippetLanguage: "rust"');
     expect(smpDocument?.content).toContain('snippet: "pub fn pick_next(core_id: usize) -> Option<usize> {');
+  });
+
+  it('uses a phase source ref for links and snippets when upstream docs provide one', () => {
+    const cwd = createTempDirectory('m3os-docs-generate-');
+    const sourceDirectory = path.join(cwd, 'm3os');
+
+    writeMarkdownFile(
+      sourceDirectory,
+      'docs/34-timekeeping.md',
+      `# Phase 34 Notes
+
+## Overview
+
+RTC initialization lives in \`kernel/src/rtc.rs\`.
+`,
+    );
+    writeMarkdownFile(
+      sourceDirectory,
+      'docs/roadmap/34-real-time-clock.md',
+      `# Phase 34 - Real-Time Clock
+
+**Source Ref:** phase-34
+
+## Milestone Goal
+
+Teach the kernel wall-clock time.
+
+## Learning Goals
+
+- Understand RTC bring-up.
+`,
+    );
+    writeMarkdownFile(
+      sourceDirectory,
+      'docs/roadmap/tasks/34-real-time-clock-tasks.md',
+      `# Phase 34 — Real-Time Clock: Task List
+
+**Source Ref:** phase-34
+
+### A.1 — Initialize RTC
+**File:** \`kernel/src/rtc.rs\`
+**Symbol:** \`init_rtc\`
+**Why it matters:** Reads the RTC once at boot.
+
+**Acceptance:**
+- [x] Works
+`,
+    );
+    writeMarkdownFile(
+      sourceDirectory,
+      'kernel/src/rtc.rs',
+      `pub fn init_rtc() {
+    let source = "tagged";
+    let _ = source;
+}
+`,
+    );
+
+    runGit(sourceDirectory, 'init');
+    runGit(sourceDirectory, 'config', 'user.name', 'Copilot Test');
+    runGit(sourceDirectory, 'config', 'user.email', 'copilot@example.com');
+    runGit(sourceDirectory, 'add', '.');
+    runGit(sourceDirectory, 'commit', '-m', 'Initial phase 34 state');
+    runGit(sourceDirectory, 'tag', 'phase-34');
+
+    writeMarkdownFile(
+      sourceDirectory,
+      'kernel/src/rtc.rs',
+      `pub fn init_rtc() {
+    let source = "main";
+    let _ = source;
+}
+`,
+    );
+    runGit(sourceDirectory, 'add', 'kernel/src/rtc.rs');
+    runGit(sourceDirectory, 'commit', '-m', 'Change rtc implementation on main');
+
+    const repository = resolveSourceRepository({
+      cwd,
+      sourcePath: './m3os',
+      repoSlug: 'mikecubed/m3os',
+    });
+    const worklist = buildPhaseSynthesisWorklist(discoverSourceDocuments(repository));
+    const generatedDocuments = generatePhaseDocuments(worklist, {
+      outputDirectory: path.join(cwd, 'generated'),
+    });
+    const generatedDocument = generatedDocuments.find(
+      (document) => document.slug === 'real-time-clock',
+    );
+
+    expect(generatedDocument?.content).toContain(
+      'githubUrl: "https://github.com/mikecubed/m3os/blob/phase-34/kernel/src/rtc.rs"',
+    );
+    expect(generatedDocument?.content).toContain(
+      '[Roadmap entry](https://github.com/mikecubed/m3os/blob/phase-34/docs/roadmap/34-real-time-clock.md)',
+    );
+    expect(generatedDocument?.content).toContain('let source = \\"tagged\\";');
+    expect(generatedDocument?.content).not.toContain('let source = \\"main\\";');
+  });
+
+  it('falls back to the default source ref when an explicit phase ref is unavailable locally', () => {
+    const cwd = createTempDirectory('m3os-docs-generate-');
+    const sourceDirectory = path.join(cwd, 'm3os');
+
+    writeMarkdownFile(
+      sourceDirectory,
+      'docs/roadmap/35-true-smp-multitasking.md',
+      `# Phase 35 - True SMP Multitasking
+
+**Source Ref:** phase-35
+
+## Milestone Goal
+
+Dispatch work across all CPU cores.
+
+## Learning Goals
+
+- Understand per-core syscall state.
+`,
+    );
+    writeMarkdownFile(
+      sourceDirectory,
+      'docs/roadmap/tasks/35-true-smp-multitasking-tasks.md',
+      `# Phase 35 — True SMP Multitasking: Task List
+
+**Source Ref:** phase-35
+
+### A.1 — Move syscall state into per-core storage
+**File:** \`kernel/src/smp/mod.rs\`
+**Symbol:** \`PerCoreData\`
+**Why it matters:** Keeps syscall save state isolated per core.
+
+**Acceptance:**
+- [x] Works
+`,
+    );
+    writeMarkdownFile(
+      sourceDirectory,
+      'kernel/src/smp/mod.rs',
+      `pub struct PerCoreData {
+    pub syscall_stack_top: u64,
+}
+`,
+    );
+
+    runGit(sourceDirectory, 'init');
+    runGit(sourceDirectory, 'config', 'user.name', 'Copilot Test');
+    runGit(sourceDirectory, 'config', 'user.email', 'copilot@example.com');
+    runGit(sourceDirectory, 'add', '.');
+    runGit(sourceDirectory, 'commit', '-m', 'Current main state');
+
+    const repository = resolveSourceRepository({
+      cwd,
+      sourcePath: './m3os',
+      repoSlug: 'mikecubed/m3os',
+    });
+    const worklist = buildPhaseSynthesisWorklist(discoverSourceDocuments(repository));
+    const generatedDocuments = generatePhaseDocuments(worklist, {
+      outputDirectory: path.join(cwd, 'generated'),
+    });
+    const generatedDocument = generatedDocuments.find(
+      (document) => document.slug === 'true-smp-multitasking',
+    );
+
+    expect(generatedDocument?.content).toContain(
+      'githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/smp/mod.rs"',
+    );
+    expect(generatedDocument?.content).toContain('pub struct PerCoreData {');
+  });
+
+  it('falls back to a matching version tag when the explicit source ref name is not present locally', () => {
+    const cwd = createTempDirectory('m3os-docs-generate-');
+    const sourceDirectory = path.join(cwd, 'm3os');
+
+    writeMarkdownFile(
+      sourceDirectory,
+      'docs/roadmap/34-real-time-clock.md',
+      `# Phase 34 - Real-Time Clock
+
+**Source Ref:** phase-34
+
+## Milestone Goal
+
+Teach the kernel wall-clock time.
+
+## Learning Goals
+
+- Understand RTC bring-up.
+`,
+    );
+    writeMarkdownFile(
+      sourceDirectory,
+      'docs/roadmap/tasks/34-real-time-clock-tasks.md',
+      `# Phase 34 — Real-Time Clock: Task List
+
+**Source Ref:** phase-34
+
+### A.1 — Initialize RTC
+**File:** \`kernel/src/rtc.rs\`
+**Symbol:** \`init_rtc\`
+**Why it matters:** Reads the RTC once at boot.
+
+**Acceptance:**
+- [x] Works
+`,
+    );
+    writeMarkdownFile(
+      sourceDirectory,
+      'kernel/src/rtc.rs',
+      `pub fn init_rtc() {
+    let source = "version-tag";
+    let _ = source;
+}
+`,
+    );
+
+    runGit(sourceDirectory, 'init');
+    runGit(sourceDirectory, 'config', 'user.name', 'Copilot Test');
+    runGit(sourceDirectory, 'config', 'user.email', 'copilot@example.com');
+    runGit(sourceDirectory, 'add', '.');
+    runGit(sourceDirectory, 'commit', '-m', 'Initial phase 34 state');
+    runGit(sourceDirectory, 'tag', 'v0.34.0');
+
+    writeMarkdownFile(
+      sourceDirectory,
+      'kernel/src/rtc.rs',
+      `pub fn init_rtc() {
+    let source = "main";
+    let _ = source;
+}
+`,
+    );
+    runGit(sourceDirectory, 'add', 'kernel/src/rtc.rs');
+    runGit(sourceDirectory, 'commit', '-m', 'Change rtc implementation on main');
+
+    const repository = resolveSourceRepository({
+      cwd,
+      sourcePath: './m3os',
+      repoSlug: 'mikecubed/m3os',
+    });
+    const worklist = buildPhaseSynthesisWorklist(discoverSourceDocuments(repository));
+    const generatedDocuments = generatePhaseDocuments(worklist, {
+      outputDirectory: path.join(cwd, 'generated'),
+    });
+    const generatedDocument = generatedDocuments.find(
+      (document) => document.slug === 'real-time-clock',
+    );
+
+    expect(generatedDocument?.content).toContain(
+      'githubUrl: "https://github.com/mikecubed/m3os/blob/v0.34.0/kernel/src/rtc.rs"',
+    );
+    expect(generatedDocument?.content).toContain('let source = \\"version-tag\\";');
+    expect(generatedDocument?.content).not.toContain('let source = \\"main\\";');
   });
 });

@@ -27,17 +27,17 @@ codeSpotlights:
     file: "kernel/src/fs/protocol.rs"
     lines: "See file"
     summary: "**Why it matters:** A stable IPC contract decouples file consumers from filesystem implementation details."
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/fs/protocol.rs"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.8.0/kernel/src/fs/protocol.rs"
   - title: "Implement vfs_server as a path router"
     file: "kernel/src/fs/vfs.rs"
     lines: "See file"
     summary: "**Why it matters:** The VFS layer routes path requests to the correct backend, keeping filesystem-specific logic isolated."
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/fs/vfs.rs"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.8.0/kernel/src/fs/vfs.rs"
   - title: "Implement a read-only filesystem backend"
     file: "kernel/src/fs/fat32.rs"
     lines: "L175-L183"
     summary: "**Symbol:** Fat32Volume, mount_fat32"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/fs/fat32.rs"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.8.0/kernel/src/fs/fat32.rs"
     snippet: "\n/// A mounted FAT32 volume backed by virtio-blk sectors.\npub struct Fat32Volume {\n    pub bpb: Fat32Bpb,\n    /// Absolute LBA of the partition start on the block device.\n    base_lba: u64,\n    /// Absolute LBA of the first FAT sector.\n    fat_start_lba: u64,\n    /// Absolute LBA of the first data cluster (cluster 2)."
     snippetLanguage: "rust"
 realOsDifferences:
@@ -90,6 +90,6 @@ This phase builds on Core Servers and turns that foundation into Storage And VFS
 
 ## Source materials
 
-- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/08-storage-and-vfs.md)
-- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/08-storage-and-vfs.md)
-- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/08-storage-and-vfs-tasks.md)
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/v0.8.0/docs/roadmap/08-storage-and-vfs.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/v0.8.0/docs/08-storage-and-vfs.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/v0.8.0/docs/roadmap/tasks/08-storage-and-vfs-tasks.md)

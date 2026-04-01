@@ -21,24 +21,24 @@ keyFiles:
 codeSpotlights:
   - title: "ELF64 header and program header parser"
     file: "kernel/src/mm/elf.rs"
-    lines: "L146-L154"
+    lines: "L130-L138"
     summary: "**Symbol:** parse_ehdr, Ehdr, ElfError"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/mm/elf.rs"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.11.0/kernel/src/mm/elf.rs"
     snippet: "}\n\nfn parse_ehdr(data: &[u8]) -> Result<Ehdr, ElfError> {\n    if data.len() < EHDR_SIZE {\n        return Err(ElfError::TruncatedHeader);\n    }\n\n    if data[EI_MAG0..EI_MAG0 + 4] != ELFMAG {\n        return Err(ElfError::InvalidMagic);"
     snippetLanguage: "rust"
   - title: "Allocate userspace stack with guard page"
     file: "kernel/src/mm/user_space.rs"
     lines: "L23-L31"
     summary: "**Symbol:** USER_STACK_TOP, USER_STACK_PAGES"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/mm/user_space.rs"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.11.0/kernel/src/mm/user_space.rs"
     snippet: "\n/// Virtual address of userspace stack top.\npub const USER_STACK_TOP: u64 = 0x0000_0000_8000_0000; // 2 GiB\n\n/// Number of pages for userspace stack.\npub const USER_STACK_PAGES: u64 = 4; // 16 KiB\n\n/// Map `n` pages of physical memory at `virt_base` with user-accessible flags.\n///"
     snippetLanguage: "rust"
   - title: "Define the Process struct"
     file: "kernel/src/process/mod.rs"
     lines: "L7-L15"
     summary: "**Symbol:** Process, ProcessState"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/process/mod.rs"
-    snippet: "//! # Design\n//!\n//! Each [`Process`] has its own kernel stack (allocated here, leaked so\n//! the stack lives for the kernel lifetime) and a unique [`Pid`].  The\n//! [`PROCESS_TABLE`] spinlock-protected global table is the single source\n//! of truth for all live processes.\n//!\n//! Phase 14: each process has its own file descriptor table (`fd_table`).\n//! FDs 0/1/2 are initialized as stdin/stdout/stderr on process creation."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.11.0/kernel/src/process/mod.rs"
+    snippet: "//! # Design\n//!\n//! Each [`Process`] has its own kernel stack (allocated here, leaked so\n//! the stack lives for the kernel lifetime) and a unique [`Pid`].  The\n//! [`PROCESS_TABLE`] spinlock-protected global table is the single source\n//! of truth for all live processes.\n//!\n//! Process cleanup (freeing kernel stacks, reaping page tables) is\n//! deferred to a later phase."
     snippetLanguage: "rust"
 realOsDifferences:
   - "Production kernels implement copy-on-write `fork` so parent and child share physical pages until one writes. They also support dynamic linking (the ELF interpreter field points at `ld.so`), `execve` argument size limits, and process groups. The toy implementation uses eager copying and static linking only, which is much simpler to reason about."
@@ -89,6 +89,6 @@ This phase builds on Secure Boot and turns that foundation into Process Model.
 
 ## Source materials
 
-- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/11-process-model.md)
-- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/11-elf-loader-and-process-model.md)
-- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/11-process-model-tasks.md)
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/v0.11.0/docs/roadmap/11-process-model.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/v0.11.0/docs/11-elf-loader-and-process-model.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/v0.11.0/docs/roadmap/tasks/11-process-model-tasks.md)

@@ -32,22 +32,22 @@ keyFiles:
 codeSpotlights:
   - title: "Add raw syscall wrappers (syscall3–syscall6)"
     file: "userspace/syscall-lib/src/lib.rs"
-    lines: "L90-L98"
+    lines: "L61-L69"
     summary: "**Symbol:** syscall3, syscall4, syscall5, syscall6"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/userspace/syscall-lib/src/lib.rs"
-    snippet: "/// Caller must pass a valid syscall number and arguments. Pointer arguments must be valid.\n#[inline(always)]\npub unsafe fn syscall3(num: u64, a0: u64, a1: u64, a2: u64) -> u64 {\n    unsafe {\n        let mut rax = num;\n        asm!(\n            \"syscall\",\n            inlateout(\"rax\") rax,\n            in(\"rdi\") a0,"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.20.0/userspace/syscall-lib/src/lib.rs"
+    snippet: "/// Raw three-argument syscall.\n#[inline(always)]\npub unsafe fn syscall3(num: u64, a0: u64, a1: u64, a2: u64) -> u64 {\n    let mut rax = num;\n    asm!(\n        \"syscall\",\n        inlateout(\"rax\") rax,\n        in(\"rdi\") a0,\n        in(\"rsi\") a1,"
     snippetLanguage: "rust"
   - title: "Create init crate"
     file: "userspace/init/Cargo.toml"
     lines: "See file"
     summary: "**Why it matters:** Init is the first userspace process; without it there is no process tree."
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/userspace/init/Cargo.toml"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.20.0/userspace/init/Cargo.toml"
   - title: "Create init entry point"
     file: "userspace/init/src/main.rs"
-    lines: "L25-L33"
+    lines: "L19-L27"
     summary: "**Symbol:** _start"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/userspace/init/src/main.rs"
-    snippet: "\n#[unsafe(no_mangle)]\npub extern \"C\" fn _start() -> ! {\n    // Fds 0/1/2 are pre-opened by the kernel for PID 1.\n    write_str(STDOUT_FILENO, \"\\nm3OS init (PID 1)\\n\");\n\n    // Phase 28: Mount ext2 root filesystem at /.\n    #[allow(clippy::manual_c_str_literals)]\n    let ret = mount(b\"/dev/blk0\\0\".as_ptr(), b\"/\\0\".as_ptr(), b\"ext2\\0\".as_ptr());"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.20.0/userspace/init/src/main.rs"
+    snippet: "\n#[no_mangle]\npub extern \"C\" fn _start() -> ! {\n    // Fds 0/1/2 are pre-opened by the kernel for PID 1.\n    write_str(STDOUT_FILENO, \"\\nm3OS init (PID 1)\\n\");\n\n    // Spawn the first shell.\n    let mut shell_pid = spawn_shell();\n    if shell_pid < 0 {"
     snippetLanguage: "rust"
 realOsDifferences:
   - "Production init systems (systemd, OpenRC, s6) handle service supervision, dependency ordering, socket activation, cgroups, and logging."
@@ -122,6 +122,6 @@ This phase builds on Signal Handlers and turns that foundation into Userspace In
 
 ## Source materials
 
-- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/20-userspace-init-shell.md)
-- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/18-userspace-init.md)
-- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/20-userspace-init-shell-tasks.md)
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/v0.20.0/docs/roadmap/20-userspace-init-shell.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/v0.20.0/docs/18-userspace-init.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/v0.20.0/docs/roadmap/tasks/20-userspace-init-shell-tasks.md)

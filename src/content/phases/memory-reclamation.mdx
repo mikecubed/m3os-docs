@@ -26,12 +26,12 @@ codeSpotlights:
     file: "kernel/src/mm/frame_allocator.rs"
     lines: "See file"
     summary: "kernel/src/mm/frame_allocator.rs. Keep the same FrameAllocator trait interface"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/mm/frame_allocator.rs"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.17.0/kernel/src/mm/frame_allocator.rs"
   - title: "Mm"
     file: "kernel/src/mm/mod.rs"
-    lines: "L247-L255"
+    lines: "L233-L241"
     summary: "Update free_process_page_table() in kernel/src/mm/mod.rs to walk all four"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/mm/mod.rs"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.17.0/kernel/src/mm/mod.rs"
     snippet: "/// that is no longer loaded in CR3. No other code may access the page table\n/// after this call.\npub fn free_process_page_table(cr3_phys: u64) {\n    use alloc::vec::Vec;\n    use x86_64::structures::paging::{PageTable, PageTableFlags};\n    let phys_off = VirtAddr::new(phys_offset());\n    let kernel_pml4_phys = *KERNEL_PML4_PHYS.get().expect(\"mm not initialized\");\n\n    // Helper: read present, non-huge child table addresses from a page table,"
     snippetLanguage: "rust"
 realOsDifferences:
@@ -96,6 +96,6 @@ No checklist tasks were discovered for this phase yet.
 
 ## Source materials
 
-- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/17-memory-reclamation.md)
-- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/20-memory-reclamation.md)
-- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/17-memory-reclamation-tasks.md)
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/v0.17.0/docs/roadmap/17-memory-reclamation.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/v0.17.0/docs/20-memory-reclamation.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/v0.17.0/docs/roadmap/tasks/17-memory-reclamation-tasks.md)
