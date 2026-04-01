@@ -30,25 +30,30 @@ keyFiles:
   - path: "userspace/init/src/main.rs"
     summary: "Implement userspace/init/src/main.rs: open /dev/console as fds 0, 1, 2; fork"
 codeSpotlights:
-  - title: "userspace/init: minimal no_std Rust binary; sets up stdin/stdout/stderr"
-    file: "userspace/init"
+  - title: "Add raw syscall wrappers (syscall3–syscall6)"
+    file: "userspace/syscall-lib/src/lib.rs"
+    lines: "L90-L98"
+    summary: "**Symbol:** syscall3, syscall4, syscall5, syscall6"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/userspace/syscall-lib/src/lib.rs"
+    snippet: "/// Caller must pass a valid syscall number and arguments. Pointer arguments must be valid.\n#[inline(always)]\npub unsafe fn syscall3(num: u64, a0: u64, a1: u64, a2: u64) -> u64 {\n    unsafe {\n        let mut rax = num;\n        asm!(\n            \"syscall\",\n            inlateout(\"rax\") rax,\n            in(\"rdi\") a0,"
+    snippetLanguage: "rust"
+  - title: "Create init crate"
+    file: "userspace/init/Cargo.toml"
     lines: "See file"
-    summary: "userspace/init: minimal no_std Rust binary; sets up stdin/stdout/stderr"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/userspace/init"
-  - title: "userspace/shell: interactive no_std Rust shell; reads stdin byte by byte"
-    file: "userspace/shell"
-    lines: "See file"
-    summary: "userspace/shell: interactive no_std Rust shell; reads stdin byte by byte"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/userspace/shell"
-  - title: "Kernel entry"
-    file: "kernel/src/main.rs"
-    lines: "L206-L214"
-    summary: "Remove shell_task() and init_task() from kernel/src/main.rs; stdin_feeder_task"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/main.rs"
-    snippet: "    }\n\n    task::spawn(init_task, \"init\");\n    task::spawn_idle(idle_task);\n\n    log::info!(\"[kernel] entering scheduler — init will start service set\");\n    task::run()\n}"
+    summary: "**Why it matters:** Init is the first userspace process; without it there is no process tree."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/userspace/init/Cargo.toml"
+  - title: "Create init entry point"
+    file: "userspace/init/src/main.rs"
+    lines: "L25-L33"
+    summary: "**Symbol:** _start"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/userspace/init/src/main.rs"
+    snippet: "\n#[unsafe(no_mangle)]\npub extern \"C\" fn _start() -> ! {\n    // Fds 0/1/2 are pre-opened by the kernel for PID 1.\n    write_str(STDOUT_FILENO, \"\\nm3OS init (PID 1)\\n\");\n\n    // Phase 28: Mount ext2 root filesystem at /.\n    #[allow(clippy::manual_c_str_literals)]\n    let ret = mount(b\"/dev/blk0\\0\".as_ptr(), b\"/\\0\".as_ptr(), b\"ext2\\0\".as_ptr());"
     snippetLanguage: "rust"
 realOsDifferences:
-  - "Production init systems (systemd, OpenRC, s6) handle service supervision, dependency ordering, socket activation, cgroups, and logging. Even BusyBox's `init` handles `/etc/inittab` respawn entries, runlevels, and `sysvinit` compatibility. Real shells (dash, bash) implement full POSIX parameter expansion, here-documents, arithmetic, function definitions, and complex job control. This phase targets only the subset needed to run interactive commands and pipelines — enough to feel like a real shell without the decades of accumulated specification compliance."
+  - "Production init systems (systemd, OpenRC, s6) handle service supervision, dependency ordering, socket activation, cgroups, and logging."
+  - "Even BusyBox's `init` handles `/etc/inittab` respawn entries, runlevels, and `sysvinit` compatibility."
+  - "Real shells (dash, bash) implement full POSIX parameter expansion, here-documents, arithmetic, function definitions, and complex job control."
+  - "This phase targets only the subset needed to run interactive commands and pipelines -- enough to feel like a real shell without the decades of accumulated specification compliance."
 successCriteria:
   - "The OS boots and presents an interactive shell prompt without any ring-0 command parsing code running."
   - "`ps` (or `cat /proc/1/status` if available) shows PID 1 is `init` and PID 2 is `sh`."
@@ -94,17 +99,11 @@ This phase builds on Signal Handlers and turns that foundation into Userspace In
 
 ## Task progress snapshot
 
-No checklist tasks were discovered for this phase yet.
+73 of 73 tracked tasks are complete.
 
 ## Documentation targets
 
-- Document the PID 1 contract: what happens if init exits, why orphan reaping matters
-- Explain the `_start` to `main` entry sequence for `no_std` Rust userspace binaries
-- Document the inline syscall ABI wrapper pattern used across both binaries
-- Describe the shell's fork-exec-wait loop and how pipe fd plumbing works
-- Diagram the fd table state before and after `fork` + `dup2` in a pipe: which fds are open in the parent, the left child, and the right child, and which must be closed where
-- Note which kernel-task servers remain in ring-0 and why (capability-grant phase deferred)
-- Document the `execve` argument layout: the `argv` and `envp` pointer arrays on the user stack, null-terminated, as required by the System V AMD64 ABI
+- Documentation deliverables have not been listed yet.
 
 ## Deferred follow-on work
 

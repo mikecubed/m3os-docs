@@ -21,16 +21,27 @@ keyFiles:
   - path: "kernel-core/src/slab.rs"
     summary: "Slab allocator (kernel-core/src/slab.rs) provides fixed-size caches on top of the"
 codeSpotlights:
-  - title: "Buddy"
-    file: "kernel-core/src/buddy.rs"
-    lines: "See file"
-    summary: "The frame allocator uses a buddy allocator (kernel-core/src/buddy.rs) with 10 order"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel-core/src/buddy.rs"
-  - title: "Slab allocator (kernel-core/src/slab.rs)"
-    file: "kernel-core/src/slab.rs"
-    lines: "See file"
-    summary: "Slab allocator (kernel-core/src/slab.rs) provides fixed-size caches on top of the"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel-core/src/slab.rs"
+  - title: "Copy the bootloader memory map into kernel-owned structures"
+    file: "kernel/src/mm/memory_map.rs"
+    lines: "L6-L14"
+    summary: "**Symbol:** init"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/mm/memory_map.rs"
+    snippet: "static MEMORY_MAP_INIT: AtomicBool = AtomicBool::new(false);\n\npub fn init(regions: &'static [MemoryRegion]) {\n    assert!(\n        !MEMORY_MAP_INIT.swap(true, Ordering::AcqRel),\n        \"memory_map::init called more than once\"\n    );\n    MEMORY_REGIONS.call_once(|| regions);"
+    snippetLanguage: "rust"
+  - title: "Implement a simple frame allocator"
+    file: "kernel/src/mm/frame_allocator.rs"
+    lines: "L30-L38"
+    summary: "**Symbols:** FrameAllocator, init, allocate_frame, free_frame"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/mm/frame_allocator.rs"
+    snippet: "/// allocations.  The free-list frames are drained into the buddy allocator during\n/// `init_buddy()`.\nstruct FrameAllocator {\n    /// Physical address of the first free frame, or 0 if the list is empty.\n    head: u64,\n    /// Number of frames currently free (free-list or buddy).\n    free_count: usize,\n    /// Total number of usable frames discovered at init (>= 1 MiB).\n    total_frames: usize,"
+    snippetLanguage: "rust"
+  - title: "Add safe wrappers around page-table manipulation"
+    file: "kernel/src/mm/paging.rs"
+    lines: "L13-L21"
+    summary: "**Symbols:** init, GlobalFrameAlloc"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/mm/paging.rs"
+    snippet: "/// - **Must be called exactly once.** A second call panics to prevent aliased\n///   `&'static mut` references to the active L4 table (which would be UB).\npub unsafe fn init(physical_memory_offset: VirtAddr) -> OffsetPageTable<'static> {\n    unsafe {\n        assert!(\n            INIT_GUARD.get().is_none(),\n            \"paging::init called more than once\"\n        );\n        INIT_GUARD.call_once(|| ());"
+    snippetLanguage: "rust"
 realOsDifferences:
   - "Real kernels support far more memory states, NUMA, large pages, reclaim strategies, copy-on-write, and demand paging. For a toy OS, a fixed heap and a simple allocator are better because they teach the mechanics without hiding them behind complex policy."
 successCriteria:
@@ -62,13 +73,11 @@ This phase builds on Boot Foundation and turns that foundation into Memory Basic
 
 ## Task progress snapshot
 
-12 of 12 tracked tasks are complete.
+16 of 16 tracked tasks are complete.
 
 ## Documentation targets
 
-- explain how usable frames are selected from the boot memory map
-- explain the heap layout and why it is fixed-size at first
-- document which parts of paging require `unsafe` and why
+- Documentation deliverables have not been listed yet.
 
 ## Deferred follow-on work
 

@@ -17,9 +17,31 @@ learningObjectives:
   - "Learn how names, endpoints, and capabilities are handed out."
   - "Practice separating policy from mechanism."
 keyFiles: []
-codeSpotlights: []
+codeSpotlights:
+  - title: "Implement init as the first userspace process"
+    file: "kernel/src/main.rs"
+    lines: "L189-L197"
+    summary: "**Symbol:** init_task"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/main.rs"
+    snippet: "    }\n\n    task::spawn(init_task, \"init\");\n    task::spawn_idle(idle_task);\n\n    log::info!(\"[kernel] entering scheduler — init will start service set\");\n    task::run()\n}"
+    snippetLanguage: "rust"
+  - title: "Add a simple service registry for discovering early services"
+    file: "kernel/src/ipc/registry.rs"
+    lines: "L9-L17"
+    summary: "**Symbol:** Registry, register, lookup"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/ipc/registry.rs"
+    snippet: "pub use kernel_core::ipc::registry::{MAX_SERVICES, RegistryError};\n\nuse kernel_core::ipc::registry::Registry;\n\nstatic REGISTRY: Mutex<Registry> = Mutex::new(Registry::new());\n\n/// Register a named service endpoint.\npub fn register(name: &str, ep_id: EndpointId) -> Result<(), RegistryError> {\n    REGISTRY.lock().register(name, ep_id)"
+    snippetLanguage: "rust"
+  - title: "Add a simple service registry for discovering early services"
+    file: "kernel-core/src/ipc/registry.rs"
+    lines: "L32-L40"
+    summary: "**Symbol:** Registry, register, lookup"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel-core/src/ipc/registry.rs"
+    snippet: "\n/// Service registry — static name-to-endpoint mapping.\npub struct Registry {\n    entries: [Option<Entry>; MAX_SERVICES],\n    count: usize,\n}\n\nimpl Registry {\n    /// Create a new empty registry."
+    snippetLanguage: "rust"
 realOsDifferences:
-  - "Production microkernels often have richer process managers, supervision trees, restart policies, and dynamic service discovery. The toy design should use a very small service set and a transparent bootstrap flow so the architecture is easier to learn."
+  - "Production microkernels often have richer process managers, supervision trees, restart policies, and dynamic service discovery."
+  - "The toy design uses a very small service set and a transparent bootstrap flow so the architecture is easier to learn."
 successCriteria:
   - "`init` starts the first service set successfully."
   - "Clients can discover the console service and send output to it."
@@ -53,19 +75,20 @@ This phase builds on IPC Core and turns that foundation into Core Servers.
 
 ## Task progress snapshot
 
-12 of 12 tracked tasks are complete.
+19 of 19 tracked tasks are complete.
 
 ## Documentation targets
 
-- explain the server startup sequence
-- explain service discovery at a high level
-- explain why console and keyboard are split into separate services
+- Documentation deliverables have not been listed yet.
 
 ## Deferred follow-on work
 
-- automatic service restart policies
-- complex capability delegation tooling
-- dynamic driver loading
+- Automatic service restart policies
+- Complex capability delegation tooling
+- Dynamic driver loading
+- Servers running in ring 3 (requires ELF loader from Phase 8+)
+- String pointers via page grants for ring-3 IPC payloads
+- Service deregistration
 
 ## Source materials
 

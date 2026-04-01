@@ -29,7 +29,10 @@ codeSpotlights:
     summary: "The userspace/signal-test/signal-test.c binary validates four aspects:"
     githubUrl: "https://github.com/mikecubed/m3os/blob/main/userspace/signal-test/signal-test.c"
 realOsDifferences:
-  - "Linux maintains a full `sigcontext` embedded inside `ucontext_t` for every supported architecture, including FPU / SSE / AVX state (managed via `XSAVE`). The in-kernel `copy_siginfo_to_user` and related helpers handle dozens of signal sources with different `siginfo` payloads. Linux also supports real-time signals (`SIGRTMIN` through `SIGRTMAX`) with a queued delivery model and `sigqueue` for passing an integer or pointer payload alongside the signal. This phase implements only the standard-signal subset with no FPU state save and no real-time signal queue."
+  - "Linux maintains a full `sigcontext` embedded inside `ucontext_t` for every supported architecture, including FPU / SSE / AVX state (managed via `XSAVE`)."
+  - "The in-kernel `copy_siginfo_to_user` and related helpers handle dozens of signal sources with different `siginfo` payloads."
+  - "Linux also supports real-time signals (`SIGRTMIN` through `SIGRTMAX`) with a queued delivery model and `sigqueue` for passing an integer or pointer payload alongside the signal."
+  - "This phase implements only the standard-signal subset with no FPU state save and no real-time signal queue."
 successCriteria:
   - "A statically linked musl binary that installs a `SIGINT` handler, calls `raise(SIGINT)`, prints inside the handler, and continues execution after `raise` returns runs correctly."
   - "`SIGSEGV` delivered to a process with a `sigaltstack`-backed handler executes the handler and does not triple-fault."
@@ -74,18 +77,12 @@ No checklist tasks were discovered for this phase yet.
 
 ## Documentation targets
 
-- Diagram the `sigframe` layout and explain which fields musl's `__restore_rt` reads
-- Document the delivery decision tree: pending vs. blocked, default vs. handler, alt-stack selection
-- Explain why `sigreturn` is a syscall and not a normal function return
-- Document the signal mask lifecycle: saved in `sigframe`, restored by `sigreturn`
-- Note which signals are unblockable (`SIGKILL`, `SIGSTOP`) and why
-- Show the stack layout before and after `setup_signal_frame()`: original RSP, alignment padding, sigframe struct, restorer return address
-- Explain the `SA_RESTORER` flag and the contract between the kernel and musl: the kernel writes the restorer address as the handler's return address; musl's `__restore_rt` executes `syscall` with `rax = 15` to invoke `sigreturn`
+- Documentation deliverables have not been listed yet.
 
 ## Deferred follow-on work
 
 - Real-time signals (`SIGRTMIN` through `SIGRTMAX`) and the `sigqueue` API
-- `signalfd` — receiving signals as readable file descriptors
+- `signalfd` -- receiving signals as readable file descriptors
 - FPU / SSE / AVX state save and restore in the `sigframe`
 - Per-thread signal masks and thread-directed signal delivery (requires `clone`)
 - `SA_NODEFER`, `SA_RESETHAND` flag semantics

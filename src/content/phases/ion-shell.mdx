@@ -3,7 +3,7 @@ phase: 21
 title: "Ion Shell"
 status: complete
 category: productivity
-summary: "Replace the minimal `no_std` shell from Phase 20 with [ion](https://github.com/redox-os/ion) — the shell built for Redox OS, another custom Rust OS. After this phase `/bin/ion` is the interactive shell that userspace init spawns. The kernel-level and custom-shell scaffolding from Phase 20 remains as a regression harness; the user-facing shell gains a real scripting language, job control, pipelines, and interactive line editing (the latter pending Phase 22 TTY)."
+summary: "Replace the minimal `no_std` shell from Phase 20 with [ion](https://github.com/redox-os/ion) -- the shell built for Redox OS, another custom Rust OS. After this phase `/bin/ion` is the interactive shell that userspace init spawns. The kernel-level and custom-shell scaffolding from Phase 20 remains as a regression harness; the user-facing shell gains a real scripting language, job control, pipelines, and interactive line editing (the latter pending Phase 22 TTY)."
 learningGoal: "See how a shell built for another custom OS can be ported by targeting the Linux ABI."
 buildsOn:
   - "userspace-init-shell"
@@ -41,25 +41,30 @@ keyFiles:
   - path: "kernel/src/arch/x86_64/interrupts.rs"
     summary: "Stack demand paging"
 codeSpotlights:
-  - title: "Update userspace/init to execve(\"/bin/ion\", ...) instead of /bin/sh;"
-    file: "userspace/init"
-    lines: "See file"
-    summary: "Update userspace/init to execve(\"/bin/ion\", ...) instead of /bin/sh;"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/userspace/init"
-  - title: "pre-built binary is not found in xtask/vendor/"
-    file: "xtask/vendor/"
-    lines: "See file"
-    summary: "pre-built binary is not found in xtask/vendor/"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/xtask/vendor/"
-  - title: "build_ion(): clone, cross-compile, strip, cache"
+  - title: "fcntl stub"
+    file: "kernel/src/arch/x86_64/syscall.rs"
+    lines: "L441-L449"
+    summary: "**Symbol:** sys_fcntl"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/arch/x86_64/syscall.rs"
+    snippet: "        63 => sys_linux_uname(arg0),\n        // Phase 21: fcntl stub\n        72 => sys_fcntl(arg0, arg1, arg2),\n        // Phase 13: filesystem mutation syscalls\n        74 => sys_linux_fsync(arg0),\n        // Phase 21: gettimeofday stub — return approximate time from LAPIC tick count\n        96 => sys_gettimeofday(arg0),\n        76 => sys_linux_truncate(arg0, arg1),\n        77 => sys_linux_ftruncate(arg0, arg1),"
+    snippetLanguage: "rust"
+  - title: "build_ion() in xtask"
     file: "xtask/src/main.rs"
     lines: "L294-L302"
-    summary: "build_ion(): clone, cross-compile, strip, cache"
+    summary: "**Symbol:** build_ion"
     githubUrl: "https://github.com/mikecubed/m3os/blob/main/xtask/src/main.rs"
     snippet: "/// If the ion.elf binary already exists and is newer than ion's Cargo.toml,\n/// the build is skipped (cache hit).\nfn build_ion() {\n    let root = workspace_root();\n    let initrd = root.join(\"kernel/initrd\");\n    let ion_elf = initrd.join(\"ion.elf\");\n\n    // If a pre-built ion.elf exists, skip the build.\n    if ion_elf.exists() && ion_elf.metadata().map(|m| m.len() > 0).unwrap_or(false) {"
     snippetLanguage: "rust"
+  - title: "Ramdisk entries for ion"
+    file: "kernel/src/fs/ramdisk.rs"
+    lines: "See file"
+    summary: "**Why it matters:** Ion must be discoverable at /bin/ion for exec to find it."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/fs/ramdisk.rs"
 realOsDifferences:
-  - "Production Linux distributions ship bash, dash, zsh, or fish as `/bin/sh` or the default interactive shell. These are either C programs linked against glibc or statically linked against musl (Alpine Linux uses busybox ash linked with musl). The key difference is that real distributions have package managers that download pre-built shell binaries; m3OS builds everything from source or vendors binaries directly into the ramdisk during the image build step. The educational insight here is that a shell is just a program — as long as the kernel provides the right syscalls, any shell binary built for the same ABI will run unmodified."
+  - "Production Linux distributions ship bash, dash, zsh, or fish as `/bin/sh` or the default interactive shell."
+  - "These are either C programs linked against glibc or statically linked against musl (Alpine Linux uses busybox ash linked with musl)."
+  - "The key difference is that real distributions have package managers that download pre-built shell binaries; m3OS builds everything from source or vendors binaries directly into the ramdisk during the image build step."
+  - "The educational insight here is that a shell is just a program -- as long as the kernel provides the right syscalls, any shell binary built for the same ABI will run unmodified."
 successCriteria:
   - "`cargo xtask image` produces a disk image containing `/bin/ion` without manual intervention."
   - "Booting in QEMU presents the ion prompt."
@@ -76,7 +81,7 @@ successCriteria:
 
 ## Why this phase matters
 
-Replace the minimal `no_std` shell from Phase 20 with [ion](https://github.com/redox-os/ion) — the shell built for Redox OS, another custom Rust OS. After this phase `/bin/ion` is the interactive shell that userspace init spawns. The kernel-level and custom-shell scaffolding from Phase 20 remains as a regression harness; the user-facing shell gains a real scripting language, job control, pipelines, and interactive line editing (the latter pending Phase 22 TTY).
+Replace the minimal `no_std` shell from Phase 20 with [ion](https://github.com/redox-os/ion) -- the shell built for Redox OS, another custom Rust OS. After this phase `/bin/ion` is the interactive shell that userspace init spawns. The kernel-level and custom-shell scaffolding from Phase 20 remains as a regression harness; the user-facing shell gains a real scripting language, job control, pipelines, and interactive line editing (the latter pending Phase 22 TTY).
 
 ## How it works in m3OS
 
@@ -105,19 +110,18 @@ This phase builds on Userspace Init Shell and turns that foundation into Ion She
 
 ## Task progress snapshot
 
-No checklist tasks were discovered for this phase yet.
+51 of 51 tracked tasks are complete.
 
 ## Documentation targets
 
-- Document the `x86_64-unknown-linux-musl` target: what it means, why static linking matters, how it differs from the `no_std` binaries in Phase 20
-- Explain the xtask vendoring / cross-compilation step for ion
-- Note the difference between cooked-mode and raw-mode interactive shells and why ion's interactive line editing is deferred to Phase 22
-- Describe ion's syntax briefly: how it differs from bash (no `$()` subshell syntax, uses `@()` instead; `let` for assignment; array syntax)
-- Reference the Redox OS precedent and why targeting the Linux ABI makes the port easier
+- Documentation deliverables have not been listed yet.
 
 ## Deferred follow-on work
 
-- No deferred items were listed in the roadmap entry.
+- Ion's interactive raw-mode line editor (requires `tcgetattr`/`tcsetattr`)
+- History persistence (requires a writable filesystem path for `~/.local/share/ion/history`)
+- Tab completion with reedline-style highlighting
+- `SIGWINCH` / window size changes
 
 ## Source materials
 

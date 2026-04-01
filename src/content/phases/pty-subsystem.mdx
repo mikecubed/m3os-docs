@@ -19,7 +19,7 @@ learningObjectives:
   - "Understand the `openpty`/`posix_openpt`/`grantpt`/`unlockpt` API."
 keyFiles:
   - path: "kernel-core/src/pty.rs"
-    summary: "**New** — PtyRingBuffer, PtyPairState, unit tests"
+    summary: "Each PTY pair uses ring buffers (implemented in kernel-core/src/pty.rs) to pass data"
   - path: "kernel-core/src/lib.rs"
     summary: "Added pub mod pty"
   - path: "kernel/src/pty.rs"
@@ -39,10 +39,10 @@ keyFiles:
   - path: "kernel/Cargo.toml"
     summary: "Version bump to 0.29.0"
 codeSpotlights:
-  - title: "**New** — PtyRingBuffer, PtyPairState, unit tests"
+  - title: "Pty"
     file: "kernel-core/src/pty.rs"
     lines: "See file"
-    summary: "**New** — PtyRingBuffer, PtyPairState, unit tests"
+    summary: "Each PTY pair uses ring buffers (implemented in kernel-core/src/pty.rs) to pass data"
     githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel-core/src/pty.rs"
   - title: "Added pub mod pty"
     file: "kernel-core/src/lib.rs"

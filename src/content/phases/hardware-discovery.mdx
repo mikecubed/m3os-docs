@@ -17,7 +17,26 @@ learningObjectives:
   - "See how the APIC model replaces the legacy 8259 PIC and why it must."
   - "Learn what PCI configuration space is and how devices are enumerated."
 keyFiles: []
-codeSpotlights: []
+codeSpotlights:
+  - title: "Read RSDP address from BootInfo"
+    file: "kernel/src/main.rs"
+    lines: "L40-L48"
+    summary: "**Why it matters:** The RSDP is the entry point into the ACPI table chain; without it, no hardware can be discovered dynamically."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/main.rs"
+    snippet: "};\n\nentry_point!(kernel_main, config = &BOOTLOADER_CONFIG);\n\nfn kernel_main(boot_info: &'static mut BootInfo) -> ! {\n    serial::init();\n    serial::init_logger();\n\n    serial_println!(\"[m3os] Hello from kernel!\");"
+    snippetLanguage: "rust"
+  - title: "Define RSDP structures"
+    file: "kernel/src/acpi/mod.rs"
+    lines: "L22-L30"
+    summary: "**Why it matters:** The RSDP v1/v2 structures must be correctly defined to locate the root system descriptor table."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/acpi/mod.rs"
+    snippet: "#[repr(C, packed)]\n#[derive(Clone, Copy)]\nstruct RsdpDescriptor {\n    signature: [u8; 8],\n    checksum: u8,\n    oem_id: [u8; 6],\n    revision: u8,\n    rsdt_address: u32,\n}"
+    snippetLanguage: "rust"
+  - title: "Read Local APIC base address"
+    file: "kernel/src/arch/x86_64/apic.rs"
+    lines: "See file"
+    summary: "**Why it matters:** The LAPIC base address is needed to memory-map its control registers."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/arch/x86_64/apic.rs"
 realOsDifferences:
   - "Production kernels use ACPI's AML bytecode interpreter to handle dynamic hardware configuration (hotplug, power transitions, embedded controller queries). PCI enumeration extends to PCIe extended config space (4 KB per function) and uses MCFG tables for MMIO-mapped access. IRQ routing on modern systems runs through MSI/MSI-X rather than the I/O APIC. This phase uses only the static descriptor tables and legacy port-I/O PCI access, which is sufficient for a single-machine QEMU target."
 successCriteria:
@@ -54,15 +73,11 @@ This phase builds on Shell And Tools and turns that foundation into Hardware Dis
 
 ## Task progress snapshot
 
-No checklist tasks were discovered for this phase yet.
+49 of 49 tracked tasks are complete.
 
 ## Documentation targets
 
-- explain the ACPI table chain: RSDP → RSDT/XSDT → individual SDTs
-- document the MADT structure and what each entry type means
-- explain the Local APIC vs. I/O APIC split and which handles what
-- document PCI config space layout and how the scan loop works
-- explain why the legacy PIC cannot be used on multi-core systems
+- Documentation deliverables have not been listed yet.
 
 ## Deferred follow-on work
 

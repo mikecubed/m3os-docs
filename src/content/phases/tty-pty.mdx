@@ -41,7 +41,10 @@ codeSpotlights:
     summary: "The stdin buffer (kernel/src/stdin.rs) is a 4096-byte circular buffer"
     githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/stdin.rs"
 realOsDifferences:
-  - "Linux's TTY subsystem is one of the oldest and most complex parts of the kernel. The line discipline (`N_TTY` and others) runs in ring 0, not in a userspace server. The PTY implementation in `drivers/tty/pty.c` handles hundreds of `ioctl` codes, flow control via `VSTART`/`VSTOP` (XON/XOFF), modem control lines, packet mode, and the `/dev/pts` devpts filesystem. Real terminal emulators (xterm, alacritty) open `/dev/ptmx`, fork a child with the slave as its controlling terminal, and process VT100/ANSI escape sequences. This phase implements only the subset needed for an interactive shell: termios cooked/raw switching, window size, and skeleton PTY allocation. A full escape-sequence processor and devpts filesystem are deferred."
+  - "Linux's TTY subsystem is one of the oldest and most complex parts of the kernel. The line discipline (`N_TTY` and others) runs in ring 0, not in a userspace server."
+  - "The PTY implementation in `drivers/tty/pty.c` handles hundreds of `ioctl` codes, flow control via `VSTART`/`VSTOP` (XON/XOFF), modem control lines, packet mode, and the `/dev/pts` devpts filesystem."
+  - "Real terminal emulators (xterm, alacritty) open `/dev/ptmx`, fork a child with the slave as its controlling terminal, and process VT100/ANSI escape sequences."
+  - "This phase implements only the subset needed for an interactive shell: termios cooked/raw switching, window size, and skeleton PTY allocation. A full escape-sequence processor and devpts filesystem are deferred."
 successCriteria:
   - "The shell's line editing (`^H`, `^U`, `^W`, `^C`, `^D`) works identically to before, now routed through `tty_server`."
   - "A program that calls `tcgetattr` receives a valid `termios` struct; calling `tcsetattr(TCSANOW, &raw)` switches to raw mode and subsequent reads return individual bytes without echo."
@@ -84,12 +87,7 @@ No checklist tasks were discovered for this phase yet.
 
 ## Documentation targets
 
-- explain the line discipline model: why it sits between the keyboard driver and userspace rather than in either one
-- document the `termios` field layout and which flags control which behaviors
-- explain the difference between canonical, raw, and cbreak modes with examples of which programs use each
-- document the `ioctl` dispatch path from userspace through the syscall gate to `tty_server`
-- explain `isatty` and why programs change behavior based on it (e.g., disabling color output when stdout is a pipe)
-- explain the PTY master/slave model conceptually: why terminal emulators and SSH need it and how data flows between master and slave
+- Documentation deliverables have not been listed yet.
 
 ## Deferred follow-on work
 

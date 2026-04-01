@@ -37,21 +37,25 @@ keyFiles:
   - path: "xtask/src/main.rs"
     summary: "Build + QEMU port forwarding"
 codeSpotlights:
-  - title: "Telnet server implementation"
+  - title: "poll() support for PTY master FDs"
+    file: "kernel/src/arch/x86_64/syscall.rs"
+    lines: "L356-L364"
+    summary: "**Symbol:** sys_poll"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/arch/x86_64/syscall.rs"
+    snippet: "        // Phase 22: poll stub — report all requested fds as ready.\n        // Ion uses poll() to multiplex between signal pipe and stdin.\n        7 => sys_poll(arg0, arg1, arg2),\n        8 => sys_linux_lseek(arg0, arg1, arg2),\n        // Phase 21: mprotect stub (musl stack guard)\n        10 => 0, // no-op — our ELF loader already sets up guard pages\n        // Linux-compatible memory (Phase 12, T018–T020)\n        9 => sys_linux_mmap(arg0, arg1, arg2),\n        11 => sys_linux_munmap(arg0, arg1),"
+    snippetLanguage: "rust"
+  - title: "Increase MAX_TCP_CONNECTIONS"
+    file: "kernel/src/net/tcp.rs"
+    lines: "L229-L237"
+    summary: "**Symbol:** MAX_TCP_CONNECTIONS"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/net/tcp.rs"
+    snippet: "// ===========================================================================\n\nconst MAX_TCP_CONNECTIONS: usize = 8;\n\nstruct TcpConnections {\n    conns: [Option<TcpConnection>; MAX_TCP_CONNECTIONS],\n}\n\nimpl TcpConnections {"
+    snippetLanguage: "rust"
+  - title: "Create telnetd/ and xtask build step"
     file: "userspace/telnetd/telnetd.c"
     lines: "See file"
-    summary: "Telnet server implementation"
+    summary: "- userspace/telnetd/telnetd.c"
     githubUrl: "https://github.com/mikecubed/m3os/blob/main/userspace/telnetd/telnetd.c"
-  - title: "Socket reference counting"
-    file: "kernel/src/net/mod.rs"
-    lines: "See file"
-    summary: "Socket reference counting"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/net/mod.rs"
-  - title: "TCP connection limit increase"
-    file: "kernel/src/net/tcp.rs"
-    lines: "See file"
-    summary: "TCP connection limit increase"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/net/tcp.rs"
 realOsDifferences:
   - "inetd-style super-server launching (one daemon for all network services)"
   - "TCP wrappers for access control"
@@ -61,6 +65,9 @@ realOsDifferences:
   - "The protocol is dramatically simpler (no crypto)."
   - "It demonstrates all the same OS concepts (sockets + PTY + login + fork)."
   - "It provides a working remote access prototype that SSH will later replace."
+  - "QEMU virtual networking (never leaves the host)"
+  - "Trusted local networks during development"
+  - "Learning the protocol concepts"
 successCriteria:
   - "`telnetd` starts at boot and listens on port 23."
   - "Connecting via `telnet` from the host reaches a `login:` prompt."
@@ -97,7 +104,7 @@ This phase builds on PTY Subsystem and turns that foundation into Telnet Server.
 
 ## Task progress snapshot
 
-No checklist tasks were discovered for this phase yet.
+65 of 81 tracked tasks are complete.
 
 ## Documentation targets
 

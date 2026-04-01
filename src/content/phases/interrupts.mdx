@@ -16,7 +16,21 @@ learningObjectives:
   - "Separate exception handling from device IRQ handling."
   - "Keep interrupt handlers minimal and deterministic."
 keyFiles: []
-codeSpotlights: []
+codeSpotlights:
+  - title: "Set up the GDT, TSS, and interrupt stack entries"
+    file: "kernel/src/arch/x86_64/gdt.rs"
+    lines: "L19-L27"
+    summary: "**Symbols:** GDT, TSS, Selectors"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/arch/x86_64/gdt.rs"
+    snippet: "const SYSCALL_STACK_SIZE: usize = 4096 * 4;\n\n/// User code segment selector (GDT index 4, RPL=3).\n///\n/// GDT layout: null(0x00) | kernel_code(0x08) | kernel_data(0x10) |\n///             user_data(0x18) | user_code(0x20) | TSS(0x28,0x30)\n///\n/// STAR SYSRET sets CS = STAR[63:48]+16 and SS = STAR[63:48]+8.\n/// With user_data at 0x18 stored in bits 63:48 after -8 adjustment,"
+    snippetLanguage: "rust"
+  - title: "Build the IDT and install exception handlers"
+    file: "kernel/src/arch/x86_64/interrupts.rs"
+    lines: "L285-L293"
+    summary: "**Symbols:** IDT, init, breakpoint_handler, page_fault_handler, general_protection_fault_handler, double_fault_handler"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/arch/x86_64/interrupts.rs"
+    snippet: "\n// ---------------------------------------------------------------------------\n// IDT\n// ---------------------------------------------------------------------------\n\nstatic IDT: Lazy<InterruptDescriptorTable> = Lazy::new(|| {\n    let mut idt = InterruptDescriptorTable::new();\n\n    // CPU exceptions"
+    snippetLanguage: "rust"
 realOsDifferences:
   - "Modern kernels often use APICs, MSI/MSI-X, more sophisticated interrupt routing, and complex per-CPU data structures. This project should stay with the simpler PIC path until the reader understands exceptions, IRQ acknowledgment, and stack discipline."
 successCriteria:
@@ -48,13 +62,11 @@ This phase builds on Memory Basics and turns that foundation into Interrupts.
 
 ## Task progress snapshot
 
-13 of 13 tracked tasks are complete.
+19 of 19 tracked tasks are complete.
 
 ## Documentation targets
 
-- explain the interrupt path and stack usage
-- document why IRQ handlers must stay minimal
-- document the vector layout and PIC configuration
+- Documentation deliverables have not been listed yet.
 
 ## Deferred follow-on work
 

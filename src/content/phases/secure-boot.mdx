@@ -14,17 +14,25 @@ components:
   - "process-model"
 learningObjectives:
   - "Understand how UEFI Secure Boot works and why it exists."
-  - "Learn the key hierarchy: PK → KEK → db → signed binary."
+  - "Learn the key hierarchy: PK -> KEK -> db -> signed binary."
   - "Understand the difference between personal Secure Boot (self-signed + enrolled) and distribution Secure Boot (shim + Microsoft CA)."
   - "See how the build pipeline can be extended to include a signing step."
 keyFiles: []
-codeSpotlights: []
+codeSpotlights:
+  - title: "Add sign subcommand to xtask"
+    file: "xtask/src/main.rs"
+    lines: "L76-L84"
+    summary: "**Symbol:** cmd_sign, sign_efi"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/xtask/src/main.rs"
+    snippet: "                std::process::exit(1);\n            });\n            cmd_sign(&sign_args);\n        }\n        Some(other) => {\n            eprintln!(\"Unknown subcommand: {other}\");\n            eprintln!(\"Usage: {}\", usage());\n            std::process::exit(1);\n        }"
+    snippetLanguage: "rust"
 realOsDifferences:
-  - "Applying to the Microsoft UEFI CA program (months, legal entity required)."
-  - "Signing the shim binary with Microsoft's key."
-  - "The shim then trusts the distro's own key for subsequent stages."
+  - "Linux distributions use a **shim** first-stage bootloader signed by Microsoft's UEFI CA. The shim maintains its own **MOK (Machine Owner Key)** database and verifies GRUB, which in turn verifies the kernel. This lets distros ship updates without involving Microsoft on every kernel release."
+  - "The shim approach requires applying to the Microsoft UEFI CA program (months, legal entity required), signing the shim binary with Microsoft's key, and then using the shim to trust the distro's own key for subsequent stages."
+  - "For a personal OS there are two practical options:"
   - "**Via shim's MOK** (`mokutil --import`): the easiest path on machines that already boot through shim. The key lives in shim's MOK list, not the UEFI firmware db."
   - "**Direct UEFI db enrollment** (`efi-updatevar` or firmware setup): adds the key to the firmware's own signature database, works without shim, but requires putting the firmware into Setup Mode and re-enrolling the PK/KEK hierarchy."
+  - "Windows uses a similar hierarchy but its keys are enrolled by the OEM at manufacturing time. End users cannot easily add their own keys on consumer hardware that ships with \"Windows Secure Boot\" locked down (though most firmware allows it in the UEFI setup)."
 successCriteria:
   - "`cargo xtask sign <unsigned-efi>` produces a verified `*-signed.efi`."
   - "`cargo xtask image --sign` produces `boot-uefi-m3os-signed.img` (and `.vhdx`)."
@@ -51,23 +59,16 @@ This phase builds on Framebuffer And Shell and turns that foundation into Secure
 - Generate a 4096-bit RSA key pair and self-signed X.509 certificate with `openssl`.
 - Add `cargo xtask sign <unsigned-efi>` for signing any EFI executable with optional `--key` / `--cert` overrides.
 - Extend `cargo xtask image` with `--sign` so the build produces a signed bootable disk image in addition to the unsigned image.
-- Document the one-time certificate enrollment. Two paths exist — choose based on the target machine (see below).
+- Document the one-time certificate enrollment. Two paths exist — choose based on the target machine (see above).
 - Verify the signed binary boots with `mokutil --sb-state` or `dmesg` reporting Secure Boot enabled.
-- Put the firmware into **Setup Mode** (clear the Platform Key via UEFI setup).
-- Enroll your own PK, KEK, and db certificates using `efi-updatevar` or the firmware setup UI.
-- The firmware then trusts your signed binary directly, without shim.
 
 ## Task progress snapshot
 
-10 of 13 tracked tasks are complete.
+18 of 21 tracked tasks are complete.
 
 ## Documentation targets
 
-- Explain the UEFI Secure Boot key hierarchy (PK / KEK / db / dbx).
-- Document the personal signing workflow end-to-end.
-- Explain what the shim chain is and why it is needed for distribution but not here.
-- Note the limitations: this key is trusted only on machines where it has been enrolled.
-- Link to the implementation notes in [`../10-secure-boot.md`](../10-secure-boot.md).
+- Documentation deliverables have not been listed yet.
 
 ## Deferred follow-on work
 

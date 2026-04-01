@@ -41,21 +41,27 @@ keyFiles:
   - path: "xtask/src/main.rs"
     summary: "xtask/src/main.rs — 14 new musl build entries"
 codeSpotlights:
-  - title: "14 standalone musl-linked static ELF binaries in userspace/coreutils/:"
-    file: "userspace/coreutils/"
-    lines: "See file"
-    summary: "14 standalone musl-linked static ELF binaries in userspace/coreutils/:"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/userspace/coreutils/"
-  - title: "kernel/src/pipe.rs — kernel pipe implementation"
+  - title: "Add fd_table field to Process struct"
+    file: "kernel/src/process/mod.rs"
+    lines: "L7-L15"
+    summary: "**Symbol:** Process::fd_table"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/process/mod.rs"
+    snippet: "//! # Design\n//!\n//! Each [`Process`] has its own kernel stack (allocated here, leaked so\n//! the stack lives for the kernel lifetime) and a unique [`Pid`].  The\n//! [`PROCESS_TABLE`] spinlock-protected global table is the single source\n//! of truth for all live processes.\n//!\n//! Phase 14: each process has its own file descriptor table (`fd_table`).\n//! FDs 0/1/2 are initialized as stdin/stdout/stderr on process creation."
+    snippetLanguage: "rust"
+  - title: "Deep-clone fd_table in sys_fork"
+    file: "kernel/src/arch/x86_64/syscall.rs"
+    lines: "L432-L440"
+    summary: "**Symbol:** sys_fork"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/arch/x86_64/syscall.rs"
+    snippet: "            sys_pipe_with_flags(sv_ptr, cloexec)\n        }\n        // Phase 21: clone stub — delegate plain fork (flags=SIGCHLD) to sys_fork\n        56 => sys_clone(arg0, user_rip, user_rsp),\n        57 => sys_fork(user_rip, user_rsp),\n        59 => sys_execve(arg0, arg1, arg2),\n        61 => sys_waitpid(arg0, arg1, arg2),\n        // Phase 14: signal syscalls\n        62 => sys_kill(arg0, arg1),"
+    snippetLanguage: "rust"
+  - title: "Define Pipe struct"
     file: "kernel/src/pipe.rs"
-    lines: "See file"
-    summary: "kernel/src/pipe.rs — kernel pipe implementation"
+    lines: "L14-L22"
+    summary: "**Symbol:** Pipe"
     githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/pipe.rs"
-  - title: "kernel/src/stdin.rs — kernel stdin buffer with line editing"
-    file: "kernel/src/stdin.rs"
-    lines: "See file"
-    summary: "kernel/src/stdin.rs — kernel stdin buffer with line editing"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/stdin.rs"
+    snippet: "use spin::Mutex;\n\npub use kernel_core::pipe::Pipe;\n\n/// Global pipe table.\nstatic PIPE_TABLE: Mutex<Vec<Option<Pipe>>> = Mutex::new(Vec::new());\n\n/// Allocate a new pipe and return its ID.\n///"
+    snippetLanguage: "rust"
 realOsDifferences:
   - "Real shells (bash, zsh) handle dozens of redirection forms, subshells, here-documents, arithmetic expansion, glob expansion, and complex job control edge cases built up over decades. POSIX specifies the full signal and job control semantics in fine detail. This phase implements the minimum needed to make the shell feel real. Edge cases — redirecting stderr, pipelines with more than two stages, `trap` built-ins — are intentionally deferred."
 successCriteria:
@@ -93,14 +99,11 @@ This phase builds on Writable FS and turns that foundation into Shell And Tools.
 
 ## Task progress snapshot
 
-No checklist tasks were discovered for this phase yet.
+90 of 90 tracked tasks are complete.
 
 ## Documentation targets
 
-- explain how pipes work: kernel buffer, two file descriptors, producer/consumer
-- document how the shell uses `fork` + `dup2` + `execve` to set up a pipeline stage
-- explain process groups and how the terminal's foreground group determines signal delivery
-- document the `execve` `envp` layout and how environment variables propagate
+- Documentation deliverables have not been listed yet.
 
 ## Deferred follow-on work
 

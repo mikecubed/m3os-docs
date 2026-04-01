@@ -19,7 +19,9 @@ learningObjectives:
 keyFiles: []
 codeSpotlights: []
 realOsDifferences:
-  - "Production kernels use NUMA-aware memory allocation (allocating from the NUMA node local to each core), per-core page allocators to avoid cross-core lock contention, and sophisticated load-balancing heuristics. Linux's scheduler (CFS) tracks CPU utilization, task affinity, cache topology, and energy efficiency. This phase uses the simplest correct implementation: equal-weight round-robin with naive work stealing."
+  - "Production kernels use NUMA-aware memory allocation (allocating from the NUMA node local to each core), per-core page allocators to avoid cross-core lock contention, and sophisticated load-balancing heuristics."
+  - "Linux's scheduler (CFS) tracks CPU utilization, task affinity, cache topology, and energy efficiency."
+  - "This phase uses the simplest correct implementation: equal-weight round-robin with naive work stealing."
 successCriteria:
   - "All cores reported in the MADT appear in the boot log as online."
   - "Two CPU-bound tasks run simultaneously with no corruption of shared kernel state."
@@ -56,11 +58,7 @@ No checklist tasks were discovered for this phase yet.
 
 ## Documentation targets
 
-- explain the AP startup sequence step by step: INIT IPI → SIPI → real mode → long mode
-- document the per-core data layout and how `gs_base` is used to address it
-- explain TLB shootdowns: why they are needed and what happens without them
-- document the spinlock audit process and what makes a lock SMP-safe
-- explain work stealing at a high level
+- Documentation deliverables have not been listed yet.
 
 ## Deferred follow-on work
 

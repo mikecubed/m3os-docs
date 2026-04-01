@@ -3,7 +3,7 @@ phase: 24
 title: "Persistent Storage"
 status: complete
 category: infrastructure
-summary: "Give m³OS a persistent block device so that files written during one boot session survive into the next. A virtio-blk driver (the simplest PCI virtio device in QEMU) handles raw sector I/O; a partition parser finds the FAT32 data partition; the existing `fat_server` gains a write path that flushes directly to disk. After this phase, writing a file to `/data` and rebooting leaves the file visible on the next boot (and on the host via `losetup` or similar)."
+summary: "Give m3OS a persistent block device so that files written during one boot session survive into the next. A virtio-blk driver (the simplest PCI virtio device in QEMU) handles raw sector I/O; a partition parser finds the FAT32 data partition; the existing `fat_server` gains a write path that flushes directly to disk. After this phase, writing a file to `/data` and rebooting leaves the file visible on the next boot (and on the host via `losetup` or similar)."
 learningGoal: "Understand how virtio devices are discovered, initialized, and driven through virtqueues over the PCI bus."
 buildsOn:
   - "socket-api"
@@ -34,7 +34,11 @@ codeSpotlights:
     summary: "virtio-blk driver (kernel/src/blk/virtio_blk.rs) — sector-level I/O via"
     githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/blk/virtio_blk.rs"
 realOsDifferences:
-  - "Production block I/O stacks are built around asynchronous submission queues (Linux `io_uring`, NVMe submission/completion queues, Windows I/O completion ports) so that a thread is never stalled waiting for a single sector. The page cache decouples the filesystem from disk latency: writes land in RAM first and are flushed in batches by writeback threads. FAT32 itself is rarely used for root filesystems; production systems use journaling filesystems (ext4, XFS, APFS, NTFS) or log-structured designs (F2FS, btrfs) that survive power loss without corruption. The virtio 1.0 split-driver model (and its modern PCIe variant with packed virtqueues) replaces the legacy BAR-based interface used here. This phase deliberately keeps every layer synchronous and stateless to make the control flow auditable in a single read-through."
+  - "Production block I/O stacks are built around asynchronous submission queues (Linux `io_uring`, NVMe submission/completion queues, Windows I/O completion ports) so that a thread is never stalled waiting for a single sector."
+  - "The page cache decouples the filesystem from disk latency: writes land in RAM first and are flushed in batches by writeback threads."
+  - "FAT32 itself is rarely used for root filesystems; production systems use journaling filesystems (ext4, XFS, APFS, NTFS) or log-structured designs (F2FS, btrfs) that survive power loss without corruption."
+  - "The virtio 1.0 split-driver model (and its modern PCIe variant with packed virtqueues) replaces the legacy BAR-based interface used here."
+  - "This phase deliberately keeps every layer synchronous and stateless to make the control flow auditable in a single read-through."
 successCriteria:
   - "`cargo xtask image` produces a `disk.img` with two valid FAT32 partitions that `fsck.fat` (run on the host) reports as clean."
   - "QEMU boots without regression; `blk_server` logs its PCI address and the detected data partition LBA at boot."
@@ -47,7 +51,7 @@ successCriteria:
 
 ## Why this phase matters
 
-Give m³OS a persistent block device so that files written during one boot session survive into the next. A virtio-blk driver (the simplest PCI virtio device in QEMU) handles raw sector I/O; a partition parser finds the FAT32 data partition; the existing `fat_server` gains a write path that flushes directly to disk. After this phase, writing a file to `/data` and rebooting leaves the file visible on the next boot (and on the host via `losetup` or similar).
+Give m3OS a persistent block device so that files written during one boot session survive into the next. A virtio-blk driver (the simplest PCI virtio device in QEMU) handles raw sector I/O; a partition parser finds the FAT32 data partition; the existing `fat_server` gains a write path that flushes directly to disk. After this phase, writing a file to `/data` and rebooting leaves the file visible on the next boot (and on the host via `losetup` or similar).
 
 ## How it works in m3OS
 
@@ -77,12 +81,7 @@ No checklist tasks were discovered for this phase yet.
 
 ## Documentation targets
 
-- explain the virtio PCI legacy device model: status byte negotiation, virtqueue layout (descriptor ring, available ring, used ring), and the queue kick mechanism
-- document the MBR partition table format: entry offsets, type bytes, LBA addressing
-- explain the FAT32 on-disk layout: BPB fields that locate the FAT region and data region, how cluster numbers map to byte offsets, and what the FAT entry values mean
-- document the write path step by step: allocating a free cluster, updating the FAT chain, writing the directory entry, and why the FAT must be flushed before the directory entry is flushed
-- explain why synchronous write-through is safe here but would be unacceptable in a production kernel (throughput, write amplification)
-- document the `sys_mount` ABI and the hard-wired mapping from `"vfat"` to virtio-blk + FAT32
+- Documentation deliverables have not been listed yet.
 
 ## Deferred follow-on work
 

@@ -21,14 +21,29 @@ keyFiles:
   - path: "userspace/edit/"
     summary: "Create userspace/edit/ crate (no_std, x86_64-unknown-none target)."
 codeSpotlights:
-  - title: "Create userspace/edit/ crate (no_std, x86_64-unknown-none target)"
-    file: "userspace/edit/"
+  - title: "Add `ioctl()` wrapper"
+    file: "userspace/syscall-lib/src/lib.rs"
+    lines: "L424-L432"
+    summary: "**Symbol:** ioctl"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/userspace/syscall-lib/src/lib.rs"
+    snippet: "/// used by the TCGETS/TCSETS ioctls (36 bytes).\n///\n/// This is the kernel ioctl copy format, **not** the libc/musl userland\n/// `struct termios` layout (which is 60 bytes).\n#[repr(C)]\n#[derive(Clone, Copy)]\npub struct Termios {\n    pub c_iflag: u32,\n    pub c_oflag: u32,"
+    snippetLanguage: "rust"
+  - title: "Create userspace heap allocator"
+    file: "userspace/syscall-lib/src/heap.rs"
+    lines: "L21-L29"
+    summary: "**Symbol:** BrkAllocator"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/userspace/syscall-lib/src/heap.rs"
+    snippet: "\n/// A simple brk-based allocator with a free list.\npub struct BrkAllocator {\n    /// Start of the free list (first free block).\n    free_list: core::cell::UnsafeCell<*mut BlockHeader>,\n    /// Current program break (top of heap).\n    brk_current: AtomicU64,\n    /// Whether brk has been initialized.\n    initialized: core::cell::UnsafeCell<bool>,"
+    snippetLanguage: "rust"
+  - title: "Verify allocator works"
+    file: "userspace/edit/src/main.rs"
     lines: "See file"
-    summary: "Create userspace/edit/ crate (no_std, x86_64-unknown-none target)."
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/userspace/edit/"
+    summary: "**Why it matters:** A broken allocator would cause silent corruption or panics in the editor."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/userspace/edit/src/main.rs"
 realOsDifferences:
-  - "Real systems ship with multiple editors (vi, nano, emacs) and editor infrastructure like terminfo/termcap databases that abstract terminal capabilities. Our approach hardcodes VT100 escape sequences, which is fine because QEMU's serial console and virtually all modern terminal emulators support VT100. A production OS would also provide shared libraries for TUI development (ncurses), which we defer."
-  - "A notable side effect of this phase is establishing the pattern for Rust userspace programs that need heap allocation (`Vec`, `String`, `format!`). The userspace heap allocator built here will be reusable by future phases (compiler bootstrap, build tools, etc.)."
+  - "Real systems ship with multiple editors (vi, nano, emacs) and editor infrastructure like terminfo/termcap databases that abstract terminal capabilities. Our approach hardcodes VT100 escape sequences, which is fine because QEMU's serial console and virtually all modern terminal emulators support VT100."
+  - "A production OS would also provide shared libraries for TUI development (ncurses), which we defer."
+  - "A notable side effect of this phase is establishing the pattern for Rust userspace programs that need heap allocation (`Vec`, `String`, `format!`). The userspace heap allocator built here is reusable by future phases (compiler bootstrap, build tools, etc.)."
 successCriteria:
   - "The editor launches from the shell and displays a full-screen TUI."
   - "Arrow keys, Page Up/Down, Home/End move the cursor correctly."
@@ -65,7 +80,7 @@ This phase builds on SMP and turns that foundation into Text Editor.
 
 ## Task progress snapshot
 
-No checklist tasks were discovered for this phase yet.
+75 of 75 tracked tasks are complete.
 
 ## Documentation targets
 

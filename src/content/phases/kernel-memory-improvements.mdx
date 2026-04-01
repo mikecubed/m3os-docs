@@ -19,9 +19,9 @@ learningObjectives:
   - "Understand virtual memory reclamation and why `munmap()` must return frames."
 keyFiles:
   - path: "kernel-core/src/buddy.rs"
-    summary: "New: buddy allocator data structure + 13 tests"
+    summary: "Implements a binary buddy system for physical frame allocation. Free lists are"
   - path: "kernel-core/src/slab.rs"
-    summary: "New: slab cache data structure + 7 tests"
+    summary: "allocator is host-testable via kernel-core."
   - path: "kernel/src/mm/heap.rs"
     summary: "RetryAllocator wrapper, heap_stats()"
   - path: "kernel/src/mm/frame_allocator.rs"
@@ -44,22 +44,24 @@ codeSpotlights:
   - title: "Create `RetryAllocator` wrapper struct"
     file: "kernel/src/mm/heap.rs"
     lines: "L21-L29"
-    summary: "Create a new struct that wraps LockedHeap and implements GlobalAlloc:"
+    summary: "**Symbol:** RetryAllocator"
     githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/mm/heap.rs"
     snippet: "/// sizes before retrying. This avoids the limitations of `alloc_error_handler`\n/// which cannot retry the failed allocation.\nstruct RetryAllocator {\n    inner: LockedHeap,\n}\n\nunsafe impl Sync for RetryAllocator {}\n\nunsafe impl GlobalAlloc for RetryAllocator {"
     snippetLanguage: "rust"
-  - title: "Remove diverging `alloc_error_handler`"
+  - title: "Remove diverging `alloc_error_handler` retry path"
     file: "kernel/src/main.rs"
     lines: "L1-L9"
-    summary: "Update the alloc_error_handler to only panic (no retry logic — that's now in"
+    summary: "**Symbol:** alloc_error_handler"
     githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/main.rs"
     snippet: "#![no_std]\n#![no_main]\n#![feature(alloc_error_handler)]\n#![feature(abi_x86_interrupt)]\n#![cfg_attr(test, feature(custom_test_frameworks))]\n#![cfg_attr(test, test_runner(crate::testing::test_runner))]\n#![cfg_attr(test, reexport_test_harness_main = \"test_main\")]\n\nextern crate alloc;"
     snippetLanguage: "rust"
-  - title: "Stress test OOM retry"
-    file: "kernel/tests/oom_retry.rs"
-    lines: "See file"
-    summary: "Write a kernel-level test that:"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/tests/oom_retry.rs"
+  - title: "Implement buddy allocator data structure in `kernel-core`"
+    file: "kernel-core/src/buddy.rs"
+    lines: "L26-L34"
+    summary: "**Symbol:** BuddyAllocator"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel-core/src/buddy.rs"
+    snippet: "/// O(log n) behavior bounded by MAX_ORDER + 1 levels. The bitmap enables\n/// O(1) buddy-merge checks without scanning the free list.\npub struct BuddyAllocator {\n    /// Per-order free lists: each entry is a PFN of a free block at that order.\n    free_lists: [Vec<usize>; MAX_ORDER + 1],\n    /// Per-order bitmaps: bit at `block_index(pfn, order)` is set iff that block\n    /// is free.  Stored as Vec<u64> for efficient bit manipulation.\n    bitmaps: [Vec<u64>; MAX_ORDER + 1],\n    /// Per-order free block counts."
+    snippetLanguage: "rust"
 realOsDifferences:
   - "**Buddy allocator** manages physical pages (zone allocator with ZONE_DMA, ZONE_NORMAL, ZONE_HIGHMEM)."
   - "**SLAB/SLUB/SLOB** provides object-level caching on top of the buddy allocator."
@@ -102,7 +104,7 @@ This phase builds on Build Tools and turns that foundation into Kernel Memory Im
 
 ## Task progress snapshot
 
-68 of 68 tracked tasks are complete.
+56 of 67 tracked tasks are complete.
 
 ## Documentation targets
 

@@ -24,21 +24,23 @@ keyFiles:
   - path: "kernel/src/mm/user_mem.rs"
     summary: "Both functions in kernel/src/mm/user_mem.rs follow the same pattern:"
 codeSpotlights:
-  - title: "Initrd"
-    file: "kernel/initrd/"
+  - title: "Replace exception-handler context switch with two-phase kill path"
+    file: "kernel/src/arch/x86_64/interrupts.rs"
     lines: "See file"
-    summary: "for each C source in userspace/. The resulting ELF is placed in kernel/initrd/"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/initrd/"
-  - title: "and embedded via include_bytes! in kernel/src/fs/ramdisk.rs"
-    file: "kernel/src/fs/ramdisk.rs"
+    summary: "**Why it matters:** Context-switching inside an exception handler violates the interrupt-handler contract and can corrupt kernel state."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/arch/x86_64/interrupts.rs"
+  - title: "Free old address space on execve success"
+    file: "kernel/src/mm/mod.rs"
+    lines: "L247-L255"
+    summary: "**Symbol:** free_process_page_table"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/mm/mod.rs"
+    snippet: "/// that is no longer loaded in CR3. No other code may access the page table\n/// after this call.\npub fn free_process_page_table(cr3_phys: u64) {\n    use alloc::vec::Vec;\n    use x86_64::structures::paging::{PageTable, PageTableFlags};\n    let phys_off = VirtAddr::new(phys_offset());\n    let kernel_pml4_phys = *KERNEL_PML4_PHYS.get().expect(\"mm not initialized\");\n\n    // Helper: read present, non-huge child table addresses from a page table,"
+    snippetLanguage: "rust"
+  - title: "Reap dead kernel tasks from scheduler"
+    file: "kernel/src/task/scheduler.rs"
     lines: "See file"
-    summary: "and embedded via include_bytes! in kernel/src/fs/ramdisk.rs."
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/fs/ramdisk.rs"
-  - title: "Both functions in kernel/src/mm/user_mem.rs follow the same pattern:"
-    file: "kernel/src/mm/user_mem.rs"
-    lines: "See file"
-    summary: "Both functions in kernel/src/mm/user_mem.rs follow the same pattern:"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/mm/user_mem.rs"
+    summary: "**Symbol:** TaskState::Dead"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/task/scheduler.rs"
 realOsDifferences:
   - "Real Linux-compatible layers (WSL, FreeBSD's Linux ABI, Darling) implement hundreds of syscalls and handle subtleties like signal masks, `/proc` reads, `epoll`, and `futex`-based threading. This phase targets only the subset needed for a single-threaded C compiler and basic file utilities. Threading and `futex` are deferred."
 successCriteria:
@@ -71,14 +73,11 @@ This phase builds on Process Model and turns that foundation into POSIX Compat.
 
 ## Task progress snapshot
 
-0 of 38 tracked tasks are complete.
+44 of 44 tracked tasks are complete.
 
 ## Documentation targets
 
-- document the Linux syscall number mapping table and dispatch strategy
-- explain what musl needs vs. what glibc needs and why musl is the right choice
-- document the C runtime entry sequence (`_start` → `__libc_start_main` → `main`)
-- explain which syscalls are stubbed, which are real, and what the gaps mean
+- Documentation deliverables have not been listed yet.
 
 ## Deferred follow-on work
 

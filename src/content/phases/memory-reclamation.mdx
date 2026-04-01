@@ -35,7 +35,11 @@ codeSpotlights:
     snippet: "/// that is no longer loaded in CR3. No other code may access the page table\n/// after this call.\npub fn free_process_page_table(cr3_phys: u64) {\n    use alloc::vec::Vec;\n    use x86_64::structures::paging::{PageTable, PageTableFlags};\n    let phys_off = VirtAddr::new(phys_offset());\n    let kernel_pml4_phys = *KERNEL_PML4_PHYS.get().expect(\"mm not initialized\");\n\n    // Helper: read present, non-huge child table addresses from a page table,"
     snippetLanguage: "rust"
 realOsDifferences:
-  - "Production kernels use buddy allocators (Linux's page allocator splits and coalesces power-of-two blocks) or slab allocators on top of page allocators for small objects. Reference counting in Linux is done with `struct page` metadata rather than a separate table. CoW is also used for `mmap(MAP_PRIVATE)` and file-backed pages, not just fork. The kernel heap in Linux is not a single contiguous region; `vmalloc` allocates from a scattered virtual range while `kmalloc` uses slab caches backed by physically contiguous pages. This phase keeps things simple: one free list, one reference count table, one contiguous heap region."
+  - "Production kernels use buddy allocators (Linux's page allocator splits and coalesces power-of-two blocks) or slab allocators on top of page allocators for small objects."
+  - "Reference counting in Linux is done with `struct page` metadata rather than a separate table."
+  - "CoW is also used for `mmap(MAP_PRIVATE)` and file-backed pages, not just fork."
+  - "The kernel heap in Linux is not a single contiguous region; `vmalloc` allocates from a scattered virtual range while `kmalloc` uses slab caches backed by physically contiguous pages."
+  - "This phase keeps things simple: one free list, one reference count table, one contiguous heap region."
 successCriteria:
   - "`free_frame()` returns frames to the allocator; the free count increases after a process exits."
   - "Forking 100 times and exiting each child returns the system to roughly the same free frame count as before the loop."
@@ -77,22 +81,18 @@ No checklist tasks were discovered for this phase yet.
 
 ## Documentation targets
 
-- explain the free-list frame allocator: data structure, alloc path, free path, initialization from the memory map
-- document the frame reference counting scheme and how it interacts with CoW
-- explain copy-on-write fork step by step: marking pages, handling the fault, copying the frame
-- document the heap growth strategy: reserved virtual region, incremental mapping, allocator extension
-- explain what kernel stack leaking looked like and how `drain_dead()` fixes it
+- Documentation deliverables have not been listed yet.
 
 ## Deferred follow-on work
 
-- buddy allocator with power-of-two coalescing
-- slab or SLUB allocator for small kernel objects
-- demand paging from disk (swap)
-- huge page (2 MiB / 1 GiB) support
+- Buddy allocator with power-of-two coalescing
+- Slab or SLUB allocator for small kernel objects
+- Demand paging from disk (swap)
+- Huge page (2 MiB / 1 GiB) support
 - NUMA-aware frame allocation
 - `mmap(MAP_PRIVATE)` with CoW semantics for file-backed pages
-- kernel stack guard pages
-- memory pressure notifications and OOM killer
+- Kernel stack guard pages
+- Memory pressure notifications and OOM killer
 
 ## Source materials
 

@@ -23,21 +23,25 @@ keyFiles:
   - path: "kernel/src/serial.rs"
     summary: "The serial implementation in kernel/src/serial.rs provides:"
 codeSpotlights:
-  - title: "Host-side logic"
+  - title: "Implement a minimal kernel_main entry point"
+    file: "kernel/src/main.rs"
+    lines: "L40-L48"
+    summary: "**Symbol:** kernel_main"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/main.rs"
+    snippet: "};\n\nentry_point!(kernel_main, config = &BOOTLOADER_CONFIG);\n\nfn kernel_main(boot_info: &'static mut BootInfo) -> ! {\n    serial::init();\n    serial::init_logger();\n\n    serial_println!(\"[m3os] Hello from kernel!\");"
+    snippetLanguage: "rust"
+  - title: "Add serial initialization and print macros"
+    file: "kernel/src/serial.rs"
+    lines: "L6-L14"
+    summary: "**Symbols:** init, serial_print!, serial_println!"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/serial.rs"
+    snippet: "static SERIAL1: Mutex<Option<SerialPort>> = Mutex::new(None);\n\npub fn init() {\n    let mut serial_port = unsafe { SerialPort::new(COM1_PORT) };\n    serial_port.init();\n    *SERIAL1.lock() = Some(serial_port);\n}\n\n#[doc(hidden)]"
+    snippetLanguage: "rust"
+  - title: "Implement cargo xtask image"
     file: "xtask/src/main.rs"
     lines: "See file"
-    summary: "The host-side logic lives in xtask/src/main.rs."
+    summary: "**Why it matters:** Produces a bootable disk image that QEMU (or real hardware) can load via UEFI."
     githubUrl: "https://github.com/mikecubed/m3os/blob/main/xtask/src/main.rs"
-  - title: "Kernel entry point"
-    file: "kernel/src/main.rs"
-    lines: "See file"
-    summary: "The kernel entry point lives in kernel/src/main.rs."
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/main.rs"
-  - title: "Serial implementation in kernel/src/serial.rs"
-    file: "kernel/src/serial.rs"
-    lines: "See file"
-    summary: "The serial implementation in kernel/src/serial.rs provides:"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/serial.rs"
 realOsDifferences:
   - "Production kernels usually support many boot environments, richer hardware discovery, multiple log sinks, and more defensive boot diagnostics. A learning project can keep the boot path narrow and explicit so the reader can see every step without being buried in platform variation."
 successCriteria:
@@ -71,13 +75,11 @@ This phase establishes the first teachable slice of the system and becomes the b
 
 ## Task progress snapshot
 
-14 of 14 tracked tasks are complete.
+20 of 20 tracked tasks are complete.
 
 ## Documentation targets
 
-- explain the boot path from `xtask` to `kernel_main`
-- document early logging and panic behavior
-- record build prerequisites such as QEMU and OVMF
+- Documentation deliverables have not been listed yet.
 
 ## Deferred follow-on work
 

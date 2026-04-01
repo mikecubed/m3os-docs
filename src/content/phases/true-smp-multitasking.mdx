@@ -22,23 +22,23 @@ codeSpotlights:
   - title: "Add syscall fields to `PerCoreData`"
     file: "kernel/src/smp/mod.rs"
     lines: "L3-L11"
-    summary: "Add the following fields to PerCoreData:"
+    summary: "**Symbol:** PerCoreData, offsets::SYSCALL_STACK_TOP"
     githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/smp/mod.rs"
     snippet: "//! Provides per-core data structures, AP bootstrap, IPI infrastructure, and\n//! TLB shootdown. Each core gets its own GDT, TSS, kernel stacks, and\n//! scheduler state via [`PerCoreData`].\n//!\n//! # Per-core access\n//!\n//! Two mechanisms are provided:\n//! - [`current_core_id`]: reads the LAPIC ID register and maps it to a core\n//!   index. Works from any context but requires an MMIO read."
     snippetLanguage: "rust"
-  - title: "Add `FORK_ENTRY_CTX` to `PerCoreData`"
-    file: "kernel/src/process/mod.rs"
-    lines: "L14-L22"
-    summary: "Move the global FORK_ENTRY_CTX static into PerCoreData so that each core can"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/process/mod.rs"
-    snippet: "//! Phase 14: each process has its own file descriptor table (`fd_table`).\n//! FDs 0/1/2 are initialized as stdin/stdout/stderr on process creation.\n//! `fork()` deep-clones the parent's FD table into the child.\n\n#![allow(dead_code)]\n\nextern crate alloc;\n\nuse alloc::{collections::VecDeque, string::String, vec::Vec};"
-    snippetLanguage: "rust"
   - title: "Rewrite `syscall_entry` assembly to use `gs_base` offsets"
     file: "kernel/src/arch/x86_64/syscall.rs"
-    lines: "L185-L193"
-    summary: "Replace all [rip + GLOBAL_STATIC] references in the syscall_entry and"
+    lines: "L183-L191"
+    summary: "**Symbol:** syscall_entry"
     githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/arch/x86_64/syscall.rs"
-    snippet: "\nglobal_asm!(\n    \".global syscall_entry\",\n    \"syscall_entry:\",\n    // At entry:\n    //   RSP  = user RSP       (saved to SYSCALL_USER_RSP)\n    //   RCX  = user RIP       (return address for SYSRETQ)\n    //   R11  = user RFLAGS\n    //   RAX  = syscall number"
+    snippet: "    \".equ OFF_USER_RFLAGS, {off_user_rflags}\",\n\n    \".global syscall_entry\",\n    \"syscall_entry:\",\n    // At entry (from ring 3 via SYSCALL):\n    //   RSP  = user RSP\n    //   RCX  = user RIP       (return address for SYSRETQ)\n    //   R11  = user RFLAGS\n    //   RAX  = syscall number"
+    snippetLanguage: "rust"
+  - title: "Remove BSP-only dispatch guard"
+    file: "kernel/src/task/scheduler.rs"
+    lines: "L151-L159"
+    summary: "**Symbol:** pick_next"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/task/scheduler.rs"
+    snippet: "    /// tasks that haven't been assigned to a queue yet). Finally, falls back\n    /// to this core's idle task.\n    fn pick_next(&mut self, core_id: u8) -> Option<(u64, usize)> {\n        // Drain local run queue, pick the highest-priority (lowest numeric) Ready task.\n        let mut best: Option<usize> = None;\n        let mut requeue = alloc::vec::Vec::new();\n\n        if let Some(data) = crate::smp::get_core_data(core_id) {\n            let mut q = data.run_queue.lock();"
     snippetLanguage: "rust"
 realOsDifferences:
   - "Uses a red-black tree ordered by \"virtual runtime\" for O(log n) scheduling."
@@ -89,7 +89,7 @@ This phase builds on Real Time Clock and turns that foundation into True SMP Mul
 
 ## Task progress snapshot
 
-85 of 85 tracked tasks are complete.
+76 of 85 tracked tasks are complete.
 
 ## Documentation targets
 

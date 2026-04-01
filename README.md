@@ -157,6 +157,21 @@ If this becomes a user/org Pages site rather than a project Pages site, set:
 SITE_URL=https://your-user.github.io BASE_PATH=/ npm run build
 ```
 
+## Prompt pack for upstream docs
+
+If you want another agent to normalize the upstream `mikecubed/m3os` roadmap
+docs so they generate better learning pages and inline snippets here, use the
+prompt pack in:
+
+- `prompts/README.md`
+
+It includes separate prompt files for:
+
+- phase design docs
+- phase task docs
+- `docs/roadmap/README.md`
+- copyable markdown templates for each upstream doc type
+
 ## Immediate next steps
 
 1. Transform discovered `mikecubed/m3os` phase and roadmap docs into generated phase/component content.

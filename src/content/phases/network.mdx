@@ -25,7 +25,7 @@ codeSpotlights:
     summary: "(kernel/src/net/*) and runs as net_task. This is a temporary kernel-mode"
     githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/net/*"
 realOsDifferences:
-  - "Production network stacks handle retransmission timers, SACK, TCP congestion control (CUBIC, BBR), scatter-gather DMA, checksum offload, VLAN tagging, IPv6, DNS, TLS, and non-blocking I/O via `epoll`. They are typically 50,000–200,000 lines of code. This phase implements a toy single-connection stack with no retransmit timer and no congestion control — enough to demonstrate every layer of the model but not suitable for real traffic."
+  - "Production network stacks handle retransmission timers, SACK, TCP congestion control (CUBIC, BBR), scatter-gather DMA, checksum offload, VLAN tagging, IPv6, DNS, TLS, and non-blocking I/O via `epoll`. They are typically 50,000-200,000 lines of code. This phase implements a toy single-connection stack with no retransmit timer and no congestion control — enough to demonstrate every layer of the model but not suitable for real traffic."
 successCriteria:
   - "`ping 10.0.2.2` receives ICMP echo replies from the QEMU gateway."
   - "A UDP echo client can send a datagram and receive it back."
@@ -61,11 +61,7 @@ No checklist tasks were discovered for this phase yet.
 
 ## Documentation targets
 
-- explain the virtio transport: descriptor rings, available ring, used ring
-- document the Ethernet → ARP → IP → TCP/UDP layering and how each layer calls the next
-- explain the TCP state machine with a diagram
-- document the socket API and how syscalls route to net_server via IPC
-- explain the ARP cache: why it exists, what happens on a miss
+- Documentation deliverables have not been listed yet.
 
 ## Deferred follow-on work
 

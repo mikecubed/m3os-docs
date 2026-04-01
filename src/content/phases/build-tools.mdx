@@ -17,6 +17,8 @@ learningObjectives:
   - "Learn how shell scripting automates repetitive development tasks."
   - "See why build tools are essential infrastructure for any self-hosting system."
 keyFiles:
+  - path: "userspace/demo-project/"
+    summary: "A multi-file C project (userspace/demo-project/) is included in the disk image to"
   - path: "kernel/Cargo.toml"
     summary: "kernel/Cargo.toml — version bump to 0.32.0"
   - path: "kernel/src/arch/x86_64/syscall.rs"
@@ -29,26 +31,30 @@ keyFiles:
     summary: "userspace/coreutils/{touch,stat,wc,ar,install}.c — C reference implementations"
   - path: "userspace/syscall-lib/src/lib.rs"
     summary: "userspace/syscall-lib/src/lib.rs — Stat struct, utimensat/stat wrappers"
-  - path: "userspace/demo-project/"
-    summary: "userspace/demo-project/ — multi-file C demo project"
   - path: "xtask/src/main.rs"
     summary: "xtask/src/main.rs — pdpmake build, demo project population, new coreutils"
 codeSpotlights:
-  - title: "kernel/Cargo.toml — version bump to 0.32.0"
-    file: "kernel/Cargo.toml"
-    lines: "See file"
-    summary: "kernel/Cargo.toml — version bump to 0.32.0"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/Cargo.toml"
-  - title: "Syscall"
+  - title: "sys_fstat / sys_stat returns meaningful st_mtime"
     file: "kernel/src/arch/x86_64/syscall.rs"
-    lines: "See file"
-    summary: "kernel/src/arch/x86_64/syscall.rs — stat timestamps, sys_utimensat, write mtime"
+    lines: "L352-L360"
+    summary: "- kernel/src/arch/x86_64/syscall.rs"
     githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/arch/x86_64/syscall.rs"
-  - title: "kernel/src/fs/ramdisk.rs — register new binaries"
-    file: "kernel/src/fs/ramdisk.rs"
-    lines: "See file"
-    summary: "kernel/src/fs/ramdisk.rs — register new binaries"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/fs/ramdisk.rs"
+    snippet: "        // stat(path, buf) and lstat(path, buf) — no symlinks, both delegate to fstatat.\n        4 => sys_linux_fstatat(u64::MAX, arg0, arg1),\n        5 => sys_linux_fstat(arg0, arg1),\n        6 => sys_linux_fstatat(u64::MAX, arg0, arg1),\n        // Phase 22: poll stub — report all requested fds as ready.\n        // Ion uses poll() to multiplex between signal pipe and stdin.\n        7 => sys_poll(arg0, arg1, arg2),\n        8 => sys_linux_lseek(arg0, arg1, arg2),\n        // Phase 21: mprotect stub (musl stack guard)"
+    snippetLanguage: "rust"
+  - title: "utimensat / utimensat_now wrappers in syscall-lib"
+    file: "userspace/syscall-lib/src/lib.rs"
+    lines: "L1053-L1061"
+    summary: "**Symbol:** utimensat"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/userspace/syscall-lib/src/lib.rs"
+    snippet: "\n// ===========================================================================\n// Phase 32: stat and utimensat wrappers\n// ===========================================================================\n\n/// x86_64 Linux stat struct (144 bytes).\n#[repr(C)]\n#[derive(Clone, Copy)]\npub struct Stat {"
+    snippetLanguage: "rust"
+  - title: "Evaluate pdpmake source"
+    file: "xtask/src/main.rs"
+    lines: "L367-L375"
+    summary: "**Symbol:** build_pdpmake"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/xtask/src/main.rs"
+    snippet: "/// build with `musl-gcc -static -O2`, and place the resulting binary in\n/// kernel/initrd/make.elf.\nfn build_pdpmake() {\n    let root = workspace_root();\n    let initrd = root.join(\"kernel/initrd\");\n    let make_elf = initrd.join(\"make.elf\");\n\n    // Check cache.\n    if make_elf.exists() && make_elf.metadata().map(|m| m.len() > 0).unwrap_or(false) {"
+    snippetLanguage: "rust"
 realOsDifferences:
   - "GNU make extensions (pattern rules, functions, recursive make)"
   - "CMake, Meson, Ninja for cross-platform builds"
@@ -89,7 +95,7 @@ This phase builds on Compiler Bootstrap and turns that foundation into Build Too
 
 ## Task progress snapshot
 
-No checklist tasks were discovered for this phase yet.
+45 of 76 tracked tasks are complete.
 
 ## Documentation targets
 

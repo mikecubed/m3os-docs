@@ -28,23 +28,31 @@ keyFiles:
   - path: "kernel/src/task/scheduler.rs"
     summary: "kernel/src/task/scheduler.rs — IPC scheduler primitives"
 codeSpotlights:
-  - title: "kernel/src/ipc/mod.rs — module overview and syscall dispatcher"
-    file: "kernel/src/ipc/mod.rs"
-    lines: "See file"
-    summary: "kernel/src/ipc/mod.rs — module overview and syscall dispatcher"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/ipc/mod.rs"
-  - title: "kernel/src/ipc/endpoint.rs — rendezvous endpoint implementation"
+  - title: "Define kernel IPC objects for endpoints and notifications"
+    file: "kernel/src/ipc/message.rs"
+    lines: "L2-L5"
+    summary: "- kernel/src/ipc/message.rs"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/ipc/message.rs"
+    snippet: "#![allow(dead_code)]\n\npub use kernel_core::ipc::message::Message;"
+    snippetLanguage: "rust"
+  - title: "Add a per-process capability table with validation"
+    file: "kernel/src/ipc/capability.rs"
+    lines: "L2-L5"
+    summary: "- kernel/src/ipc/capability.rs"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/ipc/capability.rs"
+    snippet: "#![allow(dead_code)]\n\npub use kernel_core::ipc::capability::{CapError, CapHandle, Capability, CapabilityTable};"
+    snippetLanguage: "rust"
+  - title: "Implement blocking recv and send primitives"
     file: "kernel/src/ipc/endpoint.rs"
-    lines: "See file"
-    summary: "kernel/src/ipc/endpoint.rs — rendezvous endpoint implementation"
+    lines: "L13-L21"
+    summary: "- kernel/src/ipc/endpoint.rs"
     githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/ipc/endpoint.rs"
-  - title: "kernel/src/ipc/notification.rs — async notification objects"
-    file: "kernel/src/ipc/notification.rs"
-    lines: "See file"
-    summary: "kernel/src/ipc/notification.rs — async notification objects"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/ipc/notification.rs"
+    snippet: "//! |---|---|---|\n//! | [`recv`] | Server | Block until a sender arrives; return message label |\n//! | [`recv_msg`] | Server | Block until a sender arrives; return full [`Message`] |\n//! | [`send`] | Client | Block until a receiver is ready; deliver message |\n//! | [`call`] | Client | `send` + block waiting for a reply; returns label only |\n//! | [`call_msg`] | Client | `send` + block waiting for a reply; returns full [`Message`] |\n//! | [`reply`] | Server | Deliver a reply to the blocked caller |\n//! | [`reply_recv`] | Server | `reply` + immediately `recv` next message |\n//! | [`reply_recv_msg`] | Server | `reply` + immediately `recv_msg` next message |"
+    snippetLanguage: "rust"
 realOsDifferences:
-  - "Real microkernels often include more message registers, stronger formal models, priority-aware scheduling interactions, and carefully tuned fast paths. This project should keep the IPC contract small and explicit so the reader can trace every state change during a message exchange."
+  - "Real microkernels often include more message registers, stronger formal models, priority-aware scheduling interactions, and carefully tuned fast paths."
+  - "Production systems like seL4 use formal verification to prove IPC correctness."
+  - "This project keeps the IPC contract small and explicit so the reader can trace every state change during a message exchange."
 successCriteria:
   - "A client can call a server and receive a reply."
   - "Invalid capabilities are rejected safely."
@@ -75,19 +83,17 @@ This phase builds on Userspace Entry and turns that foundation into IPC Core.
 
 ## Task progress snapshot
 
-14 of 14 tracked tasks are complete.
+26 of 26 tracked tasks are complete.
 
 ## Documentation targets
 
-- explain the rendezvous model and why it was chosen
-- document the capability table model
-- describe the difference between call/reply and notifications
+- Documentation deliverables have not been listed yet.
 
 ## Deferred follow-on work
 
-- large page-grant transfers
+- Large page-grant transfers
 - IPC timeouts and cancellation
-- advanced scheduling policies around IPC
+- Advanced scheduling policies around IPC
 
 ## Source materials
 

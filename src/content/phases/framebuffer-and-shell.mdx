@@ -16,9 +16,25 @@ learningObjectives:
   - "Learn the basics of text rendering, input handling, and command dispatch."
   - "End with a system that feels like an operating system rather than a kernel demo."
 keyFiles: []
-codeSpotlights: []
+codeSpotlights:
+  - title: "Parse framebuffer information for text-mode rendering"
+    file: "kernel/src/fb/mod.rs"
+    lines: "L7-L15"
+    summary: "**Symbol:** init"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/fb/mod.rs"
+    snippet: "//! Public API\n//! ----------\n//! * `init(fb)`   — call once from `kernel_main` before `task::run()`.\n//! * `write_str(s)` — thread-safe via an internal `spin::Mutex`.\n\n#![allow(dead_code)]\n\nuse bootloader_api::info::{FrameBuffer, FrameBufferInfo, PixelFormat};\nuse kernel_core::fb::{AnsiParser, ConsoleCmd, SgrParams};"
+    snippetLanguage: "rust"
+  - title: "Implement line input with basic editing"
+    file: "userspace/shell/src/main.rs"
+    lines: "L29-L37"
+    summary: "**Symbol:** read_line"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/userspace/shell/src/main.rs"
+    snippet: "\n        let mut line_buf = [0u8; MAX_LINE];\n        let len = read_line(&mut line_buf);\n        if len == 0 {\n            continue;\n        }\n\n        // Parse and execute the command line.\n        execute_line(&line_buf[..len]);"
+    snippetLanguage: "rust"
 realOsDifferences:
-  - "Real systems have richer terminal stacks, GPU drivers, process launch models, shells, libraries, and compatibility layers. A learning system should stop once text I/O and a few commands make the service architecture visible and satisfying to use."
+  - "Real systems have richer terminal stacks, GPU drivers, process launch models, shells, libraries, and compatibility layers."
+  - "Production terminal emulators handle hundreds of escape sequences and support Unicode."
+  - "A learning system should stop once text I/O and a few commands make the service architecture visible and satisfying to use."
 successCriteria:
   - "Text appears on screen in addition to serial output."
   - "Keyboard input reaches the shell through userspace services."
@@ -48,20 +64,18 @@ This phase builds on Storage And VFS and turns that foundation into Framebuffer 
 
 ## Task progress snapshot
 
-12 of 12 tracked tasks are complete.
+16 of 16 tracked tasks are complete.
 
 ## Documentation targets
 
-- explain framebuffer ownership and text rendering at a high level
-- document the shell command model and service dependencies
-- explain why the shell is intentionally tiny
+- Documentation deliverables have not been listed yet.
 
 ## Deferred follow-on work
 
-- pipes and redirection
-- job control
-- full-screen applications
-- advanced graphics or windowing
+- Pipes and redirection
+- Job control
+- Full-screen applications
+- Advanced graphics or windowing
 
 ## Source materials
 

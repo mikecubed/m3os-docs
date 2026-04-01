@@ -30,21 +30,25 @@ keyFiles:
   - path: "xtask/src/main.rs"
     summary: "xtask/src/main.rs creates the ext2 disk image at build time:"
 codeSpotlights:
-  - title: "Add ext2 data structure definitions to kernel-core/src/fs/: superblock,"
-    file: "kernel-core/src/fs/"
-    lines: "See file"
-    summary: "Add ext2 data structure definitions to kernel-core/src/fs/: superblock,"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel-core/src/fs/"
-  - title: "All on-disk structures are defined in kernel-core/src/fs/ext2.rs for"
+  - title: "Define `Ext2Superblock` struct"
     file: "kernel-core/src/fs/ext2.rs"
-    lines: "See file"
-    summary: "All on-disk structures are defined in kernel-core/src/fs/ext2.rs for"
+    lines: "L84-L92"
+    summary: "**Symbol:** Ext2Superblock"
     githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel-core/src/fs/ext2.rs"
-  - title: "The kernel-side driver (kernel/src/fs/ext2.rs) wraps all I/O in the"
+    snippet: "/// ext2 superblock — 1024 bytes at byte offset 1024 on disk.\n#[derive(Debug, Clone, Copy)]\npub struct Ext2Superblock {\n    pub inodes_count: u32,\n    pub blocks_count: u32,\n    pub r_blocks_count: u32,\n    pub free_blocks_count: u32,\n    pub free_inodes_count: u32,\n    pub first_data_block: u32,"
+    snippetLanguage: "rust"
+  - title: "Implement `read_inode()`"
     file: "kernel/src/fs/ext2.rs"
-    lines: "See file"
-    summary: "The kernel-side driver (kernel/src/fs/ext2.rs) wraps all I/O in the"
+    lines: "L118-L126"
+    summary: "**Symbol:** read_inode"
     githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/fs/ext2.rs"
+    snippet: "\n    /// Read an inode by number (1-based).\n    pub fn read_inode(&self, inode_num: u32) -> Result<Ext2Inode, Ext2Error> {\n        let group =\n            kernel_core::fs::ext2::inode_block_group(inode_num, self.superblock.inodes_per_group);\n        let index = kernel_core::fs::ext2::inode_index_in_group(\n            inode_num,\n            self.superblock.inodes_per_group,\n        );"
+    snippetLanguage: "rust"
+  - title: "Replace `mkfs.fat` with `mkfs.ext2`"
+    file: "xtask/src/main.rs"
+    lines: "See file"
+    summary: "**Why it matters:** The data partition must be ext2 format for native Unix metadata support."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/xtask/src/main.rs"
 realOsDifferences:
   - "**ext3/ext4 journaling**: crash recovery via a write-ahead log. ext2 has no journal — an unclean shutdown requires `e2fsck` to repair."
   - "**Extent trees** (ext4): replace block pointer lists for better large-file performance."
@@ -55,6 +59,7 @@ realOsDifferences:
   - "**Block group locality**: real implementations try to allocate files near their directory's block group for locality. We use simple first-fit."
   - "**Delayed allocation** (ext4): allocate blocks at writeback time, not at write time, for better layout."
   - "**Online resize and defragmentation**."
+  - "Our implementation covers the core ext2 specification (revision 0) which is sufficient for persistent Unix-style file storage with native permissions."
 successCriteria:
   - "Boot mounts an ext2 partition at `/data` (or `/`)."
   - "Files created with `touch`/`edit` are stored on ext2 and survive reboot."
@@ -98,7 +103,7 @@ This phase builds on User Accounts and turns that foundation into Ext2 Filesyste
 
 ## Task progress snapshot
 
-No checklist tasks were discovered for this phase yet.
+84 of 84 tracked tasks are complete.
 
 ## Documentation targets
 
