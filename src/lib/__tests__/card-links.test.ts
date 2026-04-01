@@ -1,9 +1,10 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
 
-const projectRoot = '/home/mikecubed/projects/m3os-docs';
+const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 
 function readProjectFile(relativePath: string): string {
   return readFileSync(path.join(projectRoot, relativePath), 'utf8');
