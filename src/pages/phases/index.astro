@@ -1,0 +1,27 @@
+---
+import { getCollection } from 'astro:content';
+
+import Layout from '../../layouts/Layout.astro';
+import PhaseExplorer from '../../components/PhaseExplorer';
+import { sortPhases, type PhaseSummary } from '../../lib/phase-utils';
+
+const phases = sortPhases(
+  (await getCollection('phases')).map((phase) => ({
+    slug: phase.id,
+    data: phase.data,
+  })) satisfies PhaseSummary[],
+);
+---
+
+<Layout title="m3OS Docs | Phases">
+  <section class="section-heading">
+    <p class="eyebrow">Phase explorer</p>
+    <h1>Browse the implementation roadmap</h1>
+    <p>
+      Filter and search phases by category, status, and summary. This is the main entry point for
+      turning the `ostest` phase docs into a navigable learning path.
+    </p>
+  </section>
+
+  <PhaseExplorer client:load phases={phases} />
+</Layout>

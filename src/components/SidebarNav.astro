@@ -1,0 +1,47 @@
+---
+interface SidebarLink {
+  href: string;
+  label: string;
+  detail: string;
+}
+
+interface Props {
+  currentPath: string;
+}
+
+const { currentPath } = Astro.props;
+
+const links: SidebarLink[] = [
+  { href: '/phases/', label: 'Phase explorer', detail: 'Browse milestone learning paths' },
+  { href: '/components/', label: 'Component map', detail: 'Trace responsibilities and code surfaces' },
+  { href: '/roadmap/', label: 'Roadmap view', detail: 'See dependencies and category groupings' },
+];
+
+const isActive = (href: string) => currentPath === href || currentPath.startsWith(href);
+---
+
+<aside class="sidebar">
+  <div class="sidebar__intro">
+    <p class="eyebrow">Blueprint Protocol</p>
+    <h1>Interactive systems learning</h1>
+    <p>
+      Static-first docs app for phase walkthroughs, component relationships, and code references.
+    </p>
+  </div>
+
+  <nav class="sidebar__nav" aria-label="Secondary">
+    {
+      links.map((link) => (
+        <a href={link.href} class:list={['sidebar__link', { 'is-active': isActive(link.href) }]}>
+          <span>{link.label}</span>
+          <small>{link.detail}</small>
+        </a>
+      ))
+    }
+  </nav>
+
+  <div class="sidebar__footer">
+    <p class="eyebrow">Hosting target</p>
+    <p>GitHub Pages, static output, content-driven build.</p>
+  </div>
+</aside>

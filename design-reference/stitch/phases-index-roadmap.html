@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>m³OS | Blueprint Protocol</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Inter:wght@300;400;500;600;700&amp;family=JetBrains+Mono:wght@400;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface-container-lowest": "#0e0e0e",
+                        "outline": "#849495",
+                        "inverse-primary": "#00696f",
+                        "surface": "#131313",
+                        "on-tertiary-fixed": "#221b00",
+                        "secondary-fixed": "#ffdeac",
+                        "on-error-container": "#ffdad6",
+                        "surface-bright": "#393939",
+                        "surface-variant": "#353534",
+                        "secondary": "#ffd799",
+                        "on-error": "#690005",
+                        "tertiary-container": "#fed83a",
+                        "background": "#131313",
+                        "error-container": "#93000a",
+                        "tertiary": "#fff6e4",
+                        "surface-container-low": "#1c1b1b",
+                        "primary": "#e1fdff",
+                        "on-primary-container": "#006a71",
+                        "tertiary-fixed-dim": "#e8c423",
+                        "on-primary": "#00363a",
+                        "on-background": "#e5e2e1",
+                        "error": "#ffb4ab",
+                        "on-secondary-fixed-variant": "#604100",
+                        "on-secondary": "#432c00",
+                        "on-surface": "#e5e2e1",
+                        "inverse-surface": "#e5e2e1",
+                        "outline-variant": "#3a494b",
+                        "surface-container": "#201f1f",
+                        "surface-container-high": "#2a2a2a",
+                        "secondary-fixed-dim": "#ffba38",
+                        "surface-dim": "#131313",
+                        "primary-fixed": "#74f5ff",
+                        "primary-container": "#00f2ff",
+                        "inverse-on-surface": "#313030",
+                        "surface-tint": "#00dbe7",
+                        "on-primary-fixed-variant": "#004f54",
+                        "on-tertiary": "#3b2f00",
+                        "tertiary-fixed": "#ffe173",
+                        "on-primary-fixed": "#002022",
+                        "on-tertiary-container": "#725e00",
+                        "on-secondary-container": "#6a4800",
+                        "primary-fixed-dim": "#00dbe7",
+                        "surface-container-highest": "#353534",
+                        "on-surface-variant": "#b9cacb",
+                        "on-secondary-fixed": "#281900",
+                        "on-tertiary-fixed-variant": "#554500",
+                        "secondary-container": "#feb300"
+                    },
+                    fontFamily: {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Inter"],
+                        "label": ["Inter"],
+                        "mono": ["JetBrains Mono"]
+                    },
+                    borderRadius: {"DEFAULT": "0px", "lg": "0px", "xl": "0px", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .blueprint-grid {
+            background-image: radial-gradient(circle, #3a494b 1px, transparent 1px);
+            background-size: 24px 24px;
+            opacity: 0.05;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #131313;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #3a494b;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body selection:bg-primary-container selection:text-on-primary-container custom-scrollbar">
+<!-- TopNavBar Shell -->
+<header class="flex justify-between items-center w-full px-6 py-3 sticky top-0 z-50 bg-[#131313] font-['Space_Grotesk'] tracking-tight border-b border-outline-variant/20">
+<div class="flex items-center gap-8">
+<span class="text-xl font-bold tracking-tighter text-[#e1fdff] uppercase">m³OS v0.1.0</span>
+<nav class="hidden md:flex gap-6">
+<a class="text-slate-400 font-medium hover:text-[#e1fdff] hover:bg-white/5 transition-colors" href="#">Home</a>
+<a class="text-[#00f2ff] border-b-2 border-[#00f2ff] pb-1" href="#">Phases</a>
+<a class="text-slate-400 font-medium hover:text-[#e1fdff] hover:bg-white/5 transition-colors" href="#">Components</a>
+<a class="text-slate-400 font-medium hover:text-[#e1fdff] hover:bg-white/5 transition-colors" href="#">Roadmap</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="hidden sm:flex items-center bg-[#1c1c1c] px-3 py-1 gap-2 border border-outline-variant/10">
+<span class="material-symbols-outlined text-sm text-outline">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-xs font-mono text-primary placeholder:text-outline/50 w-48" placeholder="QUERY PROTOCOL..." type="text"/>
+</div>
+<span class="material-symbols-outlined text-slate-400 cursor-pointer hover:text-primary">terminal</span>
+<span class="material-symbols-outlined text-slate-400 cursor-pointer hover:text-primary">code</span>
+</div>
+</header>
+<!-- Main Layout Shell -->
+<div class="flex min-h-screen pt-4">
+<!-- SideNavBar Left -->
+<aside class="fixed left-0 top-0 h-full flex flex-col pt-16 bg-[#1c1c1c] w-64 z-40 border-r border-outline-variant/10">
+<div class="p-6">
+<div class="flex items-center gap-3 mb-8">
+<div class="w-8 h-8 bg-primary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-on-primary-container" style="font-variation-settings: 'FILL' 1;">architecture</span>
+</div>
+<div>
+<h2 class="font-black text-[#e1fdff] text-sm tracking-tighter">Blueprint Protocol</h2>
+<p class="font-['JetBrains_Mono'] text-[10px] uppercase tracking-widest text-slate-500">Technical Spec 0.1</p>
+</div>
+</div>
+<nav class="space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 text-[#00f2ff] bg-[#131313] font-bold border-l-4 border-[#00f2ff] font-['JetBrains_Mono'] text-xs uppercase tracking-widest transition-all" href="#">
+<span class="material-symbols-outlined text-lg">architecture</span>
+<span>Phase 1-12</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-500 hover:text-slate-300 hover:bg-[#252525] font-['JetBrains_Mono'] text-xs uppercase tracking-widest transition-all" href="#">
+<span class="material-symbols-outlined text-lg">memory</span>
+<span>Phase 13-24</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-500 hover:text-slate-300 hover:bg-[#252525] font-['JetBrains_Mono'] text-xs uppercase tracking-widest transition-all" href="#">
+<span class="material-symbols-outlined text-lg">settings_input_component</span>
+<span>Phase 25-36</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-500 hover:text-slate-300 hover:bg-[#252525] font-['JetBrains_Mono'] text-xs uppercase tracking-widest transition-all" href="#">
+<span class="material-symbols-outlined text-lg">terminal</span>
+<span>Phase 37-48</span>
+</a>
+</nav>
+</div>
+<div class="mt-auto p-6 border-t border-outline-variant/10">
+<a class="flex items-center gap-3 px-4 py-2 text-slate-500 hover:text-slate-300 font-['JetBrains_Mono'] text-[10px] uppercase tracking-widest" href="#">
+<span class="material-symbols-outlined text-base">star</span>
+<span>GitHub</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2 text-slate-500 hover:text-slate-300 font-['JetBrains_Mono'] text-[10px] uppercase tracking-widest" href="#">
+<span class="material-symbols-outlined text-base">description</span>
+<span>Documentation</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 ml-64 mr-48 p-8 relative">
+<div class="fixed inset-0 blueprint-grid pointer-events-none"></div>
+<!-- Page Header & Stats -->
+<section class="relative z-10 mb-12">
+<div class="flex justify-between items-end mb-6">
+<div>
+<div class="flex items-center gap-2 mb-2">
+<span class="text-primary font-mono text-xs tracking-widest">SYSTEM_ROADMAP_v01</span>
+<div class="h-px w-12 bg-primary/30"></div>
+</div>
+<h1 class="text-5xl font-headline font-bold text-primary tracking-tight uppercase">Implementation Phases</h1>
+</div>
+<div class="text-right">
+<div class="text-xs font-mono text-outline mb-1 uppercase tracking-widest">Overall Completion</div>
+<div class="text-2xl font-headline font-bold text-primary-fixed-dim">31.25%</div>
+</div>
+</div>
+<!-- Progress Bar -->
+<div class="w-full h-1 bg-surface-container-highest relative overflow-hidden">
+<div class="absolute inset-y-0 left-0 bg-primary-container shadow-[0_0_8px_rgba(0,242,255,0.4)]" style="width: 31.25%"></div>
+</div>
+</section>
+<!-- Filters & Views -->
+<section class="relative z-10 mb-12 flex flex-wrap items-center justify-between gap-6 border-b border-outline-variant/10 pb-6">
+<div class="flex gap-4">
+<button class="bg-primary px-4 py-2 text-on-primary font-mono text-[10px] uppercase font-bold tracking-widest flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">grid_view</span>
+                        Grid View
+                    </button>
+<button class="bg-surface-container-high px-4 py-2 text-outline hover:text-primary transition-colors font-mono text-[10px] uppercase font-bold tracking-widest flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">account_tree</span>
+                        Dependency Map
+                    </button>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-2">
+<span class="text-[10px] font-mono text-outline uppercase tracking-widest">Status:</span>
+<select class="bg-transparent border-none text-[10px] font-mono text-primary focus:ring-0 uppercase p-0">
+<option>All Statuses</option>
+<option>Complete</option>
+<option>In-Progress</option>
+<option>Planned</option>
+</select>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-[10px] font-mono text-outline uppercase tracking-widest">Category:</span>
+<select class="bg-transparent border-none text-[10px] font-mono text-primary focus:ring-0 uppercase p-0">
+<option>All Layers</option>
+<option>Foundations</option>
+<option>Userspace</option>
+<option>Infrastructure</option>
+</select>
+</div>
+</div>
+</section>
+<!-- Grid Content -->
+<div class="relative z-10 space-y-16">
+<!-- Category: Foundations -->
+<div>
+<div class="flex items-center gap-4 mb-8">
+<h3 class="font-headline text-lg font-bold text-primary-fixed uppercase tracking-tighter">01. Foundations</h3>
+<div class="flex-1 h-px bg-outline-variant/20"></div>
+<span class="font-mono text-[10px] text-outline">PHASES 01-06</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1">
+<!-- Phase Card 1 -->
+<div class="group bg-surface-container-low p-6 border border-transparent hover:border-primary/20 transition-all relative">
+<div class="flex justify-between items-start mb-4">
+<span class="font-mono text-xs text-primary font-bold">#01</span>
+<span class="px-2 py-0.5 bg-on-primary-container text-primary font-mono text-[10px] uppercase">Complete</span>
+</div>
+<h4 class="font-headline font-bold text-on-surface mb-2 uppercase group-hover:text-primary transition-colors">Bootloader Logic</h4>
+<p class="text-on-surface-variant text-sm mb-4 leading-relaxed">Multiboot2 compliant entry sequence with GDT initialization and long mode transition.</p>
+<div class="flex items-center gap-2">
+<span class="text-[10px] font-mono bg-surface-container-highest px-2 py-1 text-outline">INTERRUPTS</span>
+<span class="text-[10px] font-mono bg-surface-container-highest px-2 py-1 text-outline">KERNEL</span>
+</div>
+</div>
+<!-- Phase Card 2 -->
+<div class="group bg-surface-container-low p-6 border border-transparent hover:border-primary/20 transition-all relative">
+<div class="flex justify-between items-start mb-4">
+<span class="font-mono text-xs text-primary font-bold">#02</span>
+<span class="px-2 py-0.5 bg-on-primary-container text-primary font-mono text-[10px] uppercase">Complete</span>
+</div>
+<h4 class="font-headline font-bold text-on-surface mb-2 uppercase group-hover:text-primary transition-colors">Physical Memory</h4>
+<p class="text-on-surface-variant text-sm mb-4 leading-relaxed">Bitmap-based allocator managing 4KB pages with UEFI memory map awareness.</p>
+<div class="flex items-center gap-2">
+<span class="text-[10px] font-mono bg-surface-container-highest px-2 py-1 text-outline">MEMORY</span>
+<span class="text-[10px] font-mono bg-surface-container-highest px-2 py-1 text-outline">MMU</span>
+</div>
+</div>
+<!-- Phase Card 3 -->
+<div class="group bg-surface-container-low p-6 border border-transparent hover:border-primary/20 transition-all relative">
+<div class="flex justify-between items-start mb-4">
+<span class="font-mono text-xs text-primary font-bold">#03</span>
+<span class="px-2 py-0.5 bg-secondary-container text-on-secondary font-mono text-[10px] uppercase">In-Progress</span>
+</div>
+<h4 class="font-headline font-bold text-on-surface mb-2 uppercase group-hover:text-primary transition-colors">Virtual Memory</h4>
+<p class="text-on-surface-variant text-sm mb-4 leading-relaxed">Hierarchical page table management (PML4) with recursive mapping support.</p>
+<div class="flex items-center gap-2">
+<span class="text-[10px] font-mono bg-surface-container-highest px-2 py-1 text-outline">MEMORY</span>
+<span class="text-[10px] font-mono bg-surface-container-highest px-2 py-1 text-outline">PAGING</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Category: Userspace -->
+<div>
+<div class="flex items-center gap-4 mb-8">
+<h3 class="font-headline text-lg font-bold text-primary-fixed uppercase tracking-tighter">02. Userspace</h3>
+<div class="flex-1 h-px bg-outline-variant/20"></div>
+<span class="font-mono text-[10px] text-outline">PHASES 07-15</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1">
+<!-- Phase Card 13 -->
+<div class="group bg-surface-container-low p-6 border border-transparent hover:border-primary/20 transition-all relative">
+<div class="flex justify-between items-start mb-4">
+<span class="font-mono text-xs text-primary font-bold">#13</span>
+<span class="px-2 py-0.5 bg-surface-container-highest text-outline font-mono text-[10px] uppercase">Planned</span>
+</div>
+<h4 class="font-headline font-bold text-on-surface mb-2 uppercase group-hover:text-primary transition-colors">ELF Execution</h4>
+<p class="text-on-surface-variant text-sm mb-4 leading-relaxed">Loading and parsing static ELF64 binaries into ring-3 process containers.</p>
+<div class="flex items-center gap-2">
+<span class="text-[10px] font-mono bg-surface-container-highest px-2 py-1 text-outline">BINARIES</span>
+<span class="text-[10px] font-mono bg-surface-container-highest px-2 py-1 text-outline">LOADER</span>
+</div>
+</div>
+<!-- Phase Card 14 -->
+<div class="group bg-surface-container-low p-6 border border-transparent hover:border-primary/20 transition-all relative">
+<div class="flex justify-between items-start mb-4">
+<span class="font-mono text-xs text-primary font-bold">#14</span>
+<span class="px-2 py-0.5 bg-surface-container-highest text-outline font-mono text-[10px] uppercase">Planned</span>
+</div>
+<h4 class="font-headline font-bold text-on-surface mb-2 uppercase group-hover:text-primary transition-colors">Syscall Interface</h4>
+<p class="text-on-surface-variant text-sm mb-4 leading-relaxed">MSR_LSTAR based syscall dispatcher with register-preserved context switching.</p>
+<div class="flex items-center gap-2">
+<span class="text-[10px] font-mono bg-surface-container-highest px-2 py-1 text-outline">IPC</span>
+<span class="text-[10px] font-mono bg-surface-container-highest px-2 py-1 text-outline">X86_64</span>
+</div>
+</div>
+<!-- Empty slot placeholder for visual rhythm -->
+<div class="hidden lg:flex flex-col items-center justify-center border border-dashed border-outline-variant/20 p-6">
+<span class="material-symbols-outlined text-outline/30 text-4xl mb-2">more_horiz</span>
+<span class="font-mono text-[10px] text-outline/40 uppercase">Pending Specifications</span>
+</div>
+</div>
+</div>
+<!-- Callout Section: Design Decisions -->
+<div class="bg-surface-container-low border-l-4 border-secondary-container p-8">
+<div class="flex items-center gap-3 mb-4">
+<span class="material-symbols-outlined text-secondary">lightbulb</span>
+<h5 class="font-headline font-bold uppercase tracking-tight text-secondary">Architectural Pivot: Phase 18</h5>
+</div>
+<p class="text-on-surface-variant text-sm leading-relaxed max-w-3xl">
+                        Decided to switch from a traditional monolithic driver model to a microkernel-hybrid approach. Drivers for non-essential hardware (HID, Audio) will now run in isolated userspace servers. This improves system stability and reduces kernel surface area by 42%.
+                    </p>
+</div>
+</div>
+</main>
+<!-- SideNavBar Right (Table of Contents) -->
+<aside class="fixed right-0 top-16 h-full flex flex-col p-4 bg-[#131313]/60 backdrop-blur-xl w-48 z-40 shadow-[0px_0px_32px_rgba(0,242,255,0.04)]">
+<h6 class="font-['JetBrains_Mono'] text-[10px] tracking-tight text-outline mb-6 uppercase">On This Page</h6>
+<nav class="space-y-4">
+<a class="block font-['JetBrains_Mono'] text-[10px] tracking-tight text-[#00f2ff] underline underline-offset-4 uppercase" href="#">01. Overview</a>
+<a class="block font-['JetBrains_Mono'] text-[10px] tracking-tight text-slate-500 hover:text-white transition-colors uppercase" href="#">02. Foundations</a>
+<a class="block font-['JetBrains_Mono'] text-[10px] tracking-tight text-slate-500 hover:text-white transition-colors uppercase" href="#">03. Userspace</a>
+<a class="block font-['JetBrains_Mono'] text-[10px] tracking-tight text-slate-500 hover:text-white transition-colors uppercase" href="#">04. Infrastructure</a>
+<a class="block font-['JetBrains_Mono'] text-[10px] tracking-tight text-slate-500 hover:text-white transition-colors uppercase" href="#">05. Showcase</a>
+</nav>
+<div class="mt-auto pb-20">
+<div class="bg-surface-container-high p-4 border border-outline-variant/10">
+<p class="font-mono text-[9px] text-outline mb-2 uppercase">Current Sync</p>
+<div class="flex items-center gap-2 text-primary">
+<span class="material-symbols-outlined text-xs">speed</span>
+<span class="font-mono text-[10px]">1.2 GB/s PKT</span>
+</div>
+</div>
+</div>
+</aside>
+</div>
+<!-- Floating Action Button Suppression (Contextual) -->
+<!-- Suppressed for Phases Index to prioritize the Grid Explorer -->
+<!-- Status Tooltip Simulation (Pure HTML/CSS) -->
+<div class="fixed bottom-6 right-56 bg-surface-container-highest px-4 py-2 flex items-center gap-3 border border-outline-variant/20 z-50">
+<div class="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
+<span class="font-mono text-[10px] text-primary uppercase tracking-widest">Protocol Active: monitoring_sync</span>
+</div>
+</body></html>

@@ -1,0 +1,18 @@
+---
+title: Boot Path
+introducedIn: boot-foundation
+touchedBy:
+  - memory-basics
+summary: The boot path moves the system from UEFI firmware to a running Rust kernel with usable diagnostics.
+responsibilities:
+  - Build and launch the bootable image.
+  - Transfer control into `kernel_main`.
+  - Provide the first stable diagnostics channel.
+keyFiles:
+  - path: xtask/src/main.rs
+    summary: Host-side image creation and QEMU orchestration.
+  - path: kernel/src/main.rs
+    summary: Kernel entry and early runtime startup.
+---
+
+The boot path is the first contract the project must trust. It is both infrastructure and teaching surface: readers can see exactly how control moves from firmware into the kernel before later abstractions obscure the path.

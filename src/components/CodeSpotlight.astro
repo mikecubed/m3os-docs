@@ -1,0 +1,32 @@
+---
+interface Props {
+  title: string;
+  file: string;
+  lines: string;
+  summary: string;
+  githubUrl?: string;
+}
+
+const { file, githubUrl, lines, summary, title } = Astro.props;
+---
+
+<section class="code-spotlight">
+  <div class="code-spotlight__header">
+    <div>
+      <p class="eyebrow">Code spotlight</p>
+      <h3>{title}</h3>
+    </div>
+    <div class="code-spotlight__meta">
+      <span>{file}</span>
+      <span>{lines}</span>
+    </div>
+  </div>
+  <p>{summary}</p>
+  {githubUrl && (
+    <p class="code-spotlight__link">
+      <a href={githubUrl} target="_blank" rel="noreferrer">
+        View on GitHub
+      </a>
+    </p>
+  )}
+</section>

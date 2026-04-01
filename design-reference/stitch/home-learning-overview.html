@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>m³OS | Blueprint Protocol</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Inter:wght@300;400;500;600;700&amp;family=JetBrains+Mono:wght@400;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface-container-lowest": "#0e0e0e",
+                        "outline": "#849495",
+                        "inverse-primary": "#00696f",
+                        "surface": "#131313",
+                        "on-tertiary-fixed": "#221b00",
+                        "secondary-fixed": "#ffdeac",
+                        "on-error-container": "#ffdad6",
+                        "surface-bright": "#393939",
+                        "surface-variant": "#353534",
+                        "secondary": "#ffd799",
+                        "on-error": "#690005",
+                        "tertiary-container": "#fed83a",
+                        "background": "#131313",
+                        "error-container": "#93000a",
+                        "tertiary": "#fff6e4",
+                        "surface-container-low": "#1c1b1b",
+                        "primary": "#e1fdff",
+                        "on-primary-container": "#006a71",
+                        "tertiary-fixed-dim": "#e8c423",
+                        "on-primary": "#00363a",
+                        "on-background": "#e5e2e1",
+                        "error": "#ffb4ab",
+                        "on-secondary-fixed-variant": "#604100",
+                        "on-secondary": "#432c00",
+                        "on-surface": "#e5e2e1",
+                        "inverse-surface": "#e5e2e1",
+                        "outline-variant": "#3a494b",
+                        "surface-container": "#201f1f",
+                        "surface-container-high": "#2a2a2a",
+                        "secondary-fixed-dim": "#ffba38",
+                        "surface-dim": "#131313",
+                        "primary-fixed": "#74f5ff",
+                        "primary-container": "#00f2ff",
+                        "inverse-on-surface": "#313030",
+                        "surface-tint": "#00dbe7",
+                        "on-primary-fixed-variant": "#004f54",
+                        "on-tertiary": "#3b2f00",
+                        "tertiary-fixed": "#ffe173",
+                        "on-primary-fixed": "#002022",
+                        "on-tertiary-container": "#725e00",
+                        "on-secondary-container": "#6a4800",
+                        "primary-fixed-dim": "#00dbe7",
+                        "surface-container-highest": "#353534",
+                        "on-surface-variant": "#b9cacb",
+                        "on-secondary-fixed": "#281900",
+                        "on-tertiary-fixed-variant": "#554500",
+                        "secondary-container": "#feb300"
+                    },
+                    fontFamily: {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Inter"],
+                        "label": ["Inter"],
+                        "mono": ["JetBrains Mono"]
+                    },
+                    borderRadius: {"DEFAULT": "0px", "lg": "0px", "xl": "0px", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .blueprint-grid {
+            background-image: linear-gradient(to right, #3a494b 1px, transparent 1px),
+                              linear-gradient(to bottom, #3a494b 1px, transparent 1px);
+            background-size: 24px 24px;
+            opacity: 0.05;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glow-text {
+            text-shadow: 0 0 2px #e1fdff;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body selection:bg-primary-container selection:text-on-primary-container overflow-x-hidden">
+<!-- TopNavBar -->
+<header class="flex justify-between items-center w-full px-6 py-3 sticky top-0 z-50 bg-[#131313] font-['Space_Grotesk'] tracking-tight border-b border-outline-variant/20">
+<div class="flex items-center gap-8">
+<span class="text-xl font-bold tracking-tighter text-[#e1fdff] uppercase">m³OS v0.1.0</span>
+<nav class="hidden md:flex gap-6">
+<a class="text-[#00f2ff] border-b-2 border-[#00f2ff] pb-1 hover:text-[#e1fdff] hover:bg-white/5 transition-colors" href="#">Home</a>
+<a class="text-slate-400 font-medium hover:text-[#e1fdff] hover:bg-white/5 transition-colors" href="#">Phases</a>
+<a class="text-slate-400 font-medium hover:text-[#e1fdff] hover:bg-white/5 transition-colors" href="#">Components</a>
+<a class="text-slate-400 font-medium hover:text-[#e1fdff] hover:bg-white/5 transition-colors" href="#">Roadmap</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="hidden sm:flex bg-[#1c1c1c] px-3 py-1 items-center gap-2 border border-outline-variant/10">
+<span class="material-symbols-outlined text-sm text-outline">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-xs font-mono uppercase w-48 text-primary" placeholder="SEARCH_PROTOCOL..." type="text"/>
+</div>
+<span class="material-symbols-outlined text-[#00f2ff] cursor-pointer active:opacity-80 duration-100">terminal</span>
+<span class="material-symbols-outlined text-[#00f2ff] cursor-pointer active:opacity-80 duration-100">code</span>
+</div>
+</header>
+<!-- SideNavBar (Left) -->
+<aside class="fixed left-0 top-0 h-full flex flex-col pt-16 bg-[#1c1c1c] font-['JetBrains_Mono'] text-xs uppercase tracking-widest w-64 z-40 hidden xl:flex">
+<div class="p-6 border-b border-outline-variant/10">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 bg-primary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-on-primary-container" style="font-variation-settings: 'FILL' 1;">architecture</span>
+</div>
+<div>
+<div class="font-black text-[#e1fdff]">Blueprint Protocol</div>
+<div class="text-[10px] text-slate-500">Technical Spec 0.1</div>
+</div>
+</div>
+</div>
+<nav class="flex-1 py-4">
+<div class="px-6 py-2 text-slate-600 text-[10px] font-bold">CORE STRUCTURE</div>
+<a class="flex items-center gap-3 px-6 py-3 text-[#00f2ff] bg-[#131313] font-bold border-l-4 border-[#00f2ff] transition-all" href="#">
+<span class="material-symbols-outlined">architecture</span> Phase 1-12
+            </a>
+<a class="flex items-center gap-3 px-6 py-3 text-slate-500 hover:text-slate-300 hover:bg-[#252525] transition-all" href="#">
+<span class="material-symbols-outlined">memory</span> Phase 13-24
+            </a>
+<a class="flex items-center gap-3 px-6 py-3 text-slate-500 hover:text-slate-300 hover:bg-[#252525] transition-all" href="#">
+<span class="material-symbols-outlined">settings_input_component</span> Phase 25-36
+            </a>
+<a class="flex items-center gap-3 px-6 py-3 text-slate-500 hover:text-slate-300 hover:bg-[#252525] transition-all" href="#">
+<span class="material-symbols-outlined">terminal</span> Phase 37-48
+            </a>
+</nav>
+<footer class="p-6 border-t border-outline-variant/10">
+<a class="flex items-center gap-3 py-2 text-slate-500 hover:text-slate-300 transition-all" href="#">
+<span class="material-symbols-outlined text-sm">star</span> GitHub
+            </a>
+<a class="flex items-center gap-3 py-2 text-slate-500 hover:text-slate-300 transition-all" href="#">
+<span class="material-symbols-outlined text-sm">description</span> Documentation
+            </a>
+</footer>
+</aside>
+<!-- Right SideNav (TOC) -->
+<aside class="fixed right-0 top-16 h-full flex flex-col p-4 bg-[#131313]/60 backdrop-blur-xl font-['JetBrains_Mono'] text-[10px] tracking-tight w-48 z-40 hidden lg:flex border-l border-outline-variant/10">
+<div class="mb-4 text-slate-500 font-bold opacity-50 uppercase tracking-tighter">ON THIS PAGE</div>
+<nav class="space-y-4">
+<a class="block text-[#00f2ff] underline underline-offset-4" href="#vision">01_CORE_VISION</a>
+<a class="block text-slate-500 hover:text-white transition-colors" href="#learning-path">02_LEARNING_PATH</a>
+<a class="block text-slate-500 hover:text-white transition-colors" href="#architecture">03_ARCHITECTURE</a>
+<a class="block text-slate-500 hover:text-white transition-colors" href="#status">04_SYSTEM_STATUS</a>
+</nav>
+</aside>
+<!-- Main Canvas -->
+<main class="xl:pl-64 lg:pr-48 min-h-screen relative">
+<!-- Blueprint Background Overlay -->
+<div class="absolute inset-0 blueprint-grid pointer-events-none"></div>
+<div class="relative max-w-5xl mx-auto px-8 pt-16 pb-24 space-y-16">
+<!-- Hero Section -->
+<section class="space-y-6" id="vision">
+<div class="inline-flex items-center gap-2 font-mono text-xs text-primary-fixed-dim bg-on-primary-fixed-variant/20 px-2 py-1">
+<span class="material-symbols-outlined text-xs">terminal</span>
+                    EXECUTION_POINT: ROOT/HOME
+                </div>
+<h1 class="font-headline text-6xl md:text-8xl font-bold tracking-tighter text-primary glow-text uppercase leading-none">
+                    m³OS<br/><span class="text-on-surface-variant font-light">The Microkernel Blueprint</span>
+</h1>
+<p class="font-body text-xl text-on-surface-variant max-w-2xl leading-relaxed">
+                    A educational microkernel built from first principles. Designed for the sovereign architect who seeks to understand the metal through <span class="text-primary border-b border-primary/30">Evolutionary Iteration</span>.
+                </p>
+<div class="flex flex-wrap gap-4 pt-4">
+<button class="bg-primary text-on-primary px-8 py-4 font-mono font-bold text-sm tracking-widest hover:brightness-110 transition-all flex items-center gap-2">
+                        START_LEARNING.EXE <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+<button class="border border-outline-variant px-8 py-4 font-mono text-sm tracking-widest text-outline hover:text-primary hover:border-primary transition-all">
+                        VIEW_RESOURCES
+                    </button>
+</div>
+</section>
+<!-- System At A Glance (Bento Panel) -->
+<section class="grid grid-cols-1 md:grid-cols-3 gap-1" id="status">
+<div class="bg-surface-container-low p-6 border-l-4 border-primary">
+<div class="font-mono text-[10px] text-outline mb-2">CURRENT_PHASE</div>
+<div class="font-headline text-4xl font-bold text-primary">04</div>
+<div class="font-mono text-[10px] text-primary/60 mt-1">VIRTUAL_MEMORY_MAPPING</div>
+</div>
+<div class="bg-surface-container-low p-6">
+<div class="font-mono text-[10px] text-outline mb-2">TOTAL_PHASES</div>
+<div class="font-headline text-4xl font-bold text-on-surface">48</div>
+<div class="font-mono text-[10px] text-slate-500 mt-1">MODULAR_CURRICULUM</div>
+</div>
+<div class="bg-surface-container-low p-6">
+<div class="font-mono text-[10px] text-outline mb-2">STATUS</div>
+<div class="flex items-center gap-2">
+<div class="font-headline text-4xl font-bold text-secondary">15</div>
+<div class="font-mono text-[10px] text-secondary/60">COMPLETE</div>
+</div>
+<div class="w-full bg-surface-container-highest h-1 mt-3">
+<div class="bg-secondary h-full" style="width: 31%;"></div>
+</div>
+</div>
+</section>
+<!-- Philosophy Callouts -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+<!-- Design Decision -->
+<div class="bg-surface-container-low border-l-4 border-secondary-container p-6 space-y-3">
+<div class="flex items-center gap-2 font-mono text-[10px] text-secondary">
+<span class="material-symbols-outlined text-sm">lightbulb</span> DESIGN DECISION: EVOLUTIONARY REFACTORING
+                    </div>
+<p class="text-sm text-on-surface-variant leading-relaxed">
+                        Unlike traditional tutorials, m³OS doesn't give you the final code. You build a "Toy OS" in Phase 1, and by Phase 48, you have refactored every component into a professional-grade Microkernel.
+                    </p>
+</div>
+<!-- Real OS Diff -->
+<div class="bg-tertiary-container/10 p-6 space-y-3">
+<div class="flex items-center gap-2 font-mono text-[10px] text-tertiary-fixed-dim">
+<span class="material-symbols-outlined text-sm">compare_arrows</span> HOW REAL OSES DIFFER
+                    </div>
+<p class="text-sm text-on-surface-variant leading-relaxed">
+                        Production kernels prioritize optimization and hardware quirks. m³OS prioritizes <span class="italic">conceptual purity</span> and architectural clarity, mapping 1:1 with theoretical CS models.
+                    </p>
+</div>
+</div>
+<!-- What you'll build (Mock/Diagram) -->
+<section class="space-y-8" id="architecture">
+<div class="space-y-2">
+<h2 class="font-headline text-3xl font-bold tracking-tight text-primary uppercase">03_ARCHITECTURAL_TARGET</h2>
+<p class="text-outline text-sm font-mono tracking-widest">VISUALIZING_THE_USERSPACE_SHELL</p>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant/10 overflow-hidden shadow-2xl">
+<div class="bg-surface-container-highest px-4 py-2 flex items-center justify-between border-b border-outline-variant/10">
+<span class="font-mono text-[10px] text-outline">m3os_tty0.sh</span>
+<div class="flex gap-2">
+<div class="w-2 h-2 bg-outline-variant"></div>
+<div class="w-2 h-2 bg-outline-variant"></div>
+</div>
+</div>
+<div class="p-8 aspect-video relative flex items-center justify-center bg-[#0a0a0a]">
+<!-- Abstract OS Shell Visual -->
+<div class="w-full h-full border border-primary/5 flex flex-col font-mono text-[12px] p-6 space-y-4">
+<div class="text-primary-fixed-dim opacity-40">m3OS (v0.48.0-final) - "Sovereign"</div>
+<div class="text-on-surface-variant">root@m3os:~# <span class="animate-pulse">_</span></div>
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-surface-container p-4 border border-outline-variant/20">
+<div class="text-secondary text-[10px] mb-2 uppercase">Kernel_Tasks</div>
+<div class="space-y-1 opacity-80">
+<div>PID 001 | SYSCALL_HDLR | RUNNING</div>
+<div>PID 002 | MEM_PAGING | IDLE</div>
+<div>PID 005 | SCHEDULER | ACTIVE</div>
+</div>
+</div>
+<div class="bg-surface-container p-4 border border-outline-variant/20">
+<div class="text-primary text-[10px] mb-2 uppercase">Memory_Map</div>
+<div class="h-16 w-full flex items-end gap-1">
+<div class="bg-primary/20 w-full h-full"></div>
+<div class="bg-primary/40 w-full h-[80%]"></div>
+<div class="bg-primary/10 w-full h-[90%]"></div>
+<div class="bg-primary w-full h-[40%]"></div>
+</div>
+</div>
+</div>
+<img alt="abstract digital circuitry and glowing motherboard traces" class="absolute inset-0 w-full h-full object-cover opacity-10 grayscale mix-blend-overlay pointer-events-none" data-alt="Technical close-up of complex server motherboard circuitry with neon blue glowing data traces and high-tech industrial aesthetic" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAN8EqGIOgvMaWBYLrmphJQjolBOeHyE2bmMPBUzhP0lNDQJuaAmcYaeWA66qKni1ygK3EQ9gTcKe_3i9vUJ2WTFcjeimDH6nHWkGoo5tF_96hI8SC27nf3XwnwmUYMuuMzGHDiqa5Jj7quQ7OwVdTE5IbYD6RF4sZi6BN1zt8j0kT1ikcUKsOWtWHvuBlUzXIk0BLSxwuqu-WsFYW2Ot2eU_YNBxaReVETa0hc_Y8R-PXDDDS917YpXbZWUXa7FMeOaoGHDJd4F_vw"/>
+</div>
+</div>
+</div>
+</section>
+<!-- Learning Path (Timeline style) -->
+<section class="space-y-12" id="learning-path">
+<div class="space-y-2">
+<h2 class="font-headline text-3xl font-bold tracking-tight text-primary uppercase">02_THE_LEARNING_PATH</h2>
+<p class="text-outline text-sm font-mono tracking-widest">FROM_ZERO_TO_MICROKERNEL</p>
+</div>
+<div class="relative space-y-0">
+<!-- Path 1: Foundation -->
+<div class="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] items-center">
+<div class="p-8 bg-surface-container-low text-right space-y-2">
+<div class="font-mono text-primary text-sm">PHASE_01-16</div>
+<h3 class="font-headline text-xl font-bold">The Foundation</h3>
+<p class="text-xs text-on-surface-variant">Bootloaders, GDT, IDT, and basic VGA drivers. Getting the machine to talk to you.</p>
+</div>
+<div class="hidden md:flex flex-col items-center px-8">
+<div class="w-px h-12 bg-outline-variant"></div>
+<div class="w-10 h-10 bg-primary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-on-primary-container">charging_station</span>
+</div>
+<div class="w-px h-12 bg-outline-variant"></div>
+</div>
+<div class="hidden md:block"></div>
+</div>
+<!-- Path 2: Userspace -->
+<div class="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] items-center">
+<div class="hidden md:block"></div>
+<div class="hidden md:flex flex-col items-center px-8">
+<div class="w-px h-12 bg-outline-variant"></div>
+<div class="w-10 h-10 bg-secondary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-on-secondary-container">group_work</span>
+</div>
+<div class="w-px h-12 bg-outline-variant"></div>
+</div>
+<div class="p-8 bg-surface-container-low text-left space-y-2 border-r-4 border-secondary">
+<div class="font-mono text-secondary text-sm">PHASE_17-32</div>
+<h3 class="font-headline text-xl font-bold">Userspace &amp; Paging</h3>
+<p class="text-xs text-on-surface-variant">Ring 3 isolation, Virtual Memory Management, and the first system calls. The "Real OS" begins.</p>
+</div>
+</div>
+<!-- Path 3: Showcase -->
+<div class="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] items-center">
+<div class="p-8 bg-surface-container-low text-right space-y-2 border-l-4 border-tertiary-container">
+<div class="font-mono text-tertiary-fixed-dim text-sm">PHASE_33-48</div>
+<h3 class="font-headline text-xl font-bold">The Showcase</h3>
+<p class="text-xs text-on-surface-variant">Building a VFS, Ethernet drivers, and a native C compiler that runs on m³OS itself.</p>
+</div>
+<div class="hidden md:flex flex-col items-center px-8">
+<div class="w-px h-12 bg-outline-variant"></div>
+<div class="w-10 h-10 bg-tertiary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-on-tertiary-container">rocket_launch</span>
+</div>
+<div class="w-px h-12 bg-outline-variant"></div>
+</div>
+<div class="hidden md:block"></div>
+</div>
+</div>
+</section>
+<!-- Final CTA -->
+<section class="bg-primary/5 p-12 flex flex-col items-center text-center space-y-8 border border-primary/10">
+<div class="space-y-2">
+<h2 class="font-headline text-4xl font-bold text-primary">READY_TO_INITIALIZE?</h2>
+<p class="text-on-surface-variant font-mono">STEP_INTO_THE_METAL_WORLD</p>
+</div>
+<button class="bg-primary text-on-primary px-12 py-6 font-mono font-black text-lg tracking-widest hover:scale-105 active:scale-95 transition-all shadow-[0px_0px_32px_rgba(0,242,255,0.2)]">
+                    DEPLOY_PHASE_01
+                </button>
+<p class="text-[10px] text-outline font-mono uppercase tracking-[0.5em]">System_Architect_Protocol_Engaged</p>
+</section>
+</div>
+</main>
+<!-- Mobile Bottom Nav -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full bg-[#1c1c1c] flex justify-around p-4 z-50 border-t border-outline-variant/10">
+<a class="text-primary flex flex-col items-center gap-1" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="text-[10px] font-mono">HOME</span>
+</a>
+<a class="text-slate-500 flex flex-col items-center gap-1" href="#">
+<span class="material-symbols-outlined">architecture</span>
+<span class="text-[10px] font-mono">PHASES</span>
+</a>
+<a class="text-slate-500 flex flex-col items-center gap-1" href="#">
+<span class="material-symbols-outlined">terminal</span>
+<span class="text-[10px] font-mono">SHELL</span>
+</a>
+</nav>
+</body></html>

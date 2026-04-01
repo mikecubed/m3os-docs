@@ -1,0 +1,67 @@
+---
+import { getCollection, render } from 'astro:content';
+
+import Layout from '../../layouts/Layout.astro';
+
+export async function getStaticPaths() {
+  const components = await getCollection('components');
+
+  return components.map((component) => ({
+    params: { slug: component.id },
+    props: { component },
+  }));
+}
+
+const { component } = Astro.props;
+const { Content } = await render(component);
+---
+
+<Layout title={`m3OS Docs | ${component.data.title}`}>
+  <section class="section-heading">
+    <p class="eyebrow">Component explorer</p>
+    <h1>{component.data.title}</h1>
+    <p>{component.data.summary}</p>
+  </section>
+
+  <section class="panel-grid">
+    <article class="panel">
+      <p class="eyebrow">Introduced in</p>
+      <p>
+        <a href={`/phases/${component.data.introducedIn}/`}>{component.data.introducedIn}</a>
+      </p>
+    </article>
+    <article class="panel">
+      <p class="eyebrow">Touched by</p>
+      <ul>
+        {component.data.touchedBy.map((phaseSlug) => (
+          <li>
+            <a href={`/phases/${phaseSlug}/`}>{phaseSlug}</a>
+          </li>
+        ))}
+      </ul>
+    </article>
+    <article class="panel">
+      <p class="eyebrow">Responsibilities</p>
+      <ul>
+        {component.data.responsibilities.map((responsibility) => (
+          <li>{responsibility}</li>
+        ))}
+      </ul>
+    </article>
+  </section>
+
+  <section class="markdown-panel">
+    <Content />
+  </section>
+
+  <section class="panel">
+    <p class="eyebrow">Key files</p>
+    <ul>
+      {component.data.keyFiles.map((file) => (
+        <li>
+          <strong>{file.path}</strong> — {file.summary}
+        </li>
+      ))}
+    </ul>
+  </section>
+</Layout>

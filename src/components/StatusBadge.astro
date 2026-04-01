@@ -1,0 +1,17 @@
+---
+import type { PhaseStatus } from '../lib/phase-utils';
+
+interface Props {
+  status: PhaseStatus;
+}
+
+const { status } = Astro.props;
+
+const labels: Record<PhaseStatus, string> = {
+  complete: 'Complete',
+  'in-progress': 'In progress',
+  planned: 'Planned',
+};
+---
+
+<span class:list={['status-badge', `status-badge--${status}`]}>{labels[status]}</span>

@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>m³OS Phase 4: Tasking</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Inter:wght@300;400;500;600&amp;family=JetBrains+Mono:wght@400;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "surface-container-lowest": "#0e0e0e",
+              "outline": "#849495",
+              "inverse-primary": "#00696f",
+              "surface": "#131313",
+              "on-tertiary-fixed": "#221b00",
+              "secondary-fixed": "#ffdeac",
+              "on-error-container": "#ffdad6",
+              "surface-bright": "#393939",
+              "surface-variant": "#353534",
+              "secondary": "#ffd799",
+              "on-error": "#690005",
+              "tertiary-container": "#fed83a",
+              "background": "#131313",
+              "error-container": "#93000a",
+              "tertiary": "#fff6e4",
+              "surface-container-low": "#1c1b1b",
+              "primary": "#e1fdff",
+              "on-primary-container": "#006a71",
+              "tertiary-fixed-dim": "#e8c423",
+              "on-primary": "#00363a",
+              "on-background": "#e5e2e1",
+              "error": "#ffb4ab",
+              "on-secondary-fixed-variant": "#604100",
+              "on-secondary": "#432c00",
+              "on-surface": "#e5e2e1",
+              "inverse-surface": "#e5e2e1",
+              "outline-variant": "#3a494b",
+              "surface-container": "#201f1f",
+              "surface-container-high": "#2a2a2a",
+              "secondary-fixed-dim": "#ffba38",
+              "surface-dim": "#131313",
+              "primary-fixed": "#74f5ff",
+              "primary-container": "#00f2ff",
+              "inverse-on-surface": "#313030",
+              "surface-tint": "#00dbe7",
+              "on-primary-fixed-variant": "#004f54",
+              "on-tertiary": "#3b2f00",
+              "tertiary-fixed": "#ffe173",
+              "on-primary-fixed": "#002022",
+              "on-tertiary-container": "#725e00",
+              "on-secondary-container": "#6a4800",
+              "primary-fixed-dim": "#00dbe7",
+              "surface-container-highest": "#353534",
+              "on-surface-variant": "#b9cacb",
+              "on-secondary-fixed": "#281900",
+              "on-tertiary-fixed-variant": "#554500",
+              "secondary-container": "#feb300"
+            },
+            fontFamily: {
+              "headline": ["Space Grotesk"],
+              "body": ["Inter"],
+              "label": ["Inter"],
+              "mono": ["JetBrains Mono"]
+            },
+            borderRadius: {"DEFAULT": "0px", "lg": "0px", "xl": "0px", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #131313;
+            background-image: radial-gradient(circle at 2px 2px, rgba(58, 73, 75, 0.05) 1px, transparent 0);
+            background-size: 24px 24px;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="font-body text-on-surface selection:bg-primary-container selection:text-on-primary-container">
+<!-- TopNavBar -->
+<nav class="flex justify-between items-center w-full px-6 py-3 sticky top-0 z-50 bg-[#131313] font-['Space_Grotesk'] tracking-tight border-b border-outline-variant/20">
+<div class="text-xl font-bold tracking-tighter text-[#e1fdff] uppercase">m³OS v0.1.0</div>
+<div class="hidden md:flex gap-8">
+<a class="text-slate-400 font-medium hover:text-[#e1fdff] hover:bg-white/5 transition-colors" href="#">Home</a>
+<a class="text-[#00f2ff] border-b-2 border-[#00f2ff] pb-1 hover:text-[#e1fdff] hover:bg-white/5 transition-colors" href="#">Phases</a>
+<a class="text-slate-400 font-medium hover:text-[#e1fdff] hover:bg-white/5 transition-colors" href="#">Components</a>
+<a class="text-slate-400 font-medium hover:text-[#e1fdff] hover:bg-white/5 transition-colors" href="#">Roadmap</a>
+</div>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-[#00f2ff] cursor-pointer hover:opacity-80">terminal</span>
+<span class="material-symbols-outlined text-[#00f2ff] cursor-pointer hover:opacity-80">code</span>
+</div>
+</nav>
+<div class="flex">
+<!-- SideNavBar (Left) -->
+<aside class="fixed left-0 top-0 h-full w-64 bg-[#1c1c1c] pt-16 flex flex-col z-40 hidden lg:flex">
+<div class="p-6">
+<div class="font-black text-[#e1fdff] text-lg mb-1 uppercase tracking-tighter font-headline">Blueprint Protocol</div>
+<div class="font-['JetBrains_Mono'] text-[10px] uppercase tracking-widest text-slate-500">Technical Spec 0.1</div>
+</div>
+<div class="flex-1 overflow-y-auto">
+<div class="space-y-1">
+<div class="flex items-center px-6 py-3 text-[#00f2ff] bg-[#131313] font-bold border-l-4 border-[#00f2ff] font-['JetBrains_Mono'] text-xs uppercase tracking-widest cursor-pointer">
+<span class="material-symbols-outlined mr-3 text-sm" data-icon="architecture">architecture</span>
+                        Phase 1-12
+                    </div>
+<div class="flex items-center px-6 py-3 text-slate-500 hover:text-slate-300 hover:bg-[#252525] transition-all font-['JetBrains_Mono'] text-xs uppercase tracking-widest cursor-pointer">
+<span class="material-symbols-outlined mr-3 text-sm" data-icon="memory">memory</span>
+                        Phase 13-24
+                    </div>
+<div class="flex items-center px-6 py-3 text-slate-500 hover:text-slate-300 hover:bg-[#252525] transition-all font-['JetBrains_Mono'] text-xs uppercase tracking-widest cursor-pointer">
+<span class="material-symbols-outlined mr-3 text-sm" data-icon="settings_input_component">settings_input_component</span>
+                        Phase 25-36
+                    </div>
+<div class="flex items-center px-6 py-3 text-slate-500 hover:text-slate-300 hover:bg-[#252525] transition-all font-['JetBrains_Mono'] text-xs uppercase tracking-widest cursor-pointer">
+<span class="material-symbols-outlined mr-3 text-sm" data-icon="terminal">terminal</span>
+                        Phase 37-48
+                    </div>
+</div>
+</div>
+<div class="p-6 border-t border-outline-variant/10 space-y-4">
+<div class="flex items-center text-slate-500 hover:text-slate-300 font-['JetBrains_Mono'] text-[10px] uppercase tracking-widest cursor-pointer">
+<span class="material-symbols-outlined mr-3 text-sm" data-icon="star">star</span>
+                    GitHub
+                </div>
+<div class="flex items-center text-slate-500 hover:text-slate-300 font-['JetBrains_Mono'] text-[10px] uppercase tracking-widest cursor-pointer">
+<span class="material-symbols-outlined mr-3 text-sm" data-icon="description">description</span>
+                    Documentation
+                </div>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 lg:ml-64 lg:mr-48 min-h-screen px-8 py-12">
+<!-- Dependency Trail -->
+<div class="mb-8 flex items-center gap-2 font-mono text-[10px] text-primary-fixed-dim">
+<span class="hover:underline cursor-pointer">Phase 3: Interrupts</span>
+<span class="text-outline">-&gt;</span>
+<span class="bg-primary-container/20 text-primary-container px-2 py-0.5 border-b-2 border-primary-container">Phase 4: Tasking</span>
+<span class="text-outline">-&gt;</span>
+<span class="text-outline hover:text-primary-fixed-dim cursor-pointer">Phase 5: Userspace Entry</span>
+</div>
+<!-- Header -->
+<header class="mb-12">
+<div class="flex items-start justify-between">
+<div>
+<h1 class="font-headline text-5xl font-bold text-primary mb-4 tracking-tighter">Phase 4: Tasking</h1>
+<div class="flex items-center gap-4">
+<div class="bg-on-primary-container text-primary px-3 py-1 font-mono text-xs uppercase tracking-wider">Complete</div>
+<div class="text-on-surface-variant font-medium">Learning Goal: <span class="italic text-on-surface">'Introduce context switching and round-robin scheduling'</span></div>
+</div>
+</div>
+</div>
+</header>
+<!-- Grid Layout -->
+<div class="grid grid-cols-12 gap-8">
+<!-- Main Body -->
+<div class="col-span-12 lg:col-span-8 space-y-12">
+<!-- Builds On Panel -->
+<section class="bg-surface-container-low p-6 border-l-4 border-secondary-container">
+<div class="font-mono text-[10px] text-secondary mb-4 uppercase tracking-widest">Builds On</div>
+<div class="flex items-center gap-4">
+<div class="p-3 bg-surface-container-highest">
+<span class="material-symbols-outlined text-secondary" data-icon="grid_view">grid_view</span>
+</div>
+<div>
+<h3 class="font-bold text-on-surface">Phase 2: Frame Allocator</h3>
+<p class="text-sm text-on-surface-variant">Requires physical memory management for per-task kernel stacks.</p>
+</div>
+</div>
+</section>
+<!-- Implementation Deep Dive -->
+<section>
+<h2 class="font-headline text-2xl font-bold text-primary mb-6 flex items-center">
+<span class="material-symbols-outlined mr-2" data-icon="biotech">biotech</span>
+                            Implementation Deep Dive
+                        </h2>
+<div class="space-y-4 text-on-surface-variant leading-relaxed text-lg">
+<p>Context switching in m³OS is performed by saving the current CPU state onto the task's stack and restoring the state of the next task. In Rust, we use <code class="bg-surface-container-highest px-1 text-primary-fixed font-mono">naked functions</code> to ensure the compiler doesn't insert any prologue or epilogue that could corrupt the stack during the switch.</p>
+<p>The core routine involves swapping the <code class="font-mono text-primary-fixed">rsp</code> register and utilizing the `pushq`/`popq` instructions to preserve callee-saved registers (<code class="font-mono text-primary-fixed">rbx, rbp, r12-r15</code>).</p>
+</div>
+</section>
+<!-- Code Spotlight -->
+<section class="space-y-4">
+<div class="bg-surface-container-highest flex items-center justify-between px-4 py-2 border-b border-outline-variant/20">
+<span class="font-mono text-xs text-on-surface-variant">kernel/task.rs</span>
+<span class="material-symbols-outlined text-xs text-outline" data-icon="content_copy">content_copy</span>
+</div>
+<div class="bg-surface-container-lowest p-6 font-mono text-sm leading-relaxed relative overflow-hidden">
+<div class="absolute left-0 top-0 bottom-0 w-12 bg-surface-container flex flex-col items-center pt-6 text-outline text-[10px] border-r border-outline-variant/20">
+<span>01</span><span>02</span><span>03</span><span>04</span><span>05</span><span>06</span><span>07</span><span>08</span><span>09</span><span>10</span>
+</div>
+<div class="pl-12">
+<div class="text-slate-500">// Perform context switch between two tasks</div>
+<div><span class="text-secondary">#[naked]</span></div>
+<div><span class="text-secondary">pub unsafe extern "C" fn</span> <span class="text-primary-container">switch</span>(</div>
+<div class="pl-4">_old_stack: <span class="text-tertiary-fixed-dim">*mut</span> usize,</div>
+<div class="pl-4">_new_stack: <span class="text-tertiary-fixed-dim">*const</span> usize</div>
+<div>) {</div>
+<div class="bg-primary-container/5 -mx-4 px-4 border-l-2 border-primary-container"><span class="text-slate-500">    // ASM routine to swap RSP and registers</span></div>
+<div class="bg-primary-container/5 -mx-4 px-4 border-l-2 border-primary-container">    asm!(<span class="text-secondary">"push rbp"</span>, <span class="text-secondary">"push rbx"</span>, options(noreturn));</div>
+<div>}</div>
+</div>
+</div>
+</section>
+<!-- Component Impact Map -->
+<section>
+<h2 class="font-headline text-2xl font-bold text-primary mb-6">Component Impact Map</h2>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div class="bg-surface-container p-6 border-t border-outline-variant/10">
+<div class="flex items-center gap-3 mb-2">
+<span class="material-symbols-outlined text-primary-fixed-dim" data-icon="gate">gate</span>
+<span class="font-bold text-on-surface uppercase tracking-tight">Kernel Entry</span>
+</div>
+<p class="text-sm text-on-surface-variant">Modified to save interrupted task context into the Task Control Block (TCB).</p>
+</div>
+<div class="bg-surface-container p-6 border-t border-outline-variant/10">
+<div class="flex items-center gap-3 mb-2">
+<span class="material-symbols-outlined text-primary-fixed-dim" data-icon="vpn_key">vpn_key</span>
+<span class="font-bold text-on-surface uppercase tracking-tight">Syscall Gate</span>
+</div>
+<p class="text-sm text-on-surface-variant">Now triggers the scheduler if the current task yields or blocks on I/O.</p>
+</div>
+</div>
+</section>
+</div>
+<!-- Sidebar Content -->
+<div class="col-span-12 lg:col-span-4 space-y-8">
+<!-- Design Decision Callout -->
+<div class="bg-surface-container-low p-6 border-l-4 border-secondary-container">
+<div class="flex items-center gap-2 mb-4">
+<span class="material-symbols-outlined text-secondary" data-icon="lightbulb">lightbulb</span>
+<span class="font-mono text-xs text-secondary uppercase tracking-widest">Design Decision</span>
+</div>
+<h4 class="font-bold text-on-surface mb-2">Cooperative vs Preemptive</h4>
+<p class="text-sm text-on-surface-variant leading-relaxed">m³OS utilizes preemptive scheduling powered by the APIC timer. This ensures no single task can starve the system, providing high responsiveness for kernel-level services.</p>
+</div>
+<!-- How Real OSes Differ -->
+<div class="bg-surface-container-high p-6">
+<div class="flex items-center gap-2 mb-4 text-tertiary-fixed-dim">
+<span class="material-symbols-outlined" data-icon="compare_arrows">compare_arrows</span>
+<span class="font-mono text-xs uppercase tracking-widest">Real OS Diff</span>
+</div>
+<div class="space-y-4">
+<div class="border-b border-outline-variant/20 pb-4">
+<span class="block font-bold text-xs text-on-surface-variant uppercase mb-1">m³OS Scheduler</span>
+<p class="text-sm">Simple Round-Robin. Each task gets a fixed 10ms slice.</p>
+</div>
+<div>
+<span class="block font-bold text-xs text-on-surface-variant uppercase mb-1">Linux Kernel</span>
+<p class="text-sm">Completely Fair Scheduler (CFS). Uses red-black trees to balance CPU time based on 'vruntime'.</p>
+</div>
+</div>
+</div>
+<!-- Success Criteria -->
+<div class="bg-surface p-6 border border-primary/20 relative">
+<span class="material-symbols-outlined absolute top-4 right-4 text-primary text-xl" data-icon="check_circle">check_circle</span>
+<div class="font-mono text-[10px] text-primary mb-4 uppercase tracking-widest">Success Criteria</div>
+<ul class="space-y-3 text-sm text-on-surface-variant">
+<li class="flex items-start gap-2">
+<span class="text-primary-fixed-dim">_</span>
+<span>Passes <code class="font-mono text-primary text-xs">task_switch_test</code></span>
+</li>
+<li class="flex items-start gap-2">
+<span class="text-primary-fixed-dim">_</span>
+<span>Spawns 2 concurrent kernel tasks without stack corruption</span>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<!-- Related Phases Rail -->
+<section class="mt-24 pt-12 border-t border-outline-variant/10">
+<h3 class="font-headline text-xl font-bold text-on-surface mb-8">Related Phases</h3>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<div class="bg-surface-container-low p-6 group cursor-pointer hover:bg-surface-container transition-colors">
+<div class="font-mono text-[10px] text-outline mb-2">PHASE 03</div>
+<div class="font-bold text-on-surface group-hover:text-primary transition-colors">Interrupt Handling</div>
+</div>
+<div class="bg-surface-container-low p-6 group cursor-pointer hover:bg-surface-container transition-colors">
+<div class="font-mono text-[10px] text-outline mb-2">PHASE 05</div>
+<div class="font-bold text-on-surface group-hover:text-primary transition-colors">Userspace Jump</div>
+</div>
+<div class="bg-surface-container-low p-6 group cursor-pointer hover:bg-surface-container transition-colors">
+<div class="font-mono text-[10px] text-outline mb-2">PHASE 08</div>
+<div class="font-bold text-on-surface group-hover:text-primary transition-colors">System Calls</div>
+</div>
+</div>
+</section>
+</main>
+<!-- SideNavBar (Right) - On This Page -->
+<aside class="fixed right-0 top-16 h-full w-48 bg-[#131313]/60 backdrop-blur-xl flex flex-col p-4 z-40 hidden xl:flex">
+<div class="font-['JetBrains_Mono'] text-[10px] tracking-tight text-slate-500 mb-6 uppercase">On This Page</div>
+<nav class="space-y-4">
+<a class="block font-['JetBrains_Mono'] text-[10px] text-[#00f2ff] underline underline-offset-4 tracking-tight uppercase" href="#">Overview</a>
+<a class="block font-['JetBrains_Mono'] text-[10px] text-slate-500 hover:text-white transition-colors tracking-tight uppercase" href="#">Design Decisions</a>
+<a class="block font-['JetBrains_Mono'] text-[10px] text-slate-500 hover:text-white transition-colors tracking-tight uppercase" href="#">Implementation</a>
+<a class="block font-['JetBrains_Mono'] text-[10px] text-slate-500 hover:text-white transition-colors tracking-tight uppercase" href="#">Real OS Diff</a>
+<a class="block font-['JetBrains_Mono'] text-[10px] text-slate-500 hover:text-white transition-colors tracking-tight uppercase" href="#">Benchmarks</a>
+</nav>
+<div class="mt-auto pb-12">
+<div class="h-32 w-full bg-gradient-to-t from-primary/10 to-transparent border-l border-primary/20 p-2">
+<div class="font-mono text-[8px] text-primary/40 overflow-hidden break-all">
+                        CPU_STATE_SAVE_ROUTINE_...
+                        0xFFF0120...
+                        MOV RAX, RSP...
+                        PUSH RBP...
+                    </div>
+</div>
+</div>
+</aside>
+</div>
+<!-- FAB Suppression (Hidden on Detail Pages) -->
+</body></html>

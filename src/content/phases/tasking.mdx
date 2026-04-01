@@ -1,0 +1,53 @@
+---
+phase: 4
+title: Tasking
+status: complete
+category: foundations
+summary: Introduce cooperative scheduling and context switching so multiple kernel tasks can run predictably.
+learningGoal: Understand how execution moves between tasks and why a simple scheduler is enough to teach the core model.
+buildsOn:
+  - memory-basics
+  - interrupts
+extends:
+  - boot-foundation
+replaces: []
+components:
+  - scheduler
+learningObjectives:
+  - Learn the saved register contract used during context switches.
+  - See why round-robin scheduling is a good teaching baseline.
+  - Understand how timer signaling and yielding cooperate before full preemption.
+keyFiles:
+  - path: kernel-core/src/task
+    summary: Houses task abstractions, scheduler state, and switching logic.
+  - path: kernel-core/src/task/switch.S
+    summary: Low-level context-switch assembly.
+codeSpotlights:
+  - title: Context switch contract
+    file: kernel-core/src/task/switch.S
+    lines: "switch_context"
+    summary: Saves and restores the callee-saved register frame plus flags.
+  - title: Round-robin selection
+    file: kernel-core/src/task/scheduler.rs
+    lines: "pick_next"
+    summary: Demonstrates the simple, deterministic scheduling policy used in this phase.
+realOsDifferences:
+  - Mature kernels use more advanced scheduling policies, per-CPU queues, and priority systems.
+  - Full preemption and SMP-safe scheduling require tighter interrupt and locking discipline.
+successCriteria:
+  - Multiple kernel tasks can run and yield correctly.
+  - Context switching preserves execution state.
+  - The scheduler behaves predictably enough for documentation and debugging.
+---
+
+## Why this phase matters
+
+Tasking is the moment the OS stops being a single control flow and becomes a system. Once execution can move between tasks, later concepts like servers, IPC, and userspace processes become much easier to explain.
+
+## How it works in m3OS
+
+The scheduler keeps a compact set of runnable tasks and rotates through them in round-robin order. The switch stub saves the callee-saved register frame and flags, swaps stacks, and restores the next task so execution can resume as if it had simply returned from a function call.
+
+## How it builds on earlier phases
+
+Tasking depends on memory management for stacks and on interrupts for timer signaling. It extends the boot and diagnostic foundation by making execution state more complex while still keeping behavior teachable.

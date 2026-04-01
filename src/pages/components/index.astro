@@ -1,0 +1,39 @@
+---
+import { getCollection } from 'astro:content';
+
+import Layout from '../../layouts/Layout.astro';
+
+const components = await getCollection('components');
+---
+
+<Layout title="m3OS Docs | Components">
+  <section class="section-heading">
+    <p class="eyebrow">Component explorer</p>
+    <h1>Trace responsibilities across the system</h1>
+    <p>
+      Component entries connect high-level concepts to the files and phases that shape them. This
+      page is ready for richer cross-linking once more `ostest` content is imported.
+    </p>
+  </section>
+
+  <div class="card-grid">
+    {
+      components.map((component) => (
+        <article class="phase-card">
+          <div class="phase-card__header">
+            <p class="eyebrow">Introduced in</p>
+            <span class="status-badge status-badge--planned">{component.data.introducedIn}</span>
+          </div>
+          <h3>
+            <a href={`/components/${component.id}/`}>{component.data.title}</a>
+          </h3>
+          <p>{component.data.summary}</p>
+          <div class="phase-card__footer">
+            <span>{component.data.touchedBy.length} later phase(s)</span>
+            <span>{component.data.keyFiles.length} key file(s)</span>
+          </div>
+        </article>
+      ))
+    }
+  </div>
+</Layout>

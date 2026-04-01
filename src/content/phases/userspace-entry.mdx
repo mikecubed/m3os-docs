@@ -1,0 +1,33 @@
+---
+phase: 5
+title: Userspace Entry
+status: complete
+category: userspace
+summary: Enter ring 3 for the first time and establish the syscall boundary between kernel and userspace.
+learningGoal: Understand how execution transitions into userspace and why the syscall gate becomes the official boundary back into the kernel.
+buildsOn:
+  - tasking
+extends:
+  - tasking
+replaces: []
+components:
+  - scheduler
+learningObjectives:
+  - See how the first userspace task is entered safely.
+  - Understand the custom syscall ABI used by the project.
+keyFiles:
+  - path: kernel-core/src/syscall.rs
+    summary: Syscall entry and dispatch.
+codeSpotlights:
+  - title: First userspace transition
+    file: kernel-core/src/userspace.rs
+    lines: "enter_userspace"
+    summary: A controlled privilege drop starts the first ring 3 process.
+realOsDifferences:
+  - Mature systems support richer process setup, loader contracts, and stronger ABI compatibility.
+successCriteria:
+  - The first userspace process launches successfully.
+  - Syscalls provide a controlled return path to the kernel.
+---
+
+Userspace entry is where the microkernel direction becomes concrete. Once execution can cross the privilege boundary safely, the system can start moving services out of ring 0.

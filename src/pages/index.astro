@@ -1,0 +1,79 @@
+---
+import { getCollection } from 'astro:content';
+
+import Layout from '../layouts/Layout.astro';
+import PhaseCard from '../components/PhaseCard.astro';
+import { sortPhases, type PhaseSummary } from '../lib/phase-utils';
+
+const phases = sortPhases(
+  (await getCollection('phases')).map((phase) => ({
+    slug: phase.id,
+    data: phase.data,
+  })) satisfies PhaseSummary[],
+);
+
+const components = await getCollection('components');
+const completedCount = phases.filter((phase) => phase.data.status === 'complete').length;
+---
+
+<Layout title="m3OS Docs | Home">
+  <section class="hero">
+    <p class="eyebrow">Interactive learning app</p>
+    <h1>Understand how m³OS evolves, phase by phase.</h1>
+    <p class="hero__lede">
+      This docs project is built to explain the design decisions, implementation details, and
+      real-OS tradeoffs behind each phase in the m³OS roadmap.
+    </p>
+    <div class="hero__actions">
+      <a class="button button--primary" href="/phases/">Explore phases</a>
+      <a class="button" href="/components/">Browse components</a>
+    </div>
+  </section>
+
+  <section class="stats-grid">
+    <article class="stat-card">
+      <p class="eyebrow">Tracked phases</p>
+      <strong>{phases.length}</strong>
+      <span>starter entries wired into content collections</span>
+    </article>
+    <article class="stat-card">
+      <p class="eyebrow">Completed samples</p>
+      <strong>{completedCount}</strong>
+      <span>usable examples for the phase detail template</span>
+    </article>
+    <article class="stat-card">
+      <p class="eyebrow">Component entries</p>
+      <strong>{components.length}</strong>
+      <span>starter component explorer content</span>
+    </article>
+  </section>
+
+  <section class="panel-grid">
+    <article class="panel panel--accent">
+      <p class="eyebrow">What this scaffold is ready for</p>
+      <ul>
+        <li>MDX-driven phase pages with structured frontmatter.</li>
+        <li>Static-first code references and GitHub links.</li>
+        <li>Interactive filtering for roadmap exploration.</li>
+      </ul>
+    </article>
+    <article class="panel panel--contrast">
+      <p class="eyebrow">What to do next</p>
+      <ul>
+        <li>Map `../ostest/docs` phases into `src/content/phases/` entries.</li>
+        <li>Add build-time helpers for key-file excerpts and permalinks.</li>
+        <li>Connect GitHub Pages deploy settings once the GitHub repo exists.</li>
+      </ul>
+    </article>
+  </section>
+
+  <section class="section-stack">
+    <div class="section-heading">
+      <p class="eyebrow">Featured starter phases</p>
+      <h2>Phase page templates with real structure</h2>
+    </div>
+    <div class="card-grid">
+      {phases.map((phase) => <PhaseCard phase={phase} />)}
+    </div>
+  </section>
+</Layout>

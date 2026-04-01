@@ -1,0 +1,18 @@
+---
+title: Scheduler
+introducedIn: tasking
+touchedBy:
+  - userspace-entry
+summary: The scheduler decides which runnable task executes next and forms the bridge from a single-threaded kernel to a real system.
+responsibilities:
+  - Track runnable tasks.
+  - Select the next task to execute.
+  - Coordinate context switching.
+keyFiles:
+  - path: kernel-core/src/task/scheduler.rs
+    summary: Scheduler policy and task selection.
+  - path: kernel-core/src/task/switch.S
+    summary: Assembly context-switch stub.
+---
+
+The scheduler is where the OS starts to feel alive. Even a minimal round-robin loop exposes the core tradeoff between simplicity, fairness, and future extensibility.

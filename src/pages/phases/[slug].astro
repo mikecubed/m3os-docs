@@ -1,0 +1,134 @@
+---
+import { getCollection, render } from 'astro:content';
+
+import CodeSpotlight from '../../components/CodeSpotlight.astro';
+import PhaseCard from '../../components/PhaseCard.astro';
+import StatusBadge from '../../components/StatusBadge.astro';
+import Layout from '../../layouts/Layout.astro';
+import { findRelatedPhases, sortPhases, type PhaseSummary } from '../../lib/phase-utils';
+
+export async function getStaticPaths() {
+  const phases = await getCollection('phases');
+
+  return phases.map((phase) => ({
+    params: { slug: phase.id },
+    props: { phase },
+  }));
+}
+
+const { phase } = Astro.props;
+const { Content } = await render(phase);
+
+const phases = sortPhases(
+  (await getCollection('phases')).map((entry) => ({
+    slug: entry.id,
+    data: entry.data,
+  })) satisfies PhaseSummary[],
+);
+
+const relatedPhases = findRelatedPhases(phase.id, phases);
+---
+
+<Layout title={`m3OS Docs | Phase ${phase.data.phase} ${phase.data.title}`}>
+  <section class="phase-header">
+    <div>
+      <p class="eyebrow">Phase {phase.data.phase.toString().padStart(2, '0')}</p>
+      <h1>{phase.data.title}</h1>
+      <p class="hero__lede">{phase.data.summary}</p>
+    </div>
+    <StatusBadge status={phase.data.status} />
+  </section>
+
+  <section class="panel-grid">
+    <article class="panel">
+      <p class="eyebrow">Learning goal</p>
+      <p>{phase.data.learningGoal}</p>
+    </article>
+    <article class="panel">
+      <p class="eyebrow">Category</p>
+      <p>{phase.data.category}</p>
+    </article>
+    <article class="panel">
+      <p class="eyebrow">Components touched</p>
+      <p>{phase.data.components.join(', ') || 'None yet'}</p>
+    </article>
+  </section>
+
+  <section class="panel-grid">
+    <article class="panel panel--accent">
+      <p class="eyebrow">Builds on</p>
+      <ul>
+        {relatedPhases.buildsOn.map((relatedPhase) => (
+          <li>
+            <a href={`/phases/${relatedPhase.slug}/`}>{relatedPhase.data.title}</a>
+          </li>
+        ))}
+      </ul>
+    </article>
+    <article class="panel panel--contrast">
+      <p class="eyebrow">Unlocked by this phase</p>
+      <ul>
+        {relatedPhases.unlocks.map((relatedPhase) => (
+          <li>
+            <a href={`/phases/${relatedPhase.slug}/`}>{relatedPhase.data.title}</a>
+          </li>
+        ))}
+      </ul>
+    </article>
+  </section>
+
+  <section class="markdown-panel">
+    <Content />
+  </section>
+
+  <section class="section-stack">
+    <div class="section-heading">
+      <p class="eyebrow">Important code</p>
+      <h2>Code spotlight cards</h2>
+    </div>
+    <div class="section-stack">
+      {phase.data.codeSpotlights.map((spotlight) => <CodeSpotlight {...spotlight} />)}
+    </div>
+  </section>
+
+  <section class="panel-grid">
+    <article class="panel">
+      <p class="eyebrow">Key files</p>
+      <ul>
+        {phase.data.keyFiles.map((file) => (
+          <li>
+            <strong>{file.path}</strong> — {file.summary}
+          </li>
+        ))}
+      </ul>
+    </article>
+    <article class="panel">
+      <p class="eyebrow">How real OSes differ</p>
+      <ul>
+        {phase.data.realOsDifferences.map((difference) => (
+          <li>{difference}</li>
+        ))}
+      </ul>
+    </article>
+    <article class="panel">
+      <p class="eyebrow">Success criteria</p>
+      <ul>
+        {phase.data.successCriteria.map((criterion) => (
+          <li>{criterion}</li>
+        ))}
+      </ul>
+    </article>
+  </section>
+
+  <section class="section-stack">
+    <div class="section-heading">
+      <p class="eyebrow">Related phases</p>
+      <h2>Keep exploring the roadmap</h2>
+    </div>
+    <div class="card-grid">
+      {relatedPhases.buildsOn.concat(relatedPhases.unlocks).map((relatedPhase) => (
+        <PhaseCard phase={relatedPhase} />
+      ))}
+    </div>
+  </section>
+</Layout>

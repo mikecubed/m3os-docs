@@ -1,0 +1,46 @@
+---
+import '../styles/global.css';
+
+import SidebarNav from '../components/SidebarNav.astro';
+import TopNav from '../components/TopNav.astro';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = 'm3OS Docs',
+  description = 'An interactive learning app for understanding how m3OS evolves phase by phase.',
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="description" content={description} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&family=Space+Grotesk:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <title>{title}</title>
+  </head>
+  <body>
+    <TopNav currentPath={Astro.url.pathname} />
+    <div class="app-shell">
+      <SidebarNav currentPath={Astro.url.pathname} />
+      <main class="page-shell">
+        <div class="blueprint-grid" aria-hidden="true"></div>
+        <div class="page-content">
+          <slot />
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

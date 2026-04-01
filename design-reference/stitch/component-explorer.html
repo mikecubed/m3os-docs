@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>m³OS Component Explorer</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Inter:wght@300;400;500;600;700&amp;family=JetBrains+Mono:wght@400;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface-container-lowest": "#0e0e0e",
+                        "outline": "#849495",
+                        "inverse-primary": "#00696f",
+                        "surface": "#131313",
+                        "on-tertiary-fixed": "#221b00",
+                        "secondary-fixed": "#ffdeac",
+                        "on-error-container": "#ffdad6",
+                        "surface-bright": "#393939",
+                        "surface-variant": "#353534",
+                        "secondary": "#ffd799",
+                        "on-error": "#690005",
+                        "tertiary-container": "#fed83a",
+                        "background": "#131313",
+                        "error-container": "#93000a",
+                        "tertiary": "#fff6e4",
+                        "surface-container-low": "#1c1b1b",
+                        "primary": "#e1fdff",
+                        "on-primary-container": "#006a71",
+                        "tertiary-fixed-dim": "#e8c423",
+                        "on-primary": "#00363a",
+                        "on-background": "#e5e2e1",
+                        "error": "#ffb4ab",
+                        "on-secondary-fixed-variant": "#604100",
+                        "on-secondary": "#432c00",
+                        "on-surface": "#e5e2e1",
+                        "inverse-surface": "#e5e2e1",
+                        "outline-variant": "#3a494b",
+                        "surface-container": "#201f1f",
+                        "surface-container-high": "#2a2a2a",
+                        "secondary-fixed-dim": "#ffba38",
+                        "surface-dim": "#131313",
+                        "primary-fixed": "#74f5ff",
+                        "primary-container": "#00f2ff",
+                        "inverse-on-surface": "#313030",
+                        "surface-tint": "#00dbe7",
+                        "on-primary-fixed-variant": "#004f54",
+                        "on-tertiary": "#3b2f00",
+                        "tertiary-fixed": "#ffe173",
+                        "on-primary-fixed": "#002022",
+                        "on-tertiary-container": "#725e00",
+                        "on-secondary-container": "#6a4800",
+                        "primary-fixed-dim": "#00dbe7",
+                        "surface-container-highest": "#353534",
+                        "on-surface-variant": "#b9cacb",
+                        "on-secondary-fixed": "#281900",
+                        "on-tertiary-fixed-variant": "#554500",
+                        "secondary-container": "#feb300"
+                    },
+                    fontFamily: {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Inter"],
+                        "label": ["Inter"],
+                        "mono": ["JetBrains Mono"]
+                    },
+                    borderRadius: {"DEFAULT": "0px", "lg": "0px", "xl": "0px", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .blueprint-grid {
+            background-image: radial-gradient(circle, #3a494b 1px, transparent 1px);
+            background-size: 24px 24px;
+            opacity: 0.05;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .crt-glow {
+            text-shadow: 0 0 2px rgba(225, 253, 255, 0.4);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body selection:bg-primary-container selection:text-on-primary-container">
+<!-- Blueprint Grid Background Layer -->
+<div class="fixed inset-0 blueprint-grid pointer-events-none z-0"></div>
+<!-- TopAppBar (JSON Mapping) -->
+<header class="flex justify-between items-center w-full px-6 py-3 sticky top-0 z-50 bg-[#131313] font-['Space_Grotesk'] tracking-tight border-b-0">
+<div class="flex items-center gap-6">
+<div class="text-xl font-bold tracking-tighter text-[#e1fdff] uppercase">m³OS v0.1.0</div>
+<nav class="hidden md:flex gap-6">
+<a class="text-slate-400 font-medium hover:text-[#e1fdff] hover:bg-white/5 transition-colors" href="#">Home</a>
+<a class="text-slate-400 font-medium hover:text-[#e1fdff] hover:bg-white/5 transition-colors" href="#">Phases</a>
+<a class="text-[#00f2ff] border-b-2 border-[#00f2ff] pb-1 font-medium transition-colors" href="#">Components</a>
+<a class="text-slate-400 font-medium hover:text-[#e1fdff] hover:bg-white/5 transition-colors" href="#">Roadmap</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative hidden sm:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline scale-75">search</span>
+<input class="bg-surface-container border-0 border-b border-outline focus:border-primary focus:ring-0 text-xs font-mono py-2 pl-10 pr-4 w-64 placeholder:text-outline-variant" placeholder="QUERY COMPONENT..." type="text"/>
+</div>
+<div class="flex gap-2">
+<button class="p-2 text-slate-400 hover:text-primary transition-colors"><span class="material-symbols-outlined">terminal</span></button>
+<button class="p-2 text-slate-400 hover:text-primary transition-colors"><span class="material-symbols-outlined">code</span></button>
+</div>
+</div>
+</header>
+<div class="flex min-h-screen">
+<!-- SideNavBar (JSON Mapping: Blueprint Protocol) -->
+<aside class="fixed left-0 top-0 h-full flex flex-col pt-16 w-64 bg-[#1c1c1c] z-40 border-r-0">
+<div class="p-6 mb-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 bg-surface-container-highest flex items-center justify-center">
+<span class="material-symbols-outlined text-primary" data-weight="fill" style="font-variation-settings: 'FILL' 1;">architecture</span>
+</div>
+<div>
+<div class="font-black text-[#e1fdff] font-['JetBrains_Mono'] text-xs uppercase tracking-widest">Blueprint Protocol</div>
+<div class="text-[10px] text-slate-500 font-mono">Technical Spec 0.1</div>
+</div>
+</div>
+</div>
+<nav class="flex-1 px-2 space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 text-[#00f2ff] bg-[#131313] font-bold border-l-4 border-[#00f2ff] font-['JetBrains_Mono'] text-xs uppercase tracking-widest transition-all" href="#">
+<span class="material-symbols-outlined">architecture</span> Phase 1-12
+                </a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-500 hover:text-slate-300 hover:bg-[#252525] font-['JetBrains_Mono'] text-xs uppercase tracking-widest transition-all" href="#">
+<span class="material-symbols-outlined">memory</span> Phase 13-24
+                </a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-500 hover:text-slate-300 hover:bg-[#252525] font-['JetBrains_Mono'] text-xs uppercase tracking-widest transition-all" href="#">
+<span class="material-symbols-outlined">settings_input_component</span> Phase 25-36
+                </a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-500 hover:text-slate-300 hover:bg-[#252525] font-['JetBrains_Mono'] text-xs uppercase tracking-widest transition-all" href="#">
+<span class="material-symbols-outlined">terminal</span> Phase 37-48
+                </a>
+</nav>
+<div class="p-4 border-t border-outline-variant/10">
+<a class="flex items-center gap-3 px-4 py-2 text-slate-500 hover:text-slate-300 text-[10px] font-mono tracking-widest uppercase" href="#">
+<span class="material-symbols-outlined text-sm">star</span> GitHub
+                </a>
+<a class="flex items-center gap-3 px-4 py-2 text-slate-500 hover:text-slate-300 text-[10px] font-mono tracking-widest uppercase" href="#">
+<span class="material-symbols-outlined text-sm">description</span> Documentation
+                </a>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 ml-64 mr-48 p-8 relative z-10">
+<!-- Breadcrumbs / DependencyTrail -->
+<div class="flex items-center gap-2 mb-8 font-mono text-[10px] text-primary-fixed-dim uppercase tracking-tighter">
+<span>m3os_root</span>
+<span class="text-outline-variant">-&gt;</span>
+<span>kernel</span>
+<span class="text-outline-variant">-&gt;</span>
+<span class="border-b-2 border-primary-container text-primary pb-0.5">scheduler_srv</span>
+</div>
+<!-- Page Title -->
+<div class="mb-12">
+<div class="flex items-baseline justify-between gap-4">
+<h1 class="font-headline text-5xl font-bold tracking-tighter crt-glow text-primary uppercase mb-2">Multilevel Feedback Queue Scheduler</h1>
+<div class="px-3 py-1 bg-on-primary-container/20 text-primary-container font-mono text-xs border border-primary-container/30">
+                        STATUS: PRODUCTION_STABLE
+                    </div>
+</div>
+<p class="text-on-surface-variant max-w-2xl text-lg leading-relaxed">
+                    The core execution arbiter for m³OS. Responsible for preemptive task switching, priority inheritance, and CPU affinity management across heterogeneous cores.
+                </p>
+</div>
+<!-- Bento Grid of System Maps & Data -->
+<div class="grid grid-cols-12 gap-6">
+<!-- Relationship Map (Visual Diagram) -->
+<div class="col-span-12 lg:col-span-8 bg-surface-container-low relative overflow-hidden h-[400px]">
+<div class="absolute top-4 left-6 flex items-center gap-2 z-20">
+<span class="material-symbols-outlined text-primary scale-75">hub</span>
+<span class="font-mono text-[10px] text-outline tracking-widest uppercase">Relationship Topology</span>
+</div>
+<!-- Simplified Blueprint Diagram Canvas -->
+<div class="absolute inset-0 flex items-center justify-center p-12">
+<div class="relative w-full h-full border border-outline-variant/20 flex items-center justify-center">
+<!-- SVG Connections -->
+<svg class="absolute inset-0 w-full h-full pointer-events-none opacity-40">
+<line stroke="var(--primary-container)" stroke-dasharray="4" stroke-width="1" x1="50%" x2="20%" y1="50%" y2="20%"></line>
+<line stroke="var(--primary-container)" stroke-width="1" x1="50%" x2="80%" y1="50%" y2="20%"></line>
+<line stroke="var(--primary-container)" stroke-width="1" x1="50%" x2="20%" y1="50%" y2="80%"></line>
+<line stroke="var(--primary-container)" stroke-dasharray="4" stroke-width="1" x1="50%" x2="80%" y1="50%" y2="80%"></line>
+</svg>
+<!-- Nodes -->
+<!-- Center Node -->
+<div class="absolute z-10 bg-primary-container text-on-primary-container p-4 font-mono text-sm font-bold shadow-[0_0_20px_rgba(0,242,255,0.2)]">
+                                SCHEDULER
+                            </div>
+<!-- Satellites -->
+<div class="absolute top-10 left-10 p-2 bg-surface-container-high border border-outline-variant/30 font-mono text-[10px] text-on-surface">
+                                IPC_ENDPOINTS
+                            </div>
+<div class="absolute top-10 right-10 p-2 bg-surface-container-high border border-outline-variant/30 font-mono text-[10px] text-on-surface">
+                                TIMER_INTERRUPT
+                            </div>
+<div class="absolute bottom-10 left-10 p-2 bg-surface-container-high border border-outline-variant/30 font-mono text-[10px] text-on-surface">
+                                VMM_SUBSYSTEM
+                            </div>
+<div class="absolute bottom-10 right-10 p-2 bg-surface-container-high border border-outline-variant/30 font-mono text-[10px] text-on-surface">
+                                PROCESS_TREE
+                            </div>
+</div>
+</div>
+</div>
+<!-- Source of Truth (Code Spotlight) -->
+<div class="col-span-12 lg:col-span-4 flex flex-col">
+<div class="bg-surface-container-highest px-4 py-2 flex justify-between items-center border-b border-outline-variant/20">
+<span class="font-mono text-[10px] text-on-surface-variant uppercase tracking-widest">kernel/sched/mlfq.c</span>
+<span class="material-symbols-outlined text-sm text-outline">file_open</span>
+</div>
+<div class="bg-surface-container-lowest flex-1 p-4 font-mono text-[11px] text-on-surface leading-tight overflow-hidden relative">
+<div class="flex gap-4">
+<div class="text-outline/40 text-right select-none pr-2 border-r border-outline-variant/20">
+                                01<br/>02<br/>03<br/>04<br/>05<br/>06<br/>07<br/>08<br/>09<br/>10<br/>11
+                            </div>
+<div class="text-on-surface-variant/80">
+<span class="text-primary">void</span> <span class="text-secondary">sched_yield</span>() {<br/>
+                                  <span class="text-outline">// Lock runqueue</span><br/>
+                                  spin_lock(&amp;rq-&gt;lock);<br/>
+                                  <br/>
+                                  <span class="text-primary">struct</span> task *curr = rq-&gt;curr;<br/>
+                                  curr-&gt;state = TASK_READY;<br/>
+                                  enqueue_task(rq, curr);<br/>
+                                  <br/>
+                                  pick_next_task(rq);<br/>
+                                  spin_unlock(&amp;rq-&gt;lock);<br/>
+                                }
+                            </div>
+</div>
+<div class="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-surface-container-lowest to-transparent"></div>
+</div>
+</div>
+<!-- Evolution Timeline -->
+<div class="col-span-12 bg-surface p-8 border border-outline-variant/10 relative">
+<div class="flex items-center gap-2 mb-8">
+<span class="material-symbols-outlined text-primary scale-75">history</span>
+<span class="font-mono text-[10px] text-outline tracking-widest uppercase">Chronological evolution</span>
+</div>
+<div class="relative">
+<!-- Horizontal Line -->
+<div class="absolute top-4 left-0 w-full h-[1px] bg-outline-variant/30"></div>
+<div class="grid grid-cols-4 gap-4 relative">
+<!-- Phase 4 Point -->
+<div class="flex flex-col gap-4">
+<div class="w-8 h-8 bg-primary-container text-on-primary-container flex items-center justify-center font-bold z-10">4</div>
+<div>
+<div class="text-primary text-[10px] font-mono mb-1">INTRODUCED</div>
+<div class="text-on-surface font-headline font-bold text-sm tracking-tight">ROUND-ROBIN BASIC</div>
+<p class="text-outline text-xs mt-1">Initial scheduler implemented for single-core bare metal testing.</p>
+</div>
+</div>
+<!-- Phase 12 Point -->
+<div class="flex flex-col gap-4">
+<div class="w-8 h-8 bg-secondary-container text-on-secondary-container flex items-center justify-center font-bold z-10">12</div>
+<div>
+<div class="text-secondary text-[10px] font-mono mb-1">MODIFIED</div>
+<div class="text-on-surface font-headline font-bold text-sm tracking-tight">PRIORITY LEVELS</div>
+<p class="text-outline text-xs mt-1">Introduction of 4 static priority bands for syscall isolation.</p>
+</div>
+</div>
+<!-- Phase 28 Point -->
+<div class="flex flex-col gap-4 opacity-50">
+<div class="w-8 h-8 bg-surface-container-highest text-outline flex items-center justify-center font-bold z-10">28</div>
+<div>
+<div class="text-outline text-[10px] font-mono mb-1">PLANNED</div>
+<div class="text-on-surface font-headline font-bold text-sm tracking-tight">MLFQ OPTIMIZATION</div>
+<p class="text-outline text-xs mt-1">Dynamic feedback loops based on time-slice expiration.</p>
+</div>
+</div>
+<!-- Phase 42 Point -->
+<div class="flex flex-col gap-4 opacity-30">
+<div class="w-8 h-8 bg-surface-container-highest text-outline flex items-center justify-center font-bold z-10">42</div>
+<div>
+<div class="text-outline text-[10px] font-mono mb-1">DEPRECATION</div>
+<div class="text-on-surface font-headline font-bold text-sm tracking-tight">O(1) REPLACEMENT</div>
+<p class="text-outline text-xs mt-1">Full shift to O(1) constant time scaling for multicore clusters.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Editorial Anchors (Callouts) -->
+<div class="col-span-12 md:col-span-6 p-6 bg-surface-container-low border-l-4 border-secondary-container">
+<div class="flex items-center gap-2 mb-2 text-secondary">
+<span class="material-symbols-outlined text-sm">lightbulb</span>
+<span class="font-mono text-[10px] tracking-widest uppercase">Design Decision 042</span>
+</div>
+<p class="text-on-surface text-sm italic leading-relaxed">
+                        "We chose MLFQ over CFS for the initial v0.1 rollout to minimize the cache footprint of the scheduler during cold-starts on ARM Cortex-M architecture."
+                    </p>
+</div>
+<div class="col-span-12 md:col-span-6 p-6 bg-tertiary-container/10 border border-tertiary-container/20">
+<div class="flex items-center gap-2 mb-2 text-tertiary">
+<span class="material-symbols-outlined text-sm">compare_arrows</span>
+<span class="font-mono text-[10px] tracking-widest uppercase">How Real OSes Differ</span>
+</div>
+<p class="text-on-surface text-sm leading-relaxed">
+                        Unlike Linux's <code class="bg-surface-container-highest px-1 text-tertiary">fair_sched</code>, m³OS enforces hard realtime deadlines for IRQ-driven tasks, preventing user-space starvation during high-I/O bursts.
+                    </p>
+</div>
+</div>
+</main>
+<!-- SideNavBar (JSON Mapping: ON THIS PAGE) -->
+<aside class="fixed right-0 top-16 h-full flex flex-col p-4 w-48 bg-[#131313]/60 backdrop-blur-xl z-40 shadow-[0px_0px_32px_rgba(0,242,255,0.04)]">
+<div class="font-['JetBrains_Mono'] text-[10px] tracking-tight text-slate-500 mb-6 uppercase">On This Page</div>
+<nav class="flex flex-col gap-4">
+<a class="text-[#00f2ff] underline underline-offset-4 font-['JetBrains_Mono'] text-[10px] tracking-tight uppercase" href="#">Overview</a>
+<a class="text-slate-500 hover:text-white transition-colors font-['JetBrains_Mono'] text-[10px] tracking-tight uppercase" href="#">System Topology</a>
+<a class="text-slate-500 hover:text-white transition-colors font-['JetBrains_Mono'] text-[10px] tracking-tight uppercase" href="#">Source Analysis</a>
+<a class="text-slate-500 hover:text-white transition-colors font-['JetBrains_Mono'] text-[10px] tracking-tight uppercase" href="#">Evolution Log</a>
+<a class="text-slate-500 hover:text-white transition-colors font-['JetBrains_Mono'] text-[10px] tracking-tight uppercase" href="#">Architecture ADR</a>
+</nav>
+<div class="mt-auto pb-20">
+<div class="p-3 bg-surface-container-high border border-outline-variant/20">
+<div class="font-mono text-[9px] text-outline uppercase mb-2">Build Health</div>
+<div class="flex items-center gap-2">
+<div class="w-1.5 h-1.5 bg-primary-container rounded-full animate-pulse"></div>
+<span class="text-primary text-[10px] font-mono">NODE_UP (v0.1.2)</span>
+</div>
+</div>
+</div>
+</aside>
+</div>
+<!-- Background Tech Image for Aesthetic Punch -->
+<div class="fixed bottom-0 right-64 w-96 h-96 opacity-10 pointer-events-none mix-blend-screen overflow-hidden">
+<img class="w-full h-full object-contain grayscale brightness-200 contrast-150" data-alt="Technical blueprint schematic of a microchip with glowing cyan circuitry lines on a deep black background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDthNiGUuzijpbY8DjlH4Y1kvHpRx4afIAvRNDtAvwq_gJWBCjDzzEReaubvEMvxMfP86ECE2Pa6tPUHu-UCEbNfUjMMJymuVKj8pw3szIOxIP9QFRYswBpavW6opobZ_XE-nQc9fKfCq0tkBaPpGO-P0ItOZleGh4Ep9CAeDmSr9DH8TR6Drl5i47CZam_kDLa4IQKJ9m7vWIhpuJE61ymT6VJExSN5XuH9TSuNR4rwsOAp07IdJc0d2KgSqZmHSwbU_JWtLfQeE9v"/>
+</div>
+</body></html>

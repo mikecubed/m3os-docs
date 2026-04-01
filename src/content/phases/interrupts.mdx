@@ -1,0 +1,34 @@
+---
+phase: 3
+title: Interrupts
+status: complete
+category: foundations
+summary: Wire exceptions and hardware interrupts so the kernel can react to faults and time-based events.
+learningGoal: Understand how the CPU interrupts normal execution and why minimal interrupt handlers matter.
+buildsOn:
+  - boot-foundation
+  - memory-basics
+extends:
+  - boot-foundation
+replaces: []
+components:
+  - boot-path
+learningObjectives:
+  - Understand the role of the IDT and hardware IRQ routing.
+  - Learn why ISR handlers should stay small and deterministic.
+keyFiles:
+  - path: kernel-core/src/interrupts.rs
+    summary: Interrupt descriptor table setup and handler wiring.
+codeSpotlights:
+  - title: Timer and exception registration
+    file: kernel-core/src/interrupts.rs
+    lines: "init_idt()"
+    summary: Interrupt routing becomes a formal part of the kernel control flow.
+realOsDifferences:
+  - Production kernels invest heavily in per-CPU interrupt routing, APICs, and rich fault recovery.
+successCriteria:
+  - Exceptions are visible and diagnosable.
+  - Timer and keyboard interrupts reach the intended handlers.
+---
+
+Interrupts are where the kernel stops driving the machine alone. External events and CPU faults can now preempt the current path, which is why later scheduling and IPC work depend on this phase.

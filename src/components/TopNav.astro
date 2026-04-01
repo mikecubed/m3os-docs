@@ -1,0 +1,38 @@
+---
+interface NavItem {
+  href: string;
+  label: string;
+}
+
+interface Props {
+  currentPath: string;
+}
+
+const { currentPath } = Astro.props;
+
+const navItems: NavItem[] = [
+  { href: '/', label: 'Home' },
+  { href: '/phases/', label: 'Phases' },
+  { href: '/components/', label: 'Components' },
+  { href: '/roadmap/', label: 'Roadmap' },
+];
+
+const isActive = (href: string) =>
+  href === '/'
+    ? currentPath === '/'
+    : currentPath === href || currentPath.startsWith(href);
+---
+
+<header class="top-nav">
+  <a class="brand" href="/">m³OS docs</a>
+  <nav class="top-nav__links" aria-label="Primary">
+    {
+      navItems.map((item) => (
+        <a href={item.href} class:list={['top-nav__link', { 'is-active': isActive(item.href) }]}>
+          {item.label}
+        </a>
+      ))
+    }
+  </nav>
+  <a class="top-nav__repo" href="https://github.com/" target="_blank" rel="noreferrer">GitHub</a>
+</header>

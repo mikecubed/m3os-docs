@@ -1,0 +1,52 @@
+---
+phase: 1
+title: Boot Foundation
+status: complete
+category: foundations
+summary: Boot the kernel through UEFI, reach `kernel_main`, and establish serial logging as the first reliable debug surface.
+learningGoal: Understand the boot chain from firmware to Rust kernel entry and why early diagnostics matter.
+buildsOn: []
+extends: []
+replaces: []
+components:
+  - boot-path
+learningObjectives:
+  - Trace the UEFI -> bootloader -> kernel handoff.
+  - Understand why serial output is the first dependable tool in early boot.
+  - Recognize which boot details are intentionally simplified for a teaching OS.
+keyFiles:
+  - path: xtask/src/main.rs
+    summary: Builds the kernel image and launches QEMU.
+  - path: kernel/src/main.rs
+    summary: Defines the kernel entry path and first startup steps.
+  - path: kernel/src/serial.rs
+    summary: Initializes serial I/O and the logger backend.
+codeSpotlights:
+  - title: Kernel entry handoff
+    file: kernel/src/main.rs
+    lines: "entry_point!(kernel_main)"
+    summary: The bootloader enters the Rust kernel through a single explicit entry point.
+  - title: Serial logger initialization
+    file: kernel/src/serial.rs
+    lines: "serial::init() + serial::init_logger()"
+    summary: Serial logging becomes the primary way to understand early failures.
+realOsDifferences:
+  - Real kernels usually support multiple boot protocols and much broader firmware variance.
+  - Production systems invest far more in crash diagnostics, fallback logging, and hardware quirks.
+successCriteria:
+  - The kernel boots in QEMU.
+  - Serial output clearly shows startup progress.
+  - Panic output is readable enough to debug early failures.
+---
+
+## Why this phase exists
+
+Every later subsystem depends on a trustworthy boot path. Before memory management, interrupts, or userspace exist, the system needs one thing above all else: a dependable way to prove that control reached the kernel and to see what happened next.
+
+## How it works in m3OS
+
+The host-side `xtask` helper builds the kernel, wraps it in a UEFI image, and launches QEMU with OVMF firmware. The bootloader reaches `kernel_main`, the serial backend initializes, and the kernel emits a readable startup message before idling.
+
+## How it builds forward
+
+This phase creates the diagnostic baseline that every later phase depends on. Memory setup, interrupt bring-up, and tasking are all much easier to debug because the serial path already exists.

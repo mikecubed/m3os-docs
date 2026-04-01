@@ -1,0 +1,34 @@
+---
+phase: 2
+title: Memory Basics
+status: complete
+category: foundations
+summary: Introduce frame allocation, page mapping, and the kernel heap so later subsystems have a safe place to live.
+learningGoal: Understand how the kernel moves from boot memory information to usable allocation and virtual memory.
+buildsOn:
+  - boot-foundation
+extends:
+  - boot-foundation
+replaces: []
+components:
+  - boot-path
+learningObjectives:
+  - Distinguish physical frames from virtual pages.
+  - See how the heap depends on the lower-level page and frame layers.
+keyFiles:
+  - path: kernel-core/src/memory.rs
+    summary: Paging, mapping, and allocator coordination.
+codeSpotlights:
+  - title: Physical memory offset
+    file: kernel-core/src/memory.rs
+    lines: "physical_memory_offset"
+    summary: The kernel uses the bootloader handoff to walk and manipulate page tables.
+realOsDifferences:
+  - Mature kernels eventually add demand paging, huge pages, NUMA awareness, and many specialized allocators.
+successCriteria:
+  - The kernel can allocate frames safely.
+  - Virtual memory mappings work predictably.
+  - Heap-backed Rust allocation becomes available.
+---
+
+Memory is the first subsystem that makes the kernel feel extensible. Once frames, pages, and a heap exist, later features can stop pretending everything is static and start behaving like a real system.

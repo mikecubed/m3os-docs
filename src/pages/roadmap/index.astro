@@ -1,0 +1,50 @@
+---
+import { getCollection } from 'astro:content';
+
+import Layout from '../../layouts/Layout.astro';
+import { groupPhasesByCategory, sortPhases, type PhaseSummary } from '../../lib/phase-utils';
+
+const phases = sortPhases(
+  (await getCollection('phases')).map((phase) => ({
+    slug: phase.id,
+    data: phase.data,
+  })) satisfies PhaseSummary[],
+);
+
+const groupedPhases = groupPhasesByCategory(phases);
+---
+
+<Layout title="m3OS Docs | Roadmap">
+  <section class="section-heading">
+    <p class="eyebrow">Roadmap view</p>
+    <h1>Phase groupings and dependency-ready structure</h1>
+    <p>
+      This starter roadmap page groups phases by category now, and is designed to grow into richer
+      dependency and graph visualizations later.
+    </p>
+  </section>
+
+  <div class="section-stack">
+    {
+      Array.from(groupedPhases.entries()).map(([category, entries]) => (
+        <section class="panel">
+          <p class="eyebrow">{category}</p>
+          <div class="card-grid">
+            {entries.map((entry) => (
+              <a class="phase-card" href={`/phases/${entry.slug}/`}>
+                <div class="phase-card__header">
+                  <p class="eyebrow">Phase {entry.data.phase.toString().padStart(2, '0')}</p>
+                  <span class:list={['status-badge', `status-badge--${entry.data.status}`]}>
+                    {entry.data.status}
+                  </span>
+                </div>
+                <h3>{entry.data.title}</h3>
+                <p>{entry.data.summary}</p>
+              </a>
+            ))}
+          </div>
+        </section>
+      ))
+    }
+  </div>
+</Layout>
