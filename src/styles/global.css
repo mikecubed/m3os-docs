@@ -274,8 +274,18 @@ ul {
   transition: border-color 160ms ease;
 }
 
+a.phase-card {
+  color: inherit;
+  text-decoration: none;
+}
+
 .phase-card:hover {
   border-color: rgba(0, 242, 255, 0.45);
+}
+
+.phase-card:focus-visible {
+  outline: 2px solid rgba(0, 242, 255, 0.55);
+  outline-offset: 3px;
 }
 
 .phase-card h3 {

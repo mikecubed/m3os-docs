@@ -10,17 +10,15 @@ interface Props {
 const { phase } = Astro.props;
 ---
 
-<article class="phase-card">
+<a class="phase-card" href={withBase(`/phases/${phase.slug}/`)}>
   <div class="phase-card__header">
     <p class="eyebrow">Phase {phase.data.phase.toString().padStart(2, '0')}</p>
     <StatusBadge status={phase.data.status} />
   </div>
-  <h3>
-    <a href={withBase(`/phases/${phase.slug}/`)}>{phase.data.title}</a>
-  </h3>
+  <h3>{phase.data.title}</h3>
   <p>{phase.data.summary}</p>
   <div class="phase-card__footer">
     <span>{phase.data.category}</span>
     <span>{phase.data.buildsOn.length} prerequisite(s)</span>
   </div>
-</article>
+</a>

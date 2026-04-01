@@ -91,22 +91,20 @@ const phaseTitleLookup = new Map(phases.map((phase) => [phase.slug, phase.data.t
     <div class="card-grid">
       {
         homepage.featuredComponents.map((component) => (
-          <article class="phase-card">
+          <a class="phase-card" href={withBase(`/components/${component.id}/`)}>
             <div class="phase-card__header">
               <p class="eyebrow">Introduced in</p>
               <span class="status-badge status-badge--planned">
                 {phaseTitleLookup.get(component.data.introducedIn) ?? component.data.introducedIn}
               </span>
             </div>
-            <h3>
-              <a href={withBase(`/components/${component.id}/`)}>{component.data.title}</a>
-            </h3>
+            <h3>{component.data.title}</h3>
             <p>{component.data.summary}</p>
             <div class="phase-card__footer">
               <span>{component.data.touchedBy.length} later phase(s)</span>
               <span>{component.data.keyFiles.length} key file(s)</span>
             </div>
-          </article>
+          </a>
         ))
       }
     </div>
