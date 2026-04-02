@@ -1,7 +1,7 @@
 ---
 phase: 35
 title: "True SMP Multitasking"
-status: in-progress
+status: complete
 category: foundations
 summary: "All CPU cores dispatch and run user tasks. The BSP-only restriction is removed by making syscall infrastructure per-core. The scheduler uses per-CPU run queues with load balancing, and tasks have priority levels. This is the single highest-impact performance improvement — the OS goes from effectively single-core to true multi-core."
 learningGoal: "Understand why per-core state (stacks, saved registers) is essential for SMP syscalls."

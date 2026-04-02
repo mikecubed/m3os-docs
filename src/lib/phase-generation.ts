@@ -617,19 +617,35 @@ function inferPhaseStatus(input: {
     totalTaskCount: number;
   };
 }): PhaseStatus {
+  const documentedStatus = inferDocumentedPhaseStatus(input.taskDocuments, input.taskSummary);
+
   if (input.currentPhaseOrder !== undefined) {
     if (input.phaseOrder < input.currentPhaseOrder) {
       return 'complete';
     }
 
     if (input.phaseOrder === input.currentPhaseOrder) {
+      if (documentedStatus === 'complete') {
+        return 'complete';
+      }
+
       return 'in-progress';
     }
 
     return 'planned';
   }
 
-  const explicitStatuses = input.taskDocuments
+  return documentedStatus;
+}
+
+function inferDocumentedPhaseStatus(
+  taskDocuments: readonly ParsedTaskDocument[],
+  taskSummary: {
+    completedTaskCount: number;
+    totalTaskCount: number;
+  },
+): PhaseStatus {
+  const explicitStatuses = taskDocuments
     .map((taskDocument) => taskDocument.explicitStatus)
     .filter((status): status is PhaseStatus => status !== undefined);
 
@@ -642,8 +658,8 @@ function inferPhaseStatus(input: {
   }
 
   if (
-    input.taskDocuments.some((taskDocument) => taskDocument.totalTrackCount > 0) &&
-    input.taskDocuments.every(
+    taskDocuments.some((taskDocument) => taskDocument.totalTrackCount > 0) &&
+    taskDocuments.every(
       (taskDocument) =>
         taskDocument.totalTrackCount === 0 ||
         taskDocument.completedTrackCount === taskDocument.totalTrackCount,
@@ -653,14 +669,14 @@ function inferPhaseStatus(input: {
   }
 
   if (
-    input.taskSummary.totalTaskCount > 0 &&
-    input.taskSummary.completedTaskCount === input.taskSummary.totalTaskCount
+    taskSummary.totalTaskCount > 0 &&
+    taskSummary.completedTaskCount === taskSummary.totalTaskCount
   ) {
     return 'complete';
   }
 
   if (
-    input.taskDocuments.some(
+    taskDocuments.some(
       (taskDocument) =>
         taskDocument.completedTrackCount > 0 || taskDocument.completedTaskCount > 0,
     )
@@ -668,15 +684,15 @@ function inferPhaseStatus(input: {
     return 'in-progress';
   }
 
-  if (input.taskSummary.totalTaskCount === 0) {
+  if (taskSummary.totalTaskCount === 0) {
     return 'planned';
   }
 
-  if (input.taskSummary.completedTaskCount === 0) {
+  if (taskSummary.completedTaskCount === 0) {
     return 'planned';
   }
 
-  if (input.taskSummary.completedTaskCount < input.taskSummary.totalTaskCount) {
+  if (taskSummary.completedTaskCount < taskSummary.totalTaskCount) {
     return 'in-progress';
   }
 

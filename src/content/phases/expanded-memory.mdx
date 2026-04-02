@@ -1,7 +1,7 @@
 ---
 phase: 36
 title: "Expanded Memory"
-status: planned
+status: complete
 category: foundations
 summary: "The kernel supports demand paging, large `mmap()` regions, and `mprotect()`. Virtual pages are mapped lazily — physical frames are allocated on first access via the page fault handler. This unlocks running large cross-compiled binaries (Clang, Python, Node.js, git) that allocate hundreds of megabytes via `mmap()` but only touch a fraction of the mapped pages. QEMU RAM is increased to support these workloads."
 learningGoal: "Understand demand paging: why real OSes don't back every virtual page with a physical frame at map time."
@@ -10,15 +10,50 @@ buildsOn:
 extends: []
 replaces: []
 components:
-  - "memory-manager"
+  - "process-model"
+  - "interrupt-router"
 learningObjectives:
   - "Understand demand paging: why real OSes don't back every virtual page with a physical frame at map time."
   - "Learn how the page fault handler distinguishes lazy faults, stack growth, CoW, and true segfaults."
   - "See how `mprotect()` enables JIT compilers (V8) and stack guard pages (Go runtime)."
   - "Understand memory overcommit and why it's the default on Linux."
-keyFiles: []
-codeSpotlights: []
-realOsDifferences: []
+keyFiles:
+  - path: "kernel/src/process/mod.rs"
+    summary: "Currently in kernel/src/process/mod.rs. Each process has a Vec<MemoryMapping>"
+  - path: "kernel/src/arch/x86_64/interrupts.rs"
+    summary: "In kernel/src/arch/x86_64/interrupts.rs. Currently handles CoW faults (Phase 17)"
+  - path: "kernel/src/arch/x86_64/syscall.rs"
+    summary: "In kernel/src/arch/x86_64/syscall.rs. Currently eagerly allocates frames in a loop."
+codeSpotlights:
+  - title: "Extend `MemoryMapping` with prot and flags fields"
+    file: "kernel/src/process/mod.rs"
+    lines: "L476-L484"
+    summary: "**Symbol:** MemoryMapping"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.36.0/kernel/src/process/mod.rs"
+    snippet: "    pub controlling_tty: Option<ControllingTty>,\n    /// Tracked anonymous mmap regions (Phase 33).\n    pub mappings: Vec<MemoryMapping>,\n}\n\n/// Describes a contiguous anonymous memory mapping created by `mmap`.\n#[derive(Clone, Debug)]\npub struct MemoryMapping {\n    /// Starting virtual address (page-aligned)."
+    snippetLanguage: "rust"
+  - title: "Update mmap to record prot and flags in VMA"
+    file: "kernel/src/arch/x86_64/syscall.rs"
+    lines: "L361-L369"
+    summary: "**Symbol:** sys_linux_mmap"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.36.0/kernel/src/arch/x86_64/syscall.rs"
+    snippet: "        10 => sys_mprotect(arg0, arg1, arg2),\n        // Linux-compatible memory (Phase 12, T018–T020)\n        9 => sys_linux_mmap(arg0, arg1, arg2),\n        11 => sys_linux_munmap(arg0, arg1),\n        12 => sys_linux_brk(arg0),\n        // Phase 14: signal syscalls (rt_sigaction, rt_sigprocmask)\n        13 => sys_rt_sigaction(arg0, arg1, arg2),\n        14 => sys_rt_sigprocmask(arg0, arg1, arg2),\n        // Linux misc (Phase 12, T023–T026)"
+    snippetLanguage: "rust"
+  - title: "Extend page fault handler with VMA-based demand mapping"
+    file: "kernel/src/arch/x86_64/interrupts.rs"
+    lines: "L308-L316"
+    summary: "**Symbol:** page_fault_handler"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.36.0/kernel/src/arch/x86_64/interrupts.rs"
+    snippet: "    // CPU exceptions\n    idt.breakpoint.set_handler_fn(breakpoint_handler);\n    idt.page_fault.set_handler_fn(page_fault_handler);\n    idt.general_protection_fault\n        .set_handler_fn(general_protection_fault_handler);\n    unsafe {\n        idt.double_fault\n            .set_handler_fn(double_fault_handler)\n            .set_stack_index(gdt::DOUBLE_FAULT_IST_INDEX);"
+    snippetLanguage: "rust"
+realOsDifferences:
+  - "Real kernels (Linux, FreeBSD) use red-black trees for VMA lookup (O(log n) instead of our linear scan)."
+  - "Reverse mapping (rmap) to find all PTEs mapping a given physical page."
+  - "Memory-mapped files (not just anonymous mappings)."
+  - "NUMA-aware page allocation."
+  - "Transparent huge pages (THP) that automatically promote 4K pages to 2M pages."
+  - "KSM (Kernel Same-page Merging) for deduplication."
+  - "Swap with multiple swap devices and priority ordering."
 successCriteria:
   - "`mmap(MAP_ANONYMOUS)` returns immediately without allocating physical frames."
   - "First access to a lazy-mapped page triggers a page fault that allocates a frame."
@@ -26,7 +61,7 @@ successCriteria:
   - "`mprotect()` changes page permissions and flushes TLB."
   - "Existing CoW fork (Phase 17) still works correctly alongside demand paging."
   - "QEMU boots with 1 GB RAM."
-  - "ext2 partition is 1 GB."
+  - "Data partition is 1 GB."
   - "A large cross-compiled binary (e.g., Python ~8 MB) loads and runs."
 ---
 
@@ -44,11 +79,18 @@ This phase builds on True SMP Multitasking and turns that foundation into Expand
 
 ## Implementation outline
 
-- Implementation steps have not been extracted yet.
+- Extend `MemoryMapping` with `prot` and `flags` fields.
+- Change `sys_linux_mmap()` to record the VMA without allocating frames.
+- Extend the page fault handler to check the VMA list and demand-map valid lazy faults.
+- Implement `mprotect()` syscall with page table walks and TLB shootdown.
+- Increase QEMU RAM to 1 GB.
+- Expand data partition to 1 GB.
+- Validate CoW fork still works alongside demand paging.
+- Test with large mmap regions (256 MB+) and a cross-compiled binary.
 
 ## Task progress snapshot
 
-No checklist tasks were discovered for this phase yet.
+63 of 63 tracked tasks are complete.
 
 ## Documentation targets
 
@@ -56,8 +98,14 @@ No checklist tasks were discovered for this phase yet.
 
 ## Deferred follow-on work
 
-- No deferred items were listed in the roadmap entry.
+- Swap to disk — page out cold memory to virtio-blk
+- `setrlimit()` per-process limits
+- OOM killer — kernel still panics on true physical memory exhaustion
+- Huge pages (2 MiB / 1 GiB) — performance optimization
+- Memory-mapped files (`mmap` with file descriptors)
+- NUMA-aware allocation
 
 ## Source materials
 
 - [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/36-expanded-memory.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/36-expanded-memory-tasks.md)

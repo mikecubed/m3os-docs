@@ -338,7 +338,7 @@ Introduce the scheduler and explain context switching.
     );
   });
 
-  it('uses the upstream kernel version to mark earlier phases complete and the current phase in progress', () => {
+  it('uses the upstream kernel version as a fallback while allowing the current phase to be marked complete', () => {
     const cwd = createTempDirectory('m3os-docs-generate-');
     const sourceDirectory = path.join(cwd, 'm3os');
 
@@ -347,7 +347,7 @@ Introduce the scheduler and explain context switching.
       'kernel/Cargo.toml',
       `[package]
 name = "kernel"
-version = "0.35.0"
+version = "0.36.0"
 `,
     );
     writeMarkdownFile(
@@ -404,6 +404,30 @@ Dispatch work across all CPU cores.
 Expand demand paging.
 `,
     );
+    writeMarkdownFile(
+      sourceDirectory,
+      'docs/roadmap/tasks/36-expanded-memory-tasks.md',
+      `# Phase 36 — Expanded Memory: Task List
+
+**Status:** Complete
+
+## Track Layout
+
+| Track | Scope | Dependencies | Status |
+|---|---|---|---|
+| A | Demand paging | — | Done |
+`,
+    );
+    writeMarkdownFile(
+      sourceDirectory,
+      'docs/roadmap/37-io-multiplexing.md',
+      `# Phase 37 - I/O Multiplexing
+
+## Milestone Goal
+
+Add poll/select style waiting.
+`,
+    );
 
     const repository = resolveSourceRepository({
       cwd,
@@ -420,8 +444,11 @@ Expand demand paging.
     );
     expect(
       generatedDocuments.find((document) => document.slug === 'true-smp-multitasking')?.content,
-    ).toContain('status: in-progress');
+    ).toContain('status: complete');
     expect(generatedDocuments.find((document) => document.slug === 'expanded-memory')?.content).toContain(
+      'status: complete',
+    );
+    expect(generatedDocuments.find((document) => document.slug === 'io-multiplexing')?.content).toContain(
       'status: planned',
     );
   });
