@@ -21,7 +21,9 @@ keyFiles:
   - path: "kernel/src/net/"
     summary: "kernel/src/net/ now that they are reachable from userspace through net_server."
   - path: "kernel/src/net/mod.rs"
-    summary: "Socket reference counting"
+    summary: "SocketHandle, SocketEntry, SOCKET_TABLE, alloc/free/with helpers"
+  - path: "kernel-core/src/net/mod.rs"
+    summary: "SockaddrIn layout tests (host-testable)"
   - path: "kernel/src/net/tcp.rs"
     summary: "TCP connection limit increase"
 ---

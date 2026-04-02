@@ -11,6 +11,7 @@ extends: []
 replaces: []
 components:
   - "network-stack"
+  - "process-model"
 learningObjectives:
   - "Understand how socket syscalls map to internal kernel objects and how fds unify files and sockets behind the same descriptor table."
   - "See how a userspace network server serializes and deserializes socket operations over IPC."
@@ -23,6 +24,18 @@ keyFiles:
     summary: "Remove the ping builtin from kernel/src/main.rs and delete the associated"
   - path: "kernel/src/net/"
     summary: "kernel/src/net/ now that they are reachable from userspace through net_server."
+  - path: "kernel/src/net/mod.rs"
+    summary: "SocketHandle, SocketEntry, SOCKET_TABLE, alloc/free/with helpers"
+  - path: "kernel/src/arch/x86_64/syscall.rs"
+    summary: "All sys_socket/bind/connect/listen/accept/send/recv/shutdown/poll dispatch"
+  - path: "kernel/src/process/mod.rs"
+    summary: "FdBackend::Socket variant, ref counting on fork/close"
+  - path: "userspace/syscall-lib/src/lib.rs"
+    summary: "SockaddrIn, socket constants, syscall wrappers"
+  - path: "userspace/ping/src/main.rs"
+    summary: "Userspace ping ELF binary"
+  - path: "kernel-core/src/net/mod.rs"
+    summary: "SockaddrIn layout tests (host-testable)"
 codeSpotlights:
   - title: "Ping"
     file: "userspace/ping/"
@@ -105,5 +118,6 @@ No checklist tasks were discovered for this phase yet.
 
 ## Source materials
 
-- [Roadmap entry](https://github.com/mikecubed/m3os/blob/v0.23.0/docs/roadmap/23-socket-api.md)
-- [Task list](https://github.com/mikecubed/m3os/blob/v0.23.0/docs/roadmap/tasks/23-socket-api-tasks.md)
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/23-socket-api.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/23-socket-api.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/23-socket-api-tasks.md)

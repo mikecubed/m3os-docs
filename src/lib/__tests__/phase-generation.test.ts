@@ -551,6 +551,22 @@ Teach the kernel wall-clock time.
 
     writeMarkdownFile(
       sourceDirectory,
+      'docs/roadmap/34-real-time-clock.md',
+      `# Phase 34 - Real-Time Clock
+
+**Source Ref:** phase-34
+
+## Milestone Goal
+
+Teach the kernel wall-clock time from the cleaned-up main docs.
+
+## Learning Goals
+
+- Understand RTC bring-up.
+`,
+    );
+    writeMarkdownFile(
+      sourceDirectory,
       'kernel/src/rtc.rs',
       `pub fn init_rtc() {
     let source = "main";
@@ -578,7 +594,10 @@ Teach the kernel wall-clock time.
       'githubUrl: "https://github.com/mikecubed/m3os/blob/phase-34/kernel/src/rtc.rs"',
     );
     expect(generatedDocument?.content).toContain(
-      '[Roadmap entry](https://github.com/mikecubed/m3os/blob/phase-34/docs/roadmap/34-real-time-clock.md)',
+      '[Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/34-real-time-clock.md)',
+    );
+    expect(generatedDocument?.content).toContain(
+      'summary: "Teach the kernel wall-clock time from the cleaned-up main docs."',
     );
     expect(generatedDocument?.content).toContain('let source = \\"tagged\\";');
     expect(generatedDocument?.content).not.toContain('let source = \\"main\\";');

@@ -17,6 +17,10 @@ learningObjectives:
   - "Learn synchronous rendezvous IPC semantics."
   - "Introduce capability tables as the security boundary."
 keyFiles:
+  - path: "kernel/src/arch/x86_64/syscall.rs"
+    summary: "authoritative mapping lives in kernel/src/arch/x86_64/syscall.rs, and"
+  - path: "userspace/syscall-lib"
+    summary: "userspace uses it via userspace/syscall-lib. Treat the table above as"
   - path: "kernel/src/ipc/mod.rs"
     summary: "kernel/src/ipc/mod.rs — module overview and syscall dispatcher"
   - path: "kernel/src/ipc/endpoint.rs"
@@ -97,6 +101,6 @@ This phase builds on Userspace Entry and turns that foundation into IPC Core.
 
 ## Source materials
 
-- [Roadmap entry](https://github.com/mikecubed/m3os/blob/v0.6.0/docs/roadmap/06-ipc-core.md)
-- [Implementation document](https://github.com/mikecubed/m3os/blob/v0.6.0/docs/06-ipc-core.md)
-- [Task list](https://github.com/mikecubed/m3os/blob/v0.6.0/docs/roadmap/tasks/06-ipc-core-tasks.md)
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/06-ipc-core.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/06-ipc.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/06-ipc-core-tasks.md)

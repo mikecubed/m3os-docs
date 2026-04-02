@@ -195,7 +195,7 @@ export function generatePhaseDocuments(
           githubUrl: phase.sourceDocuments.roadmapEntry
             ? buildGitHubUrl(
                 worklist.source.repoUrl,
-                sourceRef,
+                worklist.source.ref,
                 phase.sourceDocuments.roadmapEntry.relativePath,
               )
             : undefined,
@@ -203,13 +203,17 @@ export function generatePhaseDocuments(
         },
         {
           githubUrl: phase.sourceDocuments.phaseDoc
-            ? buildGitHubUrl(worklist.source.repoUrl, sourceRef, phase.sourceDocuments.phaseDoc.relativePath)
+            ? buildGitHubUrl(
+                worklist.source.repoUrl,
+                worklist.source.ref,
+                phase.sourceDocuments.phaseDoc.relativePath,
+              )
             : undefined,
           markdown: phaseDocument,
         },
       ],
       repoUrl: worklist.source.repoUrl,
-      repoRef: sourceRef,
+      repoRef: worklist.source.ref,
     });
     const components = inferComponents(
       keyFiles,
@@ -257,7 +261,7 @@ export function generatePhaseDocuments(
         roadmapEntry: phase.sourceDocuments.roadmapEntry,
         repoUrl: worklist.source.repoUrl,
         slug: phase.slug,
-        sourceRef,
+        sourceRef: worklist.source.ref,
         summary,
         taskSummary,
         taskLists: phase.sourceDocuments.taskLists,

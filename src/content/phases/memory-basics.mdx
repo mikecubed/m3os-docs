@@ -16,10 +16,18 @@ learningObjectives:
   - "Learn the difference between physical frames and virtual pages."
   - "Add a minimal heap without losing track of unsafe boundaries."
 keyFiles:
-  - path: "kernel-core/src/buddy.rs"
-    summary: "The frame allocator uses a buddy allocator (kernel-core/src/buddy.rs) with 10 order"
-  - path: "kernel-core/src/slab.rs"
-    summary: "Slab allocator (kernel-core/src/slab.rs) provides fixed-size caches on top of the"
+  - path: "kernel/src/mm/memory_map.rs"
+    summary: "The memory-map logic lives in kernel/src/mm/memory_map.rs."
+  - path: "kernel/src/mm/frame_allocator.rs"
+    summary: "The frame allocator lives in kernel/src/mm/frame_allocator.rs."
+  - path: "kernel/src/mm/paging.rs"
+    summary: "The page-table helpers live in kernel/src/mm/paging.rs."
+  - path: "kernel/src/mm/heap.rs"
+    summary: "The heap setup lives in kernel/src/mm/heap.rs."
+  - path: "kernel/src/mm/debug.rs"
+    summary: "The debug helpers live in kernel/src/mm/debug.rs, and the smoke-test allocations"
+  - path: "kernel/src/main.rs"
+    summary: "live in kernel/src/main.rs."
 codeSpotlights:
   - title: "Copy the bootloader memory map into kernel-owned structures"
     file: "kernel/src/mm/memory_map.rs"
@@ -30,10 +38,10 @@ codeSpotlights:
     snippetLanguage: "rust"
   - title: "Implement a simple frame allocator"
     file: "kernel/src/mm/frame_allocator.rs"
-    lines: "L30-L38"
-    summary: "**Symbols:** FrameAllocator, init, allocate_frame, free_frame"
+    lines: "L13-L21"
+    summary: "**Symbols:** BumpAllocator, init, allocate_frame"
     githubUrl: "https://github.com/mikecubed/m3os/blob/v0.2.0/kernel/src/mm/frame_allocator.rs"
-    snippet: "    }\n\n    fn init(&mut self, regions: &'static [MemoryRegion]) {\n        self.regions = Some(regions);\n        self.region_index = 0;\n        self.next_addr = 0;\n        self.frames_allocated = 0;\n\n        // Advance to the first allocatable region"
+    snippet: "pub(crate) const ALLOC_MIN_ADDR: u64 = 0x0010_0000; // 1 MiB\n\nstruct BumpAllocator {\n    regions: Option<&'static [MemoryRegion]>,\n    region_index: usize,\n    next_addr: u64,\n    frames_allocated: usize,\n}"
     snippetLanguage: "rust"
   - title: "Add safe wrappers around page-table manipulation"
     file: "kernel/src/mm/paging.rs"
@@ -57,7 +65,7 @@ Move from a static early kernel into a kernel that can allocate memory safely an
 
 ## How it works in m3OS
 
-Memory management is one of the first things the kernel must set up after boot. It has three layers:
+After Phase 1, the kernel could boot and print diagnostics, but it still had no way to manage RAM dynamically. Phase 2 adds the minimum memory machinery needed to build future subsystems:
 
 ## How it builds on earlier phases
 
@@ -87,6 +95,6 @@ This phase builds on Boot Foundation and turns that foundation into Memory Basic
 
 ## Source materials
 
-- [Roadmap entry](https://github.com/mikecubed/m3os/blob/v0.2.0/docs/roadmap/02-memory-basics.md)
-- [Implementation document](https://github.com/mikecubed/m3os/blob/v0.2.0/docs/03-memory.md)
-- [Task list](https://github.com/mikecubed/m3os/blob/v0.2.0/docs/roadmap/tasks/02-memory-basics-tasks.md)
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/02-memory-basics.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/02-memory.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/02-memory-basics-tasks.md)
