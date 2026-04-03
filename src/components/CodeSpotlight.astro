@@ -5,11 +5,16 @@ interface Props {
   lines: string;
   summary: string;
   githubUrl?: string;
+  steps?: Array<{
+    title: string;
+    summary: string;
+    lines?: string;
+  }>;
   snippet?: string;
   snippetLanguage?: string;
 }
 
-const { file, githubUrl, lines, snippet, snippetLanguage, summary, title } = Astro.props;
+const { file, githubUrl, lines, snippet, snippetLanguage, steps = [], summary, title } = Astro.props;
 ---
 
 <section class="code-spotlight">
@@ -24,6 +29,21 @@ const { file, githubUrl, lines, snippet, snippetLanguage, summary, title } = Ast
     </div>
   </div>
   <p>{summary}</p>
+  {
+    steps.length > 0 && (
+      <ol class="code-spotlight__steps">
+        {steps.map((step) => (
+          <li>
+            <div class="code-spotlight__step-header">
+              <strong>{step.title}</strong>
+              {step.lines && <span>{step.lines}</span>}
+            </div>
+            <p>{step.summary}</p>
+          </li>
+        ))}
+      </ol>
+    )
+  }
   {snippet && (
     <pre class="code-spotlight__snippet"><code class={`language-${snippetLanguage ?? 'text'}`}>{snippet}</code></pre>
   )}

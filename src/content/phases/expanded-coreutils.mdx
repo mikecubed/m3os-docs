@@ -10,14 +10,43 @@ buildsOn:
 extends: []
 replaces: []
 components:
-  - "process-model"
-  - "terminal"
+  - "boot-path"
+  - "vfs"
 learningObjectives:
   - "Understand how small, composable Unix tools work together via pipes."
   - "Learn the Unix philosophy: each tool does one thing well."
   - "See how porting existing tools (vs. writing from scratch) accelerates OS development."
-keyFiles: []
-codeSpotlights: []
+keyFiles:
+  - path: "kernel/src/serial.rs"
+    summary: "Kernel log ring buffer in kernel/src/serial.rs so dmesg can read boot messages."
+  - path: "kernel/src/fs/procfs.rs"
+    summary: "/proc/kmsg virtual file in kernel/src/fs/procfs.rs to expose the ring buffer."
+  - path: "xtask/src/main.rs"
+    summary: "libc. The xtask/src/main.rs function build_musl_bins() already cross-compiles C"
+  - path: "kernel/initrd/"
+    summary: "sources with musl-gcc -static and copies the resulting ELFs to kernel/initrd/. New"
+codeSpotlights:
+  - title: "`head`: print first N lines"
+    file: "userspace/coreutils/head.c"
+    lines: "L5-L13"
+    summary: "read(), write(), and basic argument parsing — all already available. Why it matters: head is one of the most-used pipeline filters. It needs. Focus on `head` and `main` in `userspace/coreutils/head.c` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/userspace/coreutils/head.c"
+    snippet: "\nstatic void usage(void) {\n    fputs(\"usage: head [-n lines] [file...]\\n\", stderr);\n}\n\nstatic int parse_count(const char *arg, long *count) {\n    char *end = NULL;\n    long value = strtol(arg, &end, 10);\n    if (!arg[0] || (end && *end) || value < 0) {"
+    snippetLanguage: "c"
+  - title: "`tail`: print last N lines"
+    file: "userspace/coreutils/tail.c"
+    lines: "L5-L13"
+    summary: "lines of input — a different read pattern that exercises ring-buffer thinking. Why it matters: tail complements head and requires buffering the last N. Focus on `tail` and `main` in `userspace/coreutils/tail.c` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/userspace/coreutils/tail.c"
+    snippet: "\nstatic void usage(void) {\n    fputs(\"usage: tail [-n lines] [file...]\\n\", stderr);\n}\n\nstatic int parse_count(const char *arg, long *count) {\n    char *end = NULL;\n    long value = strtol(arg, &end, 10);\n    if (!arg[0] || (end && *end) || value < 0) {"
+    snippetLanguage: "c"
+  - title: "`sort`: sort lines alphabetically"
+    file: "userspace/coreutils/sort.c"
+    lines: "L8-L16"
+    summary: "requires reading all input into memory then sorting — exercises malloc/heap. Why it matters: sort is essential for sort | uniq pipelines and. Focus on `sort` and `main` in `userspace/coreutils/sort.c` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/userspace/coreutils/sort.c"
+    snippet: "\nstatic void usage(void) {\n    fputs(\"usage: sort [-r] [-n] [file...]\\n\", stderr);\n}\n\nstatic int cmp_lex(const void *lhs, const void *rhs) {\n    const char *const *a = lhs;\n    const char *const *b = rhs;\n    int cmp = strcmp(*a, *b);"
+    snippetLanguage: "c"
 realOsDifferences:
   - "Real systems use GNU coreutils (or BusyBox on embedded systems), which have decades of feature additions, locale support, and edge case handling. Our sbase-based utilities are intentionally minimal — they handle the common cases and skip exotic options."
   - "Real systems also have a `/proc` filesystem providing rich kernel introspection. Our approach may use either a simplified `/proc` or dedicated syscalls, depending on what is simpler to implement."
@@ -27,6 +56,7 @@ successCriteria:
   - "`find . -name \"*.c\" | xargs grep \"main\"` works."
   - "`ps` shows running processes with PID, name, and status."
   - "`free` shows total and available memory."
+  - "`uptime` reports time since boot and is available from the default shell PATH."
   - "`diff file1 file2` shows differences; `patch` can apply the diff."
   - "`less` provides scrollable file viewing with search."
 ---
@@ -48,7 +78,7 @@ This phase builds on Threading Primitives and turns that foundation into Expande
 - Set up sbase cross-compilation with musl on the host.
 - Port text processing tools first (head, tail, sort, uniq — most immediately useful).
 - Port file tools (find, xargs, tee).
-- Write system tools (ps, free, uptime) — these need kernel info, so implement a `/proc`-like interface or info syscalls.
+- Build the system tools around existing procfs and syscall support: `ps`, `free`, `mount`, and `uptime` read the Phase 38 `/proc` files, while new kernel work stays limited to the `dmesg` ring buffer and `umount`.
 - Port diff and patch — essential for development workflows.
 - Port or write a pager (less/more).
 - Port remaining tools.
@@ -56,7 +86,7 @@ This phase builds on Threading Primitives and turns that foundation into Expande
 
 ## Task progress snapshot
 
-No checklist tasks were discovered for this phase yet.
+131 of 131 tracked tasks are complete.
 
 ## Documentation targets
 
@@ -66,10 +96,11 @@ No checklist tasks were discovered for this phase yet.
 
 - Full GNU coreutils compatibility
 - Locale and internationalization support
-- `/proc` filesystem (full implementation)
 - BusyBox-style multicall binary
 - man pages
+- `bc` calculator (complex parser; deferred to a later follow-up once the text and file toolchain lands)
 
 ## Source materials
 
 - [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/41-expanded-coreutils.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/41-expanded-coreutils-tasks.md)

@@ -351,6 +351,34 @@ a.phase-card {
   color: var(--primary-soft);
 }
 
+.code-spotlight__steps {
+  display: grid;
+  gap: 0.85rem;
+  margin: 1rem 0 0;
+  padding-left: 1.4rem;
+}
+
+.code-spotlight__steps li {
+  padding-left: 0.2rem;
+}
+
+.code-spotlight__step-header {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+  align-items: baseline;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+}
+
+.code-spotlight__step-header span {
+  color: var(--text-muted);
+}
+
+.code-spotlight__steps p {
+  margin: 0.35rem 0 0;
+}
+
 .code-spotlight__snippet {
   margin-top: 1rem;
   padding: 1rem;

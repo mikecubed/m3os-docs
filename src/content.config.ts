@@ -22,6 +22,15 @@ const codeSpotlightSchema = z.object({
   lines: z.string(),
   summary: z.string(),
   githubUrl: z.url().optional(),
+  steps: z
+    .array(
+      z.object({
+        title: z.string(),
+        summary: z.string(),
+        lines: z.string().optional(),
+      }),
+    )
+    .default([]),
   snippet: z.string().optional(),
   snippetLanguage: z.string().optional(),
 });

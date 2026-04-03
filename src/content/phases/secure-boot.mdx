@@ -22,7 +22,7 @@ codeSpotlights:
   - title: "Add sign subcommand to xtask"
     file: "xtask/src/main.rs"
     lines: "L47-L55"
-    summary: "**Symbol:** cmd_sign, sign_efi"
+    summary: "Add sign subcommand to xtask. Why it matters: Integrating signing into the build pipeline avoids manual sbsign invocations. Focus on `cmd_sign` and `sign_efi` in `xtask/src/main.rs` while you trace the snippet."
     githubUrl: "https://github.com/mikecubed/m3os/blob/v0.10.0/xtask/src/main.rs"
     snippet: "                std::process::exit(1);\n            });\n            cmd_sign(&sign_args);\n        }\n        Some(other) => {\n            eprintln!(\"Unknown subcommand: {other}\");\n            eprintln!(\"Usage: {}\", usage());\n            std::process::exit(1);\n        }"
     snippetLanguage: "rust"

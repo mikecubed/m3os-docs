@@ -1,7 +1,7 @@
 ---
 phase: 37
 title: "I/O Multiplexing"
-status: planned
+status: complete
 category: infrastructure
 summary: "Programs can wait on multiple file descriptors simultaneously without busy-waiting. `select()`, an improved `poll()`, and `epoll` provide scalable I/O readiness notification. Non-blocking I/O (`O_NONBLOCK`) works for sockets, pipes, and PTYs. Event-driven servers become possible."
 learningGoal: "Understand the I/O multiplexing problem: one thread, many connections."
@@ -10,20 +10,44 @@ buildsOn:
 extends: []
 replaces: []
 components:
-  - "network-stack"
+  - "process-model"
 learningObjectives:
   - "Understand the I/O multiplexing problem: one thread, many connections."
   - "Learn the evolution from `select()` (O(n) scan) to `poll()` (no fd limit) to `epoll` (O(1) event delivery)."
   - "See how non-blocking I/O interacts with multiplexing to build efficient servers."
   - "Understand level-triggered vs edge-triggered notification."
-keyFiles: []
-codeSpotlights: []
+keyFiles:
+  - path: "kernel/src/process/mod.rs"
+    summary: "The FdEntry struct in kernel/src/process/mod.rs gains a nonblock: bool field."
+codeSpotlights:
+  - title: "Add `nonblock` field to `FdEntry`"
+    file: "kernel/src/process/mod.rs"
+    lines: "L153-L161"
+    summary: "FD is non-blocking. A per-FD flag is the simplest way to track this across all. Why it matters: Every read/write syscall path must be able to check whether the. Focus on `nonblock` and `FdEntry` in `kernel/src/process/mod.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.37.0/kernel/src/process/mod.rs"
+    snippet: "    /// Non-blocking I/O flag (O_NONBLOCK). When set, read/write return\n    /// `-EAGAIN` instead of blocking when no data is available (Phase 37).\n    pub nonblock: bool,\n}\n\n/// Const sentinel for empty FD slots (used in array init).\nconst NONE_FD: Option<FdEntry> = None;\n\n/// Create a default FD table with stdin(0), stdout(1), stderr(2) wired up."
+    snippetLanguage: "rust"
+  - title: "Implement `fcntl(F_GETFL)` and `fcntl(F_SETFL)`"
+    file: "kernel/src/arch/x86_64/syscall.rs"
+    lines: "L447-L455"
+    summary: "Userspace relies on fcntl(fd, F_SETFL, O_NONBLOCK) to toggle non-blocking mode,. Why it matters: The current F_GETFL/F_SETFL handlers are stubs that return 0. Focus on `fcntl(F_GETFL)` and `fcntl(F_SETFL)` in `kernel/src/arch/x86_64/syscall.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.37.0/kernel/src/arch/x86_64/syscall.rs"
+    snippet: "        63 => sys_linux_uname(arg0),\n        // Phase 21: fcntl stub\n        72 => sys_fcntl(arg0, arg1, arg2),\n        // Phase 13: filesystem mutation syscalls\n        74 => sys_linux_fsync(arg0),\n        // Phase 21: gettimeofday stub — return approximate time from LAPIC tick count\n        96 => sys_gettimeofday(arg0),\n        76 => sys_linux_truncate(arg0, arg1),\n        77 => sys_linux_ftruncate(arg0, arg1),"
+    snippetLanguage: "rust"
+  - title: "Add wait queue to pipe table"
+    file: "kernel/src/pipe.rs"
+    lines: "L14-L22"
+    summary: "blocked in poll on the read end must be woken. A per-pipe wait queue provides. Why it matters: When data is written to a pipe (or a writer closes), tasks. Focus on `PIPES` and `WaitQueue` in `kernel/src/pipe.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.37.0/kernel/src/pipe.rs"
+    snippet: "use spin::Mutex;\n\nuse crate::task::wait_queue::WaitQueue;\n\npub use kernel_core::pipe::Pipe;\n\n/// Global pipe table.\nstatic PIPE_TABLE: Mutex<Vec<Option<Pipe>>> = Mutex::new(Vec::new());"
+    snippetLanguage: "rust"
 realOsDifferences:
-  - "**io_uring** — the newest, highest-performance async I/O interface (submission/completion rings)."
-  - "**epoll** — the standard for network servers (nginx, Node.js, etc.)."
-  - "**signalfd, timerfd, eventfd** — unify signals, timers, and events as fds for epoll."
-  - "**splice/tee/vmsplice** — zero-copy data movement between fds."
-  - "**FUSE** — filesystem in userspace (via poll/epoll on /dev/fuse)."
+  - "Linux has **io_uring** — the newest, highest-performance async I/O interface using submission/completion rings shared between kernel and userspace."
+  - "Linux's **epoll** is the standard for network servers (nginx, Node.js, etc.) and supports edge-triggered mode, `EPOLLONESHOT`, and `EPOLLEXCLUSIVE`."
+  - "**signalfd, timerfd, eventfd** unify signals, timers, and inter-thread events as regular file descriptors that work with epoll."
+  - "**splice/tee/vmsplice** enable zero-copy data movement between fds."
+  - "BSD uses **kqueue** instead of epoll — similar concept, different API, arguably cleaner design."
+  - "Real implementations handle thousands of concurrent fds; our MAX_FDS is 32."
 successCriteria:
   - "`O_NONBLOCK` read on an empty pipe returns `EAGAIN` instead of blocking."
   - "`poll()` blocks efficiently (no CPU spin) and wakes when data arrives."
@@ -50,20 +74,21 @@ This phase builds on Expanded Memory and turns that foundation into I/O Multiple
 
 ## Implementation outline
 
+- Add `nonblock` flag to `FdEntry` and wire `fcntl(F_GETFL/F_SETFL)`.
 - Implement `O_NONBLOCK` for pipes (simplest case).
 - Implement `O_NONBLOCK` for sockets.
-- Implement `fcntl(F_GETFL/F_SETFL)` for non-blocking flag.
+- Implement `O_NONBLOCK` for PTYs and TTY/stdin.
+- Add per-FD wait queues to pipes, sockets, PTYs, and stdin.
 - Rewrite `poll()` to use wait queues instead of busy-wait loop.
 - Implement `select()` on top of the improved poll infrastructure.
 - Implement `epoll_create1`, `epoll_ctl`, `epoll_wait`.
 - Implement `accept4()`.
 - Write test programs: echo server using poll, epoll-based multi-client server.
 - Verify the telnet server works with improved poll (no busy-wait).
-- Stress test with many concurrent connections.
 
 ## Task progress snapshot
 
-No checklist tasks were discovered for this phase yet.
+122 of 122 tracked tasks are complete.
 
 ## Documentation targets
 
@@ -81,3 +106,4 @@ No checklist tasks were discovered for this phase yet.
 ## Source materials
 
 - [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/37-io-multiplexing.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/37-io-multiplexing-tasks.md)

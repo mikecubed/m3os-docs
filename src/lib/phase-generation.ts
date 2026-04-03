@@ -35,11 +35,18 @@ interface GeneratedKeyFile {
   summary: string;
 }
 
+interface GeneratedCodeSpotlightStep {
+  title: string;
+  summary: string;
+  lines?: string;
+}
+
 interface GeneratedCodeSpotlight {
   file: string;
   githubUrl: string;
   lines: string;
   summary: string;
+  steps: readonly GeneratedCodeSpotlightStep[];
   title: string;
   snippet?: string;
   snippetLanguage?: string;
@@ -873,6 +880,16 @@ function renderCodeSpotlightsField(codeSpotlights: readonly GeneratedCodeSpotlig
       `    lines: ${yamlString(spotlight.lines)}`,
       `    summary: ${yamlString(spotlight.summary)}`,
       `    githubUrl: ${yamlString(spotlight.githubUrl)}`,
+      ...(spotlight.steps.length > 0
+        ? [
+            '    steps:',
+            ...spotlight.steps.flatMap((step) => [
+              `      - title: ${yamlString(step.title)}`,
+              `        summary: ${yamlString(step.summary)}`,
+              ...(step.lines ? [`        lines: ${yamlString(step.lines)}`] : []),
+            ]),
+          ]
+        : []),
       ...(spotlight.snippet
         ? [`    snippet: ${yamlString(spotlight.snippet)}`]
         : []),
@@ -1155,6 +1172,7 @@ function createCodeSpotlights(input: {
           file: keyFile.path,
           summary: keyFile.summary,
           symbolHints: extractSymbolHints(keyFile.summary),
+          steps: [],
           title: createSpotlightTitle(keyFile),
         },
         {
@@ -1177,6 +1195,7 @@ function extractTaskSpotlights(taskDocuments: readonly ParsedTaskDocument[]): {
   file: string;
   summary: string;
   symbolHints: string[];
+  steps: GeneratedCodeSpotlightStep[];
   title: string;
 }[] {
   return taskDocuments.flatMap((taskDocument) =>
@@ -1190,13 +1209,14 @@ function extractTaskSpotlights(taskDocuments: readonly ParsedTaskDocument[]): {
           return [];
         }
 
-        const summary = firstTaskSectionSentence(sectionBody) ?? heading;
         const symbolHints = extractSymbolHints([heading, sectionBody].join(' '));
+        const steps = extractTaskWalkthroughSteps(sectionBody);
 
         return files.map((file) => ({
           file,
-          summary,
+          summary: createTaskSpotlightSummary({ file, heading, sectionBody, symbolHints }),
           symbolHints,
+          steps,
           title: heading,
         }));
       },
@@ -1234,11 +1254,83 @@ function firstTaskSectionSentence(sectionBody: string): string | undefined {
     .split(/\r?\n/u)
     .map((line) => line.trim())
     .filter((line) => line.length > 0)
-    .filter((line) => !line.startsWith('**File:') && !line.startsWith('**Files:'))
-    .filter((line) => !line.startsWith('**Acceptance:**'))
+    .filter((line) => line !== '---')
+    .filter(
+      (line) =>
+        !/^\*\*(?:File|Files|Symbol|Symbols|Why it matters|Acceptance|Status|Source Ref):/iu.test(line),
+    )
+    .filter((line) => !/^####\s+/u.test(line))
+    .filter((line) => !/^([-*]|\d+\.)\s+/u.test(line))
     .filter((line) => !line.startsWith('- ['));
 
   return lines[0] ? normalizeSentence(lines[0].replace(/`/gu, '')) : undefined;
+}
+
+function createTaskSpotlightSummary(input: {
+  file: string;
+  heading: string;
+  sectionBody: string;
+  symbolHints: readonly string[];
+}): string {
+  const overview = firstTaskSectionSentence(input.sectionBody) ?? input.heading;
+  const whyItMatters = extractTaskMetadataValue(input.sectionBody, 'Why it matters');
+  const focusSentence =
+    input.symbolHints.length > 0
+      ? `Focus on ${formatInlineCodeList(input.symbolHints.slice(0, 2))} in \`${input.file}\` while you trace the snippet.`
+      : `Focus on \`${input.file}\` while you trace the snippet.`;
+
+  return [
+    ensureSentenceEnding(overview),
+    whyItMatters ? ensureSentenceEnding(`Why it matters: ${whyItMatters}`) : undefined,
+    ensureSentenceEnding(focusSentence),
+  ]
+    .filter((value): value is string => Boolean(value))
+    .join(' ');
+}
+
+function extractTaskWalkthroughSteps(sectionBody: string): GeneratedCodeSpotlightStep[] {
+  return [...sectionBody.matchAll(/(?:^|\n)####\s+(.+?)\n([\s\S]*?)(?=(?:\n####\s+)|(?:\n###\s+)|(?:\n##\s+)|$)/gu)]
+    .flatMap((match) => {
+      const title = normalizeWalkthroughTitle(match[1] ?? '');
+      const summary = summarizeTaskWalkthroughStep(match[2] ?? '');
+
+      if (!title || !summary) {
+        return [];
+      }
+
+      return [{ title, summary }];
+    })
+    .slice(0, 4);
+}
+
+function normalizeWalkthroughTitle(value: string): string {
+  return value.replace(/^Step\s+\d+\s+[—-]\s+/iu, '').trim();
+}
+
+function summarizeTaskWalkthroughStep(sectionBody: string): string | undefined {
+  const summary = firstParagraph(sectionBody) ?? extractListItems(sectionBody)[0];
+  return summary ? normalizeSentence(summary.replace(/`/gu, '')) : undefined;
+}
+
+function extractTaskMetadataValue(sectionBody: string, label: string): string | undefined {
+  const match = sectionBody.match(new RegExp(String.raw`(?:^|\n)\*\*${escapeRegExp(label)}:\*\*\s*(.+)$`, 'imu'));
+  return match?.[1] ? normalizeSentence(match[1].replace(/`/gu, '')) : undefined;
+}
+
+function formatInlineCodeList(values: readonly string[]): string {
+  if (values.length === 0) {
+    return '';
+  }
+
+  if (values.length === 1) {
+    return `\`${values[0]}\``;
+  }
+
+  if (values.length === 2) {
+    return `\`${values[0]}\` and \`${values[1]}\``;
+  }
+
+  return `${values.slice(0, -1).map((value) => `\`${value}\``).join(', ')}, and \`${values.at(-1)}\``;
 }
 
 function extractSymbolHints(input: string): string[] {
@@ -1269,6 +1361,7 @@ function createSpotlightFromCandidate(
     file: string;
     summary: string;
     symbolHints: readonly string[];
+    steps: readonly GeneratedCodeSpotlightStep[];
     title: string;
   },
   input: {
@@ -1284,6 +1377,7 @@ function createSpotlightFromCandidate(
     githubUrl: buildGitHubUrl(input.repoUrl, input.repoRef, candidate.file),
     lines: snippet?.lines ?? 'See file',
     summary: candidate.summary,
+    steps: candidate.steps,
     title: candidate.title,
     ...(snippet
       ? {
@@ -1578,4 +1672,10 @@ function capitalizeFragment(value: string): string {
 
 function normalizeSentence(value: string): string {
   return value.replace(/\s+/gu, ' ').trim();
+}
+
+function ensureSentenceEnding(value: string): string {
+  const normalizedValue = normalizeSentence(value);
+
+  return /[.!?]$/u.test(normalizedValue) ? normalizedValue : `${normalizedValue}.`;
 }

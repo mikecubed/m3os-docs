@@ -1,24 +1,46 @@
 ---
 phase: 38
 title: "Filesystem Enhancements"
-status: planned
+status: complete
 category: infrastructure
-summary: "The filesystem supports symlinks, hard links, proper permission enforcement, a `/proc` filesystem for process introspection, and basic device nodes (`/dev/null`, `/dev/zero`, `/dev/urandom`). These are the filesystem primitives that Unix tools and build systems assume exist."
+summary: "The filesystem supports symlinks, hard links, `umask`-backed creation defaults, the remaining Unix permission semantics needed for symlink-aware metadata and directory listing, a `/proc` filesystem for process introspection, and basic device nodes (`/dev/null`, `/dev/zero`, `/dev/urandom`, `/dev/full`). These are the filesystem primitives that Unix tools and build systems assume exist."
 learningGoal: "Understand the difference between hard links and symbolic links at the inode level."
 buildsOn:
   - "io-multiplexing"
 extends: []
 replaces: []
 components:
-  - "process-model"
   - "vfs"
 learningObjectives:
   - "Understand the difference between hard links and symbolic links at the inode level."
   - "Learn how `/proc` provides kernel introspection without dedicated syscalls."
   - "See how Unix permission enforcement (DAC) works: owner/group/other bits checked on every file operation."
   - "Understand device nodes and the major/minor number scheme."
-keyFiles: []
-codeSpotlights: []
+keyFiles:
+  - path: "kernel/src/fs/procfs.rs"
+    summary: "A new kernel/src/fs/procfs.rs module synthesizes file content on read from kernel"
+codeSpotlights:
+  - title: "Add `Symlink` variant to `TmpfsNode`"
+    file: "kernel-core/src/fs/tmpfs.rs"
+    lines: "L41-L49"
+    summary: "require a third variant that stores the target path string instead of file data. Why it matters: tmpfs currently has File and Dir variants only. Symlinks. Focus on `Symlink` and `TmpfsNode` in `kernel-core/src/fs/tmpfs.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.38.0/kernel-core/src/fs/tmpfs.rs"
+    snippet: "    File(FileData),\n    Dir(DirData),\n    Symlink(SymlinkData),\n}\n\nstruct FileData {\n    inode: u64,\n    content: Vec<u8>,\n    uid: u32,"
+    snippetLanguage: "rust"
+  - title: "Implement ext2 symlink creation and reading"
+    file: "kernel/src/fs/ext2.rs"
+    lines: "L15-L23"
+    summary: "pointers (up to 60 bytes) and longer targets in a data block. Both paths must work. Why it matters: ext2 stores short symlink targets inline in the inode's block. Focus on `Ext2Volume::create_symlink` and `Ext2Volume::read_symlink` in `kernel/src/fs/ext2.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.38.0/kernel/src/fs/ext2.rs"
+    snippet: "    EXT2_DIND_BLOCK, EXT2_FT_DIR, EXT2_FT_REG_FILE, EXT2_FT_SYMLINK, EXT2_IND_BLOCK,\n    EXT2_NDIR_BLOCKS, EXT2_ROOT_INO, Ext2BlockGroupDescriptor, Ext2DirEntry, Ext2Error, Ext2Inode,\n    Ext2Superblock, S_IFDIR, S_IFLNK, S_IFREG,\n};\nuse spin::Mutex;\n\n// ---------------------------------------------------------------------------\n// Ext2Volume (P28-T019)\n// ---------------------------------------------------------------------------"
+    snippetLanguage: "rust"
+  - title: "Implement `sys_symlink()` and `sys_symlinkat()` syscalls"
+    file: "kernel/src/arch/x86_64/syscall.rs"
+    lines: "L961-L969"
+    summary: "They must route through resolve_fs_target() to the correct filesystem backend. Why it matters: These are the userspace entry points for symlink creation. Focus on `sys_symlink` and `sys_symlinkat` in `kernel/src/arch/x86_64/syscall.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.38.0/kernel/src/arch/x86_64/syscall.rs"
+    snippet: "        12 => sys_linux_brk(arg0),\n        86 => sys_link(arg0, arg1),\n        88 => sys_symlink(arg0, arg1),\n        89 => sys_readlink(arg0, arg1, arg2),\n        // Phase 14: signal syscalls (rt_sigaction, rt_sigprocmask)\n        13 => sys_rt_sigaction(arg0, arg1, arg2),\n        14 => sys_rt_sigprocmask(arg0, arg1, arg2),\n        // Linux misc (Phase 12, T023–T026)\n        16 => sys_linux_ioctl(arg0, arg1, arg2),"
+    snippetLanguage: "rust"
 realOsDifferences:
   - "**Dentry cache** for fast path lookup with negative caching."
   - "**Inode cache** for recently accessed inodes."
@@ -35,9 +57,10 @@ successCriteria:
   - "Symlink chain resolution works (A→B→C) with loop detection."
   - "Hard links share an inode: modify via one path, see changes via the other."
   - "`unlink()` of a hard-linked file only removes it when link count hits 0."
-  - "A non-root user cannot read a file with mode 0600 owned by another user."
+  - "`getdents64()` on a directory without read permission returns `EACCES`."
   - "`umask(022)` causes `mkdir()` to create directories with mode 0755."
   - "`cat /proc/self/status` shows the process's own info."
+  - "`readlink /proc/self/exe` returns the current process executable path."
   - "`cat /proc/meminfo` shows memory statistics."
   - "`cat /dev/urandom | hexdump | head` produces random output."
   - "`echo test > /dev/null` succeeds silently."
@@ -47,7 +70,7 @@ successCriteria:
 
 ## Why this phase matters
 
-The filesystem supports symlinks, hard links, proper permission enforcement, a `/proc` filesystem for process introspection, and basic device nodes (`/dev/null`, `/dev/zero`, `/dev/urandom`). These are the filesystem primitives that Unix tools and build systems assume exist.
+The filesystem supports symlinks, hard links, `umask`-backed creation defaults, the remaining Unix permission semantics needed for symlink-aware metadata and directory listing, a `/proc` filesystem for process introspection, and basic device nodes (`/dev/null`, `/dev/zero`, `/dev/urandom`, `/dev/full`). These are the filesystem primitives that Unix tools and build systems assume exist.
 
 ## How it works in m3OS
 
@@ -63,7 +86,7 @@ This phase builds on I/O Multiplexing and turns that foundation into Filesystem 
 - Implement symlinks in ext2.
 - Add symlink loop detection (max 40 hops, return `ELOOP`).
 - Implement hard links in ext2 (link count management).
-- Add permission checking to `open()`, `exec()`, directory operations.
+- Complete the permission model for directory listing and symlink-aware metadata lookups.
 - Implement `umask()` syscall with per-process mask.
 - Implement `/proc` filesystem (start with `/proc/<pid>/status` and `/proc/meminfo`).
 - Add `/dev/null`, `/dev/zero`, `/dev/urandom`, `/dev/full` device nodes.
@@ -74,7 +97,7 @@ This phase builds on I/O Multiplexing and turns that foundation into Filesystem 
 
 ## Task progress snapshot
 
-No checklist tasks were discovered for this phase yet.
+208 of 208 tracked tasks are complete.
 
 ## Documentation targets
 
@@ -95,3 +118,4 @@ No checklist tasks were discovered for this phase yet.
 ## Source materials
 
 - [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/38-filesystem-enhancements.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/38-filesystem-enhancements-tasks.md)

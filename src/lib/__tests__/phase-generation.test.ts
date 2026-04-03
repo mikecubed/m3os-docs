@@ -513,6 +513,132 @@ Remove the \`pick_next()\` guard so all cores can choose runnable work.
     expect(smpDocument?.content).toContain('snippet: "pub fn pick_next(core_id: usize) -> Option<usize> {');
   });
 
+  it('adds teaching summaries and walkthrough steps to code spotlights when task docs provide them', () => {
+    const cwd = createTempDirectory('m3os-docs-generate-');
+    const sourceDirectory = path.join(cwd, 'm3os');
+
+    writeMarkdownFile(
+      sourceDirectory,
+      'kernel/src/task/scheduler.rs',
+      `pub fn pick_next(core_id: usize) -> Option<usize> {
+    if core_id != 0 {
+        return Some(0);
+    }
+
+    Some(core_id + 1)
+}
+`,
+    );
+    writeMarkdownFile(
+      sourceDirectory,
+      'docs/roadmap/35-true-smp-multitasking.md',
+      `# Phase 35 - True SMP Multitasking
+
+## Milestone Goal
+
+Dispatch work across all CPU cores.
+`,
+    );
+    writeMarkdownFile(
+      sourceDirectory,
+      'docs/roadmap/tasks/35-true-smp-multitasking-tasks.md',
+      `# Phase 35 — True SMP Multitasking: Task List
+
+## Track B — Multi-Core Task Dispatch
+
+### B.1 — Remove BSP-only dispatch guard
+
+**File:** \`kernel/src/task/scheduler.rs\`
+**Symbol:** \`pick_next\`
+**Why it matters:** Once scheduling leaves the bootstrap processor, every core needs the same dispatch path.
+
+Remove the \`pick_next()\` guard so all cores can choose runnable work.
+
+#### Step 1 — Drop the BSP check
+Delete the early return that forces secondary cores back to CPU 0.
+
+#### Step 2 — Keep the runnable fallback
+Leave the final \`Some(core_id + 1)\` path in place so dispatch still returns work.
+`,
+    );
+
+    const repository = resolveSourceRepository({
+      cwd,
+      sourcePath: './m3os',
+      repoSlug: 'mikecubed/m3os',
+    });
+    const worklist = buildPhaseSynthesisWorklist(discoverSourceDocuments(repository));
+    const generatedDocuments = generatePhaseDocuments(worklist, {
+      outputDirectory: path.join(cwd, 'generated'),
+    });
+    const smpDocument = generatedDocuments.find((document) => document.slug === 'true-smp-multitasking');
+
+    expect(smpDocument?.content).toContain(
+      'summary: "Remove the pick_next() guard so all cores can choose runnable work. Why it matters: Once scheduling leaves the bootstrap processor, every core needs the same dispatch path. Focus on `pick_next` in `kernel/src/task/scheduler.rs` while you trace the snippet."',
+    );
+    expect(smpDocument?.content).toContain('steps:');
+    expect(smpDocument?.content).toContain('title: "Drop the BSP check"');
+    expect(smpDocument?.content).toContain(
+      'summary: "Delete the early return that forces secondary cores back to CPU 0."',
+    );
+    expect(smpDocument?.content).toContain('title: "Keep the runnable fallback"');
+    expect(smpDocument?.content).toContain(
+      'summary: "Leave the final Some(core_id + 1) path in place so dispatch still returns work."',
+    );
+  });
+
+  it('ignores markdown separators when building spotlight summaries', () => {
+    const cwd = createTempDirectory('m3os-docs-generate-');
+    const sourceDirectory = path.join(cwd, 'm3os');
+
+    writeMarkdownFile(
+      sourceDirectory,
+      'xtask/src/main.rs',
+      `fn cmd_sign() {}
+
+fn sign_efi() {}
+`,
+    );
+    writeMarkdownFile(
+      sourceDirectory,
+      'docs/roadmap/10-secure-boot.md',
+      `# Phase 10 - Secure Boot
+
+## Milestone Goal
+
+Sign EFI binaries and boot with Secure Boot enabled.
+`,
+    );
+    writeMarkdownFile(
+      sourceDirectory,
+      'docs/roadmap/tasks/10-secure-boot-tasks.md',
+      `# Phase 10 — Secure Boot: Task List
+
+### A.1 — Add sign subcommand to xtask
+
+**File:** \`xtask/src/main.rs\`
+**Symbol:** \`cmd_sign\`
+**Why it matters:** Integrating signing into the build pipeline avoids manual sbsign invocations.
+---
+`,
+    );
+
+    const repository = resolveSourceRepository({
+      cwd,
+      sourcePath: './m3os',
+      repoSlug: 'mikecubed/m3os',
+    });
+    const worklist = buildPhaseSynthesisWorklist(discoverSourceDocuments(repository));
+    const generatedDocuments = generatePhaseDocuments(worklist, {
+      outputDirectory: path.join(cwd, 'generated'),
+    });
+    const secureBootDocument = generatedDocuments.find((document) => document.slug === 'secure-boot');
+
+    expect(secureBootDocument?.content).toContain(
+      'summary: "Add sign subcommand to xtask. Why it matters: Integrating signing into the build pipeline avoids manual sbsign invocations. Focus on `cmd_sign` in `xtask/src/main.rs` while you trace the snippet."',
+    );
+  });
+
   it('uses a phase source ref for links and snippets when upstream docs provide one', () => {
     const cwd = createTempDirectory('m3os-docs-generate-');
     const sourceDirectory = path.join(cwd, 'm3os');
