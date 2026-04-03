@@ -25,10 +25,10 @@ keyFiles:
 codeSpotlights:
   - title: "Implement a minimal kernel_main entry point"
     file: "kernel/src/main.rs"
-    lines: "L10-L24"
+    lines: "L8-L24"
     summary: "Implement a minimal kernel_main entry point. Why it matters: This is the first code that runs after the bootloader hands off control; it must reach a stable halt loop. Focus on `kernel_main` and `entry_point!(kernel_main)` in `kernel/src/main.rs` while you trace the snippet."
     githubUrl: "https://github.com/mikecubed/m3os/blob/v0.1.0/kernel/src/main.rs"
-    snippet: "fn kernel_main(_boot_info: &'static mut BootInfo) -> ! {\n    serial::init();\n    serial::init_logger();\n\n    serial_println!(\"[ostest] Hello from kernel!\");\n    log::info!(\"Kernel initialized\");\n\n    hlt_loop();\n}\n\nfn hlt_loop() -> ! {\n    loop {\n        x86_64::instructions::hlt();\n    }\n}"
+    snippet: "entry_point!(kernel_main);\n\nfn kernel_main(_boot_info: &'static mut BootInfo) -> ! {\n    serial::init();\n    serial::init_logger();\n\n    serial_println!(\"[ostest] Hello from kernel!\");\n    log::info!(\"Kernel initialized\");\n\n    hlt_loop();\n}\n\nfn hlt_loop() -> ! {\n    loop {\n        x86_64::instructions::hlt();\n    }\n}"
     snippetLanguage: "rust"
   - title: "Add serial initialization and print macros"
     file: "kernel/src/serial.rs"

@@ -35,10 +35,10 @@ codeSpotlights:
     githubUrl: "https://github.com/mikecubed/m3os/blob/v0.8.0/kernel/src/fs/vfs.rs"
   - title: "Implement a read-only filesystem backend"
     file: "kernel/src/fs/fat32.rs"
-    lines: "L176-L187"
+    lines: "L176-L189"
     summary: "Implement a read-only filesystem backend. Why it matters: A real filesystem backend lets the OS read files from the boot media rather than only embedded data. Focus on `Fat32Volume` and `mount_fat32` in `kernel/src/fs/fat32.rs` while you trace the snippet."
     githubUrl: "https://github.com/mikecubed/m3os/blob/v0.8.0/kernel/src/fs/fat32.rs"
-    snippet: "/// A mounted FAT32 volume backed by virtio-blk sectors.\npub struct Fat32Volume {\n    pub bpb: Fat32Bpb,\n    /// Absolute LBA of the partition start on the block device.\n    base_lba: u64,\n    /// Absolute LBA of the first FAT sector.\n    fat_start_lba: u64,\n    /// Absolute LBA of the first data cluster (cluster 2).\n    data_start_lba: u64,\n    /// Hint for next free cluster search.\n    alloc_hint: u32,\n}"
+    snippet: "/// A mounted FAT32 volume backed by virtio-blk sectors.\npub struct Fat32Volume {\n    pub bpb: Fat32Bpb,\n    /// Absolute LBA of the partition start on the block device.\n    base_lba: u64,\n    /// Absolute LBA of the first FAT sector.\n    fat_start_lba: u64,\n    /// Absolute LBA of the first data cluster (cluster 2).\n    data_start_lba: u64,\n    /// Hint for next free cluster search.\n    alloc_hint: u32,\n}\n\n/// Global mounted FAT32 volume (set by mount_fat32)."
     snippetLanguage: "rust"
 realOsDifferences:
   - "Mature operating systems add caching, writeback, permissions, journaling, block-layer abstractions, and many filesystem drivers."

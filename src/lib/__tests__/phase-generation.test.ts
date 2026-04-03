@@ -562,7 +562,7 @@ Boot the kernel through UEFI and halt cleanly.
 ### A.1 — Implement a minimal kernel_main entry point
 
 **File:** \`kernel/src/main.rs\`
-**Symbol:** \`kernel_main\`
+**Symbol:** \`kernel_main\`, \`entry_point!(kernel_main)\`
 **Why it matters:** This is the first code that runs after the bootloader hands off control; it must reach a stable halt loop.
 
 Implement a minimal kernel_main entry point.
@@ -580,8 +580,8 @@ Implement a minimal kernel_main entry point.
     });
     const bootDocument = generatedDocuments.find((document) => document.slug === 'boot-foundation');
 
-    expect(bootDocument?.content).toContain('lines: "L8-L22"');
-    expect(bootDocument?.content).toContain('snippet: "fn kernel_main(_boot_info:');
+    expect(bootDocument?.content).toContain('entry_point!(kernel_main);');
+    expect(bootDocument?.content).toContain('snippet: "entry_point!(kernel_main);');
     expect(bootDocument?.content).toContain('hlt_loop();');
     expect(bootDocument?.content).toContain('x86_64::instructions::hlt();');
   });

@@ -62,6 +62,7 @@ const GENERIC_KEY_FILE_SUMMARY = 'Referenced in the implementation notes.';
 const DEFAULT_SNIPPET_CONTEXT_BEFORE = 2;
 const DEFAULT_SNIPPET_CONTEXT_AFTER = 10;
 const MAX_DECLARATION_SNIPPET_LINES = 24;
+const MAX_COVERAGE_HINTS = 3;
 
 const CATEGORY_OVERRIDES: Record<string, PhaseCategory> = {
   'ansi-escape': 'userspace',
@@ -1428,7 +1429,11 @@ function findSnippetRange(
   const declarationLineIndex = findDeclarationLineIndex(sourceLines, symbolHints);
 
   if (declarationLineIndex !== undefined) {
-    return expandSnippetRangeFromDeclaration(sourceLines, declarationLineIndex);
+    return ensureSnippetCoverage(
+      sourceLines,
+      expandSnippetRangeFromDeclaration(sourceLines, declarationLineIndex),
+      selectTeachingCoverageHints(symbolHints),
+    );
   }
 
   const matchLineIndex = findSnippetLineIndex(sourceLines, symbolHints);
@@ -1437,10 +1442,10 @@ function findSnippetRange(
     return undefined;
   }
 
-  return {
+  return ensureSnippetCoverage(sourceLines, {
     startLineIndex: Math.max(0, matchLineIndex - DEFAULT_SNIPPET_CONTEXT_BEFORE),
     endLineIndex: Math.min(sourceLines.length, matchLineIndex + DEFAULT_SNIPPET_CONTEXT_AFTER),
-  };
+  }, selectTeachingCoverageHints(symbolHints));
 }
 
 function findDeclarationLineIndex(sourceLines: readonly string[], symbolHints: readonly string[]): number | undefined {
@@ -1614,6 +1619,148 @@ function includeLeadingDeclarationContext(sourceLines: readonly string[], declar
   }
 
   return startLineIndex;
+}
+
+function selectTeachingCoverageHints(symbolHints: readonly string[]): string[] {
+  const selectedHints: string[] = [];
+  const seenHints = new Set<string>();
+
+  for (const symbolHint of symbolHints) {
+    const normalizedHint = symbolHint.trim();
+
+    if (normalizedHint.length === 0 || seenHints.has(normalizedHint)) {
+      continue;
+    }
+
+    seenHints.add(normalizedHint);
+    selectedHints.push(normalizedHint);
+
+    if (selectedHints.length >= MAX_COVERAGE_HINTS) {
+      break;
+    }
+  }
+
+  return selectedHints;
+}
+
+function ensureSnippetCoverage(
+  sourceLines: readonly string[],
+  snippetRange: { startLineIndex: number; endLineIndex: number },
+  coverageHints: readonly string[],
+): { startLineIndex: number; endLineIndex: number } {
+  let expandedRange = snippetRange;
+
+  for (const coverageHint of coverageHints) {
+    if (snippetRangeContainsHint(sourceLines, expandedRange, coverageHint)) {
+      continue;
+    }
+
+    const coveringLineIndex = findNearbyCoverageLineIndex(sourceLines, expandedRange, coverageHint);
+
+    if (coveringLineIndex === undefined) {
+      continue;
+    }
+
+    const nextRange =
+      coveringLineIndex < expandedRange.startLineIndex
+        ? {
+            startLineIndex: coveringLineIndex,
+            endLineIndex: expandedRange.endLineIndex,
+          }
+        : {
+            startLineIndex: expandedRange.startLineIndex,
+            endLineIndex: coveringLineIndex + 1,
+          };
+
+    if (nextRange.endLineIndex - nextRange.startLineIndex > MAX_DECLARATION_SNIPPET_LINES) {
+      continue;
+    }
+
+    expandedRange = nextRange;
+  }
+
+  return expandedRange;
+}
+
+function snippetRangeContainsHint(
+  sourceLines: readonly string[],
+  snippetRange: { startLineIndex: number; endLineIndex: number },
+  coverageHint: string,
+): boolean {
+  return sourceLines
+    .slice(snippetRange.startLineIndex, snippetRange.endLineIndex)
+    .some((line) => lineContainsCoverageHint(line, coverageHint));
+}
+
+function findNearbyCoverageLineIndex(
+  sourceLines: readonly string[],
+  snippetRange: { startLineIndex: number; endLineIndex: number },
+  coverageHint: string,
+): number | undefined {
+  for (let lineIndex = snippetRange.startLineIndex - 1; lineIndex >= 0; lineIndex -= 1) {
+    const candidateLine = sourceLines[lineIndex] ?? '';
+
+    if (candidateLine.trim().length === 0) {
+      continue;
+    }
+
+    if (lineContainsCoverageHint(candidateLine, coverageHint)) {
+      return lineIndex;
+    }
+
+    if (!isPreludeLine(candidateLine)) {
+      break;
+    }
+  }
+
+  for (let lineIndex = snippetRange.endLineIndex; lineIndex < sourceLines.length; lineIndex += 1) {
+    const candidateLine = sourceLines[lineIndex] ?? '';
+
+    if (candidateLine.trim().length === 0) {
+      continue;
+    }
+
+    if (lineContainsCoverageHint(candidateLine, coverageHint)) {
+      return lineIndex;
+    }
+
+    if (!isPreludeLine(candidateLine)) {
+      break;
+    }
+  }
+
+  return undefined;
+}
+
+function lineContainsCoverageHint(line: string, coverageHint: string): boolean {
+  if (line.includes(coverageHint)) {
+    return true;
+  }
+
+  const normalizedHint = normalizeCoverageHint(coverageHint);
+
+  if (normalizedHint.length === 0) {
+    return false;
+  }
+
+  const normalizedLine = normalizeCoverageHint(line);
+  return normalizedLine.includes(normalizedHint);
+}
+
+function normalizeCoverageHint(value: string): string {
+  return value.replace(/[^A-Za-z0-9_]/gu, '');
+}
+
+function isPreludeLine(line: string): boolean {
+  const trimmedLine = line.trim();
+
+  return (
+    trimmedLine.startsWith('#[') ||
+    trimmedLine.startsWith('///') ||
+    trimmedLine.startsWith('//!') ||
+    trimmedLine.startsWith('//') ||
+    /[A-Za-z_][A-Za-z0-9_]*!/.test(trimmedLine)
+  );
 }
 
 function readSourceFileAtRef(
