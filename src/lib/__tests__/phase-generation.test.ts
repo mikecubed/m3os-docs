@@ -513,6 +513,79 @@ Remove the \`pick_next()\` guard so all cores can choose runnable work.
     expect(smpDocument?.content).toContain('snippet: "pub fn pick_next(core_id: usize) -> Option<usize> {');
   });
 
+  it('prefers function declarations so boot snippets include the full function body', () => {
+    const cwd = createTempDirectory('m3os-docs-generate-');
+    const sourceDirectory = path.join(cwd, 'm3os');
+
+    writeMarkdownFile(
+      sourceDirectory,
+      'kernel/src/main.rs',
+      `#![no_std]
+#![no_main]
+
+use bootloader_api::{entry_point, BootInfo};
+
+entry_point!(kernel_main);
+
+fn kernel_main(_boot_info: &'static mut BootInfo) -> ! {
+    serial::init();
+    serial::init_logger();
+
+    serial_println!("[m3os] Hello from kernel!");
+    log::info!("Kernel initialized");
+
+    hlt_loop();
+}
+
+fn hlt_loop() -> ! {
+    loop {
+        x86_64::instructions::hlt();
+    }
+}
+`,
+    );
+    writeMarkdownFile(
+      sourceDirectory,
+      'docs/roadmap/01-boot-foundation.md',
+      `# Phase 1 - Boot Foundation
+
+## Milestone Goal
+
+Boot the kernel through UEFI and halt cleanly.
+`,
+    );
+    writeMarkdownFile(
+      sourceDirectory,
+      'docs/roadmap/tasks/01-boot-foundation-tasks.md',
+      `# Phase 1 — Boot Foundation: Task List
+
+### A.1 — Implement a minimal kernel_main entry point
+
+**File:** \`kernel/src/main.rs\`
+**Symbol:** \`kernel_main\`
+**Why it matters:** This is the first code that runs after the bootloader hands off control; it must reach a stable halt loop.
+
+Implement a minimal kernel_main entry point.
+`,
+    );
+
+    const repository = resolveSourceRepository({
+      cwd,
+      sourcePath: './m3os',
+      repoSlug: 'mikecubed/m3os',
+    });
+    const worklist = buildPhaseSynthesisWorklist(discoverSourceDocuments(repository));
+    const generatedDocuments = generatePhaseDocuments(worklist, {
+      outputDirectory: path.join(cwd, 'generated'),
+    });
+    const bootDocument = generatedDocuments.find((document) => document.slug === 'boot-foundation');
+
+    expect(bootDocument?.content).toContain('lines: "L8-L22"');
+    expect(bootDocument?.content).toContain('snippet: "fn kernel_main(_boot_info:');
+    expect(bootDocument?.content).toContain('hlt_loop();');
+    expect(bootDocument?.content).toContain('x86_64::instructions::hlt();');
+  });
+
   it('adds teaching summaries and walkthrough steps to code spotlights when task docs provide them', () => {
     const cwd = createTempDirectory('m3os-docs-generate-');
     const sourceDirectory = path.join(cwd, 'm3os');

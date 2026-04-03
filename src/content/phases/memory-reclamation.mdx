@@ -29,10 +29,10 @@ codeSpotlights:
     githubUrl: "https://github.com/mikecubed/m3os/blob/v0.17.0/kernel/src/mm/frame_allocator.rs"
   - title: "Mm"
     file: "kernel/src/mm/mod.rs"
-    lines: "L233-L241"
+    lines: "L223-L246"
     summary: "Update free_process_page_table() in kernel/src/mm/mod.rs to walk all four"
     githubUrl: "https://github.com/mikecubed/m3os/blob/v0.17.0/kernel/src/mm/mod.rs"
-    snippet: "/// that is no longer loaded in CR3. No other code may access the page table\n/// after this call.\npub fn free_process_page_table(cr3_phys: u64) {\n    use alloc::vec::Vec;\n    use x86_64::structures::paging::{PageTable, PageTableFlags};\n    let phys_off = VirtAddr::new(phys_offset());\n    let kernel_pml4_phys = *KERNEL_PML4_PHYS.get().expect(\"mm not initialized\");\n\n    // Helper: read present, non-huge child table addresses from a page table,"
+    snippet: "/// Free all user-space page table frames for the given PML4 physical address.\n///\n/// Walks the process's PML4, freeing user-accessible leaf pages and any\n/// page-table structure frames that are process-private (not shared with the\n/// kernel).  Shared kernel entries (PML4[1..256]) are detected by comparing\n/// against the kernel's PML4 and skipped entirely.\n///\n/// # Safety\n///\n/// `cr3_phys` must be the physical address of a valid, now-unreachable PML4\n/// that is no longer loaded in CR3. No other code may access the page table\n/// after this call.\npub fn free_process_page_table(cr3_phys: u64) {\n    use alloc::vec::Vec;\n    use x86_64::structures::paging::{PageTable, PageTableFlags};\n    let phys_off = VirtAddr::new(phys_offset());\n    let kernel_pml4_phys = *KERNEL_PML4_PHYS.get().expect(\"mm not initialized\");\n\n    // Helper: read present, non-huge child table addresses from a page table,\n    // scoping the &PageTable reference so it drops before any free_frame calls.\n    unsafe fn collect_children(\n        phys_off: VirtAddr,\n        table_phys: u64,\n        count: usize,"
     snippetLanguage: "rust"
 realOsDifferences:
   - "Production kernels use buddy allocators (Linux's page allocator splits and coalesces power-of-two blocks) or slab allocators on top of page allocators for small objects."

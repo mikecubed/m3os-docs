@@ -59,6 +59,9 @@ interface SourceSnippet {
 }
 
 const GENERIC_KEY_FILE_SUMMARY = 'Referenced in the implementation notes.';
+const DEFAULT_SNIPPET_CONTEXT_BEFORE = 2;
+const DEFAULT_SNIPPET_CONTEXT_AFTER = 10;
+const MAX_DECLARATION_SNIPPET_LINES = 24;
 
 const CATEGORY_OVERRIDES: Record<string, PhaseCategory> = {
   'ansi-escape': 'userspace',
@@ -1405,21 +1408,212 @@ function extractSourceSnippet(
   }
 
   const sourceLines = sourceText.split(/\r?\n/u);
+  const snippetRange = findSnippetRange(sourceLines, symbolHints);
+
+  if (!snippetRange) {
+    return undefined;
+  }
+
+  return {
+    language: inferSnippetLanguage(filePath),
+    lines: `L${snippetRange.startLineIndex + 1}-L${snippetRange.endLineIndex}`,
+    snippet: sourceLines.slice(snippetRange.startLineIndex, snippetRange.endLineIndex).join('\n').trimEnd(),
+  };
+}
+
+function findSnippetRange(
+  sourceLines: readonly string[],
+  symbolHints: readonly string[],
+): { startLineIndex: number; endLineIndex: number } | undefined {
+  const declarationLineIndex = findDeclarationLineIndex(sourceLines, symbolHints);
+
+  if (declarationLineIndex !== undefined) {
+    return expandSnippetRangeFromDeclaration(sourceLines, declarationLineIndex);
+  }
+
   const matchLineIndex = findSnippetLineIndex(sourceLines, symbolHints);
 
   if (matchLineIndex === undefined) {
     return undefined;
   }
 
-  const startLineIndex = Math.max(0, matchLineIndex - 2);
-  const endLineIndex = Math.min(sourceLines.length, matchLineIndex + 7);
-  const snippet = sourceLines.slice(startLineIndex, endLineIndex).join('\n').trimEnd();
+  return {
+    startLineIndex: Math.max(0, matchLineIndex - DEFAULT_SNIPPET_CONTEXT_BEFORE),
+    endLineIndex: Math.min(sourceLines.length, matchLineIndex + DEFAULT_SNIPPET_CONTEXT_AFTER),
+  };
+}
+
+function findDeclarationLineIndex(sourceLines: readonly string[], symbolHints: readonly string[]): number | undefined {
+  for (const symbolHint of symbolHints) {
+    const normalizedHint = symbolHint.replace(/[^\w]/gu, '').trim();
+
+    if (normalizedHint.length === 0) {
+      continue;
+    }
+
+    const declarationPatterns = [
+      new RegExp(
+        String.raw`\b(?:pub(?:\([^)]*\))?\s+)?(?:const\s+)?(?:async\s+)?fn\s+${escapeRegExp(normalizedHint)}\b`,
+        'u',
+      ),
+      new RegExp(
+        String.raw`\b(?:pub(?:\([^)]*\))?\s+)?(?:struct|enum|trait|type|const|static|mod)\s+${escapeRegExp(normalizedHint)}\b`,
+        'u',
+      ),
+    ];
+
+    const lineIndex = sourceLines.findIndex((line) =>
+      declarationPatterns.some((pattern) => pattern.test(line)),
+    );
+
+    if (lineIndex !== -1) {
+      return lineIndex;
+    }
+  }
+
+  return undefined;
+}
+
+function expandSnippetRangeFromDeclaration(
+  sourceLines: readonly string[],
+  declarationLineIndex: number,
+): { startLineIndex: number; endLineIndex: number } {
+  const startLineIndex = includeLeadingDeclarationContext(sourceLines, declarationLineIndex);
+  let braceDepth = 0;
+  let sawOpeningBrace = false;
+  const maxEndExclusive = Math.min(sourceLines.length, startLineIndex + MAX_DECLARATION_SNIPPET_LINES);
+
+  for (let lineIndex = declarationLineIndex; lineIndex < maxEndExclusive; lineIndex += 1) {
+    const line = sourceLines[lineIndex] ?? '';
+
+    for (const character of line) {
+      if (character === '{') {
+        braceDepth += 1;
+        sawOpeningBrace = true;
+      } else if (character === '}') {
+        braceDepth = Math.max(0, braceDepth - 1);
+      }
+    }
+
+    if (sawOpeningBrace && braceDepth === 0) {
+      return maybeExtendWithAdjacentHelper(sourceLines, {
+        startLineIndex,
+        endLineIndex: lineIndex + 1,
+      });
+    }
+
+    if (!sawOpeningBrace && line.trim().endsWith(';')) {
+      return {
+        startLineIndex,
+        endLineIndex: lineIndex + 1,
+      };
+    }
+  }
 
   return {
-    language: inferSnippetLanguage(filePath),
-    lines: `L${startLineIndex + 1}-L${endLineIndex}`,
-    snippet,
+    startLineIndex,
+    endLineIndex: maxEndExclusive,
   };
+}
+
+function maybeExtendWithAdjacentHelper(
+  sourceLines: readonly string[],
+  snippetRange: { startLineIndex: number; endLineIndex: number },
+): { startLineIndex: number; endLineIndex: number } {
+  const calledSymbols = extractCalledSymbols(
+    sourceLines.slice(snippetRange.startLineIndex, snippetRange.endLineIndex).join('\n'),
+  );
+
+  if (calledSymbols.length === 0) {
+    return snippetRange;
+  }
+
+  const nextDeclarationLineIndex = findNextDeclarationLineIndex(sourceLines, snippetRange.endLineIndex);
+
+  if (nextDeclarationLineIndex === undefined) {
+    return snippetRange;
+  }
+
+  const declaredSymbol = extractDeclaredSymbol(sourceLines[nextDeclarationLineIndex] ?? '');
+
+  if (!declaredSymbol || !calledSymbols.includes(declaredSymbol)) {
+    return snippetRange;
+  }
+
+  const helperRange = expandSnippetRangeFromDeclaration(sourceLines, nextDeclarationLineIndex);
+
+  if (helperRange.endLineIndex - snippetRange.startLineIndex > MAX_DECLARATION_SNIPPET_LINES) {
+    return snippetRange;
+  }
+
+  return {
+    startLineIndex: snippetRange.startLineIndex,
+    endLineIndex: helperRange.endLineIndex,
+  };
+}
+
+function extractCalledSymbols(input: string): string[] {
+  const seenSymbols = new Set<string>();
+
+  return [...input.matchAll(/\b([A-Za-z_][A-Za-z0-9_]*)\s*\(/gu)].flatMap((match) => {
+    const symbol = match[1];
+
+    if (!symbol || seenSymbols.has(symbol) || symbol === 'if' || symbol === 'for' || symbol === 'while') {
+      return [];
+    }
+
+    seenSymbols.add(symbol);
+    return [symbol];
+  });
+}
+
+function findNextDeclarationLineIndex(
+  sourceLines: readonly string[],
+  startLineIndex: number,
+): number | undefined {
+  for (let lineIndex = startLineIndex; lineIndex < sourceLines.length; lineIndex += 1) {
+    const line = sourceLines[lineIndex]?.trim() ?? '';
+
+    if (line.length === 0 || line.startsWith('//') || line.startsWith('///') || line.startsWith('//!')) {
+      continue;
+    }
+
+    if (line.startsWith('#[')) {
+      continue;
+    }
+
+    return extractDeclaredSymbol(line) ? lineIndex : undefined;
+  }
+
+  return undefined;
+}
+
+function extractDeclaredSymbol(line: string): string | undefined {
+  return line.match(
+    /\b(?:pub(?:\([^)]*\))?\s+)?(?:const\s+)?(?:async\s+)?(?:fn|struct|enum|trait|type|const|static|mod)\s+([A-Za-z_][A-Za-z0-9_]*)\b/u,
+  )?.[1];
+}
+
+function includeLeadingDeclarationContext(sourceLines: readonly string[], declarationLineIndex: number): number {
+  let startLineIndex = declarationLineIndex;
+
+  while (startLineIndex > 0) {
+    const previousLine = sourceLines[startLineIndex - 1]?.trim() ?? '';
+
+    if (
+      previousLine.startsWith('#[') ||
+      previousLine.startsWith('///') ||
+      previousLine.startsWith('//!') ||
+      previousLine.startsWith('//')
+    ) {
+      startLineIndex -= 1;
+      continue;
+    }
+
+    break;
+  }
+
+  return startLineIndex;
 }
 
 function readSourceFileAtRef(
