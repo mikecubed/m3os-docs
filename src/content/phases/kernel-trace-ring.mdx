@@ -1,0 +1,72 @@
+---
+phase: 43
+title: "Kernel Trace Ring"
+status: complete
+category: infrastructure
+summary: "Learn how Kernel Trace Ring fits into m3OS."
+learningGoal: "Understand Kernel Trace Ring in m3OS."
+buildsOn:
+  - "crash-diagnostics"
+extends: []
+replaces: []
+components: []
+learningObjectives: []
+keyFiles: []
+codeSpotlights:
+  - title: "Define `TraceRing<const N: usize>` in kernel-core"
+    file: "kernel-core/src/trace_ring.rs"
+    lines: "L122-L132"
+    summary: "Define `TraceRing<const N: usize>` in kernel-core. Why it matters: A lockless per-core ring avoids contention on the hot path; placing it in kernel-core makes it host-testable with standard cargo test just like the existing LogRing. Focus on `TraceRing` and `LogRing` in `kernel-core/src/trace_ring.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.43.1/kernel-core/src/trace_ring.rs"
+    snippet: "/// Per-core lockless circular trace buffer.\n///\n/// Holds the most recent `N` entries. New entries overwrite the oldest on wrap.\n/// No mutex — safe for single-writer (owning core) use.\npub struct TraceRing<const N: usize> {\n    buf: [TraceEntry; N],\n    write_idx: usize,\n    count: usize,\n}\n\nimpl<const N: usize> TraceRing<N> {"
+    snippetLanguage: "rust"
+  - title: "Per-core trace ring allocation in kernel"
+    file: "kernel/src/smp/mod.rs"
+    lines: "L56-L79"
+    summary: "Per-core trace ring allocation in kernel. Why it matters: Each core needs its own ring to avoid lock contention; the ring must be sized to hold enough events to cover a typical fork+dispatch+fault sequence. Focus on `PerCoreData` and `TraceRing::new` in `kernel/src/smp/mod.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.43.1/kernel/src/smp/mod.rs"
+    snippet: "/// Per-core state block.\n///\n/// Each core has one of these, initialized during BSP init or AP bootstrap.\n/// The `gs_base` MSR points to this struct so that `per_core()` can retrieve\n/// it in O(1) without MMIO.\n#[repr(C)]\npub struct PerCoreData {\n    /// Self-pointer at offset 0 — reserved for future `gs:[0]` access.\n    /// Currently unused: `per_core()` reads `IA32_GS_BASE` via `rdmsr`.\n    self_ptr: *const PerCoreData,\n    /// Logical core index (0 = BSP, 1..n = APs in MADT order).\n    pub core_id: u8,\n    /// LAPIC ID from the MADT.\n    pub apic_id: u8,\n    /// Set to `true` once this core has completed initialization.\n    pub is_online: AtomicBool,\n    /// Pointer to this core's TSS (for runtime RSP0 updates).\n    tss_ptr: *mut TaskStateSegment,\n    /// Pointer to this core's GDT (pre-allocated on BSP, loaded on AP).\n    gdt_ptr: *const GlobalDescriptorTable,\n    /// Segment selectors for this core's GDT.\n    gdt_code: SegmentSelector,\n    gdt_data: SegmentSelector,\n    gdt_tss: SegmentSelector,"
+    snippetLanguage: "rust"
+  - title: "Trace emit helper"
+    file: "kernel/src/trace.rs"
+    lines: "L10-L32"
+    summary: "Trace emit helper. Why it matters: A single trace_event(event) call site keeps instrumentation minimal (one line per call site) and handles timestamping and core-ID tagging automatically. Focus on `trace_event` and `trace_event(event)` in `kernel/src/trace.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.43.1/kernel/src/trace.rs"
+    snippet: "/// Emit a trace event on the current core's trace ring.\n///\n/// Compiles to nothing when the `trace` feature is off.\n#[cfg(feature = \"trace\")]\npub fn trace_event(event: TraceEvent) {\n    if !crate::smp::is_per_core_ready() {\n        return;\n    }\n    let core_id = crate::smp::per_core().core_id;\n    let tick = crate::arch::x86_64::interrupts::tick_count();\n    // Safety: trace_ring is wrapped in UnsafeCell for interior mutability.\n    // Only the owning core writes to its ring (single-writer guarantee via\n    // gs_base per-core data). The UnsafeCell makes the mutable access sound.\n    let ring_ptr = crate::smp::per_core().trace_ring.get();\n    unsafe {\n        (*ring_ptr).push(TraceEntry {\n            tick,\n            core: core_id,\n            _pad: [0; 7],\n            event,\n        });\n    }\n}"
+    snippetLanguage: "rust"
+realOsDifferences: []
+successCriteria: []
+---
+
+## Why this phase matters
+
+Learn how Kernel Trace Ring fits into m3OS.
+
+## How it works in m3OS
+
+The roadmap entry defines the learning scope for this phase; a deeper implementation doc has not been matched yet.
+
+## How it builds on earlier phases
+
+This phase builds on Crash Diagnostics and turns that foundation into Kernel Trace Ring.
+
+## Implementation outline
+
+- Implementation steps have not been extracted yet.
+
+## Task progress snapshot
+
+0 of 76 tracked tasks are complete.
+
+## Documentation targets
+
+- Documentation deliverables have not been listed yet.
+
+## Deferred follow-on work
+
+- No deferred items were listed in the roadmap entry.
+
+## Source materials
+
+- Roadmap entry not found.
+- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/43b-kernel-trace-ring-tasks.md)

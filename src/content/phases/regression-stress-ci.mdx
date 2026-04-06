@@ -1,0 +1,68 @@
+---
+phase: 43
+title: "Regression Stress Ci"
+status: complete
+category: infrastructure
+summary: "Learn how Regression Stress Ci fits into m3OS."
+learningGoal: "Understand Regression Stress Ci in m3OS."
+buildsOn:
+  - "kernel-trace-ring"
+extends: []
+replaces: []
+components: []
+learningObjectives: []
+keyFiles: []
+codeSpotlights:
+  - title: "Add `regression` subcommand to xtask"
+    file: "xtask/src/main.rs"
+    lines: "L4454-L4477"
+    summary: "Add `regression` subcommand to xtask. Why it matters: The existing test command runs kernel unit tests and the smoke-test runs a single-pass boot validation; neither is designed for targeted race-condition regression tests that need specific QEMU configurations and timeout handling. Focus on `regression` and `cmd_regression` in `xtask/src/main.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.43.1/xtask/src/main.rs"
+    snippet: "fn cmd_regression(args: &RegressionArgs) {\n    let all_tests = regression_tests();\n    let tests_to_run: Vec<&RegressionTest> = if let Some(name) = &args.test_name {\n        let found = all_tests.iter().find(|t| t.name == name);\n        match found {\n            Some(t) => vec![t],\n            None => {\n                eprintln!(\"Unknown regression test: {name}\");\n                eprintln!(\n                    \"Available: {}\",\n                    all_tests\n                        .iter()\n                        .map(|t| t.name)\n                        .collect::<Vec<_>>()\n                        .join(\", \")\n                );\n                std::process::exit(1);\n            }\n        }\n    } else {\n        all_tests.iter().collect()\n    };\n\n    println!(\"regression: running {} test(s)\", tests_to_run.len());"
+    snippetLanguage: "rust"
+  - title: "Regression test guest-side binary framework"
+    file: "userspace/regression/"
+    lines: "See file"
+    summary: "Regression test guest-side binary framework. Why it matters: Regression tests need a guest-side component that exercises the specific code path and prints structured pass/fail markers to serial output. Focus on `regression_harness` in `userspace/regression/` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.43.1/userspace/regression/"
+  - title: "Fork overlap guest test"
+    file: "userspace/regression/fork-overlap.c"
+    lines: "See file"
+    summary: "Fork overlap guest test. Why it matters: The RIP=0x4 crash occurs during overlapping fork() calls from different processes; this test reproduces the exact pattern by forking rapidly from multiple parents. Focus on `fork_overlap_test` and `RIP=0x4` in `userspace/regression/fork-overlap.c` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.43.1/userspace/regression/fork-overlap.c"
+realOsDifferences: []
+successCriteria: []
+---
+
+## Why this phase matters
+
+Learn how Regression Stress Ci fits into m3OS.
+
+## How it works in m3OS
+
+The roadmap entry defines the learning scope for this phase; a deeper implementation doc has not been matched yet.
+
+## How it builds on earlier phases
+
+This phase builds on Kernel Trace Ring and turns that foundation into Regression Stress Ci.
+
+## Implementation outline
+
+- Implementation steps have not been extracted yet.
+
+## Task progress snapshot
+
+0 of 111 tracked tasks are complete.
+
+## Documentation targets
+
+- Documentation deliverables have not been listed yet.
+
+## Deferred follow-on work
+
+- No deferred items were listed in the roadmap entry.
+
+## Source materials
+
+- Roadmap entry not found.
+- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/43c-regression-stress-ci-tasks.md)

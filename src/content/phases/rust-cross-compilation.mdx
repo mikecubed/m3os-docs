@@ -1,12 +1,12 @@
 ---
 phase: 44
 title: "Rust Cross Compilation"
-status: planned
+status: complete
 category: productivity
 summary: "Rust programs compiled on the host run natively inside the OS. A documented toolchain setup enables writing Rust code on the host, cross-compiling to an x86-64 ELF binary linked against musl, and deploying it to the OS's disk image. Stretch goal: a minimal Rust program compiles inside the OS itself."
 learningGoal: "Understand Rust's cross-compilation model: targets, sysroots, and linkers."
 buildsOn:
-  - "ssh-server"
+  - "regression-stress-ci"
 extends: []
 replaces: []
 components:
@@ -42,7 +42,7 @@ The roadmap entry defines the learning scope for this phase; a deeper implementa
 
 ## How it builds on earlier phases
 
-This phase builds on SSH Server and turns that foundation into Rust Cross Compilation.
+This phase builds on Regression Stress Ci and turns that foundation into Rust Cross Compilation.
 
 ## Implementation outline
 

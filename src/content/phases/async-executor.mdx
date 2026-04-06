@@ -1,0 +1,71 @@
+---
+phase: 42
+title: "Async Executor"
+status: complete
+category: infrastructure
+summary: "Learn how Async Executor fits into m3OS."
+learningGoal: "Understand Async Executor in m3OS."
+buildsOn:
+  - "crypto-primitives"
+extends: []
+replaces: []
+components:
+  - "process-model"
+learningObjectives: []
+keyFiles: []
+codeSpotlights:
+  - title: "Add `PollFd` struct and `poll()` wrapper to syscall-lib"
+    file: "userspace/syscall-lib/src/lib.rs"
+    lines: "See file"
+    summary: "descriptors. Currently sshd inlines syscall3(SYS_POLL, ...) directly — a. Why it matters: The reactor needs poll() to block on multiple file. Focus on `PollFd` and `poll` in `userspace/syscall-lib/src/lib.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.42.0/userspace/syscall-lib/src/lib.rs"
+  - title: "Create async-rt crate skeleton"
+    file: "userspace/async-rt/Cargo.toml"
+    lines: "L5-L16"
+    summary: "userspace daemon, not just sshd. The dual std/no_std feature flag pattern. Why it matters: A dedicated crate keeps the executor reusable by any. Focus on `async_rt` and `std` in `userspace/async-rt/Cargo.toml` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.42.0/userspace/async-rt/Cargo.toml"
+    snippet: "\n[features]\ndefault = [\"std\"]\nstd = [\"libc\"]\nalloc = []\n\n[dependencies]\nsyscall-lib = { path = \"../syscall-lib\" }\nlibc = { version = \"0.2\", optional = true }\n\n[dev-dependencies]\nlibc = \"0.2\""
+    snippetLanguage: "text"
+  - title: "Test and implement Task struct with woken flag"
+    file: "userspace/async-rt/src/task.rs"
+    lines: "L224-L232"
+    summary: "waker.wake() when it has data ready, and the executor must know which task. Why it matters: The Waker is the core async primitive — sunset calls. Focus on `Task` and `task_waker` in `userspace/async-rt/src/task.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.42.0/userspace/async-rt/src/task.rs"
+    snippet: "/// A single-threaded async task wrapping a future and its waker state.\n///\n/// This is a compatibility shim that wraps the new `TaskHeader`.\n/// It will be removed when the executor is rewritten in Phase 2.\npub struct Task {\n    #[allow(dead_code)]\n    pub(crate) future: Pin<Box<dyn Future<Output = ()>>>,\n    pub(crate) header: Arc<TaskHeader>,\n}"
+    snippetLanguage: "rust"
+realOsDifferences: []
+successCriteria: []
+---
+
+## Why this phase matters
+
+Learn how Async Executor fits into m3OS.
+
+## How it works in m3OS
+
+The roadmap entry defines the learning scope for this phase; a deeper implementation doc has not been matched yet.
+
+## How it builds on earlier phases
+
+This phase builds on Crypto Primitives and turns that foundation into Async Executor.
+
+## Implementation outline
+
+- Implementation steps have not been extracted yet.
+
+## Task progress snapshot
+
+0 of 94 tracked tasks are complete.
+
+## Documentation targets
+
+- Documentation deliverables have not been listed yet.
+
+## Deferred follow-on work
+
+- No deferred items were listed in the roadmap entry.
+
+## Source materials
+
+- Roadmap entry not found.
+- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/42b-async-executor-tasks.md)

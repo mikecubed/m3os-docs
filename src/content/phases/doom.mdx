@@ -1,7 +1,7 @@
 ---
 phase: 47
 title: "Doom"
-status: planned
+status: complete
 category: showcase
 summary: "DOOM runs inside the OS. The shareware `doom1.wad` loads from disk, renders to the framebuffer, and accepts keyboard input for gameplay. This is the \"it runs DOOM\" milestone — the classic proof that a hobby OS has reached a meaningful level of capability."
 learningGoal: "Understand what a real graphical application needs from the OS: raw framebuffer access, input events, timing, and large file I/O."
@@ -20,11 +20,27 @@ keyFiles:
   - path: "kernel/initrd/doom.elf"
     summary: "Binary goes to kernel/initrd/doom.elf or the ext2 disk image."
 codeSpotlights:
-  - title: "Binary goes to kernel/initrd/doom.elf or the ext2 disk image"
-    file: "kernel/initrd/doom.elf"
-    lines: "See file"
-    summary: "Binary goes to kernel/initrd/doom.elf or the ext2 disk image."
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/initrd/doom.elf"
+  - title: "`sys_framebuffer_info` syscall"
+    file: "kernel/src/arch/x86_64/syscall.rs"
+    lines: "L894-L917"
+    summary: "and pixel format before it can render anything — this is the discovery mechanism. Why it matters: Userspace needs the framebuffer dimensions, pitch, bytes-per-pixel,. Focus on `sys_framebuffer_info` and `0x1002` in `kernel/src/arch/x86_64/syscall.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/arch/x86_64/syscall.rs"
+    snippet: "/// Linux syscall number → handler dispatch (Phase 12, T011–T026).\n///\n/// Numbers that happen to match our Phase 11 ABI are handled identically.\n/// The custom debug-print syscall is moved from 12 → 0x1000 to free up\n/// Linux brk = 12.\n///\n/// # Syscall audit (T011) — Linux numbers that musl requires\n///\n/// | Linux # | Name        | Implementation        |\n/// |---------|-------------|----------------------|\n/// |       0 | read        | ramdisk / stdin stub  |\n/// |       1 | write       | stdout → serial       |\n/// |       2 | open        | ramdisk lookup        |\n/// |       3 | close       | fd-table release      |\n/// |       5 | fstat       | minimal stat struct   |\n/// |       8 | lseek       | per-fd offset update  |\n/// |       9 | mmap        | anonymous only        |\n/// |      11 | munmap      | stub (no-op)          |\n/// |      12 | brk         | frame-backed heap     |\n/// |      16 | ioctl       | TIOCGWINSZ only       |\n/// |      19 | readv       | loop over read        |\n/// |      20 | writev      | loop over write       |\n/// |      39 | getpid      | ✓ same as Phase 11    |\n/// |      57 | fork        | ✓ same as Phase 11    |"
+    snippetLanguage: "rust"
+  - title: "Syscall constants in `syscall-lib`"
+    file: "userspace/syscall-lib/src/lib.rs"
+    lines: "L247-L248"
+    summary: "assembly or direct syscall invocation) need named constants for the new syscall. Why it matters: Rust userspace programs (and the C platform layer via inline. Focus on `syscall-lib` and `SYS_FRAMEBUFFER_INFO` in `userspace/syscall-lib/src/lib.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/userspace/syscall-lib/src/lib.rs"
+    snippet: "/// Custom kernel meminfo syscall (Phase 33).\npub const SYS_MEMINFO: u64 = 0x1001;"
+    snippetLanguage: "rust"
+  - title: "Console yield function"
+    file: "kernel/src/fb/mod.rs"
+    lines: "L789-L799"
+    summary: "same framebuffer memory, causing garbled output. Why it matters: Without this, the kernel text console and DOOM would race on the. Focus on `yield_console` and `write_str` in `kernel/src/fb/mod.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/fb/mod.rs"
+    snippet: "    /// Write all characters in `s`, processing through the ANSI parser.\n    fn write_str(&mut self, s: &str) {\n        // Erase cursor before modifying the framebuffer.\n        self.hide_cursor();\n        for c in s.chars() {\n            let cmd = self.parser.process_char(c);\n            self.execute_cmd(cmd);\n        }\n        // Redraw cursor at (possibly new) position.\n        self.show_cursor();\n    }"
+    snippetLanguage: "rust"
 realOsDifferences:
   - "**Linux framebuffer** (`/dev/fb0`) with `fbdev` ioctls for mode setting."
   - "**DRM/KMS** (Direct Rendering Manager / Kernel Mode Setting) for modern GPU access."
@@ -69,7 +85,7 @@ This phase builds on System Services and turns that foundation into Doom.
 
 ## Task progress snapshot
 
-No checklist tasks were discovered for this phase yet.
+0 of 81 tracked tasks are complete.
 
 ## Documentation targets
 
@@ -89,3 +105,4 @@ No checklist tasks were discovered for this phase yet.
 ## Source materials
 
 - [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/47-doom.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/47-doom-tasks.md)

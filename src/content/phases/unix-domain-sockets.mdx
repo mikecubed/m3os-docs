@@ -1,9 +1,9 @@
 ---
 phase: 39
 title: "Unix Domain Sockets"
-status: planned
+status: complete
 category: infrastructure
-summary: "The OS supports `AF_UNIX` (Unix domain) sockets for high-performance local inter-process communication. Programs can create stream and datagram sockets bound to filesystem paths or abstract addresses. This is the primary IPC mechanism on Linux, used by D-Bus, X11, systemd, PostgreSQL, Docker, and many other systems."
+summary: "The OS supports `AF_UNIX` (Unix domain) sockets for high-performance local inter-process communication. Programs can create stream and datagram sockets bound to filesystem paths. `socketpair()` creates connected pairs for parent-child IPC after `fork()`. This is the primary IPC mechanism on Linux, used by D-Bus, X11, systemd, PostgreSQL, Docker, and many other systems."
 learningGoal: "Understand why Unix domain sockets exist: local IPC without network overhead."
 buildsOn:
   - "filesystem-enhancements"
@@ -11,36 +11,65 @@ extends: []
 replaces: []
 components:
   - "network-stack"
-  - "vfs"
 learningObjectives:
   - "Understand why Unix domain sockets exist: local IPC without network overhead."
   - "Learn the difference between named sockets (filesystem path) and abstract sockets (Linux-specific, no filesystem entry)."
   - "See how `socketpair()` creates connected socket pairs for parent-child communication."
-  - "Understand `SCM_RIGHTS` — passing file descriptors between processes over a socket."
-keyFiles: []
-codeSpotlights: []
+  - "Understand the connection lifecycle: bind, listen, accept, connect for stream sockets."
+  - "Learn how datagram sockets preserve message boundaries vs. stream sockets."
+keyFiles:
+  - path: "kernel/src/net/unix.rs"
+    summary: "New struct in kernel/src/net/unix.rs managing the state machine for each Unix domain"
+  - path: "kernel/src/net/mod.rs"
+    summary: "The existing SOCKET_TABLE in kernel/src/net/mod.rs and FdBackend::Socket handle"
+  - path: "kernel-core/src/pipe.rs"
+    summary: "Uses ring buffer patterns from pipes (kernel-core/src/pipe.rs) for socket data buffers."
+codeSpotlights:
+  - title: "Define `UnixSocketType` and `UnixSocketState` enums"
+    file: "kernel/src/net/unix.rs"
+    lines: "L19-L27"
+    summary: "and datagram sockets have fundamentally different behavior (connection-oriented. Why it matters: These enums drive all state-machine transitions. Stream. Focus on `UnixSocketType` and `UnixSocketState` in `kernel/src/net/unix.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.39.0/kernel/src/net/unix.rs"
+    snippet: "// A.1 — UnixSocketType and UnixSocketState enums\n// ===========================================================================\n\n/// Unix socket type: stream (connection-oriented) or datagram (connectionless).\n#[derive(Debug, Clone, Copy, PartialEq, Eq)]\npub enum UnixSocketType {\n    Stream,\n    Datagram,\n}"
+    snippetLanguage: "rust"
+  - title: "Add `FdBackend::UnixSocket` variant"
+    file: "kernel/src/process/mod.rs"
+    lines: "L91-L114"
+    summary: "poll() based on the FdBackend variant. A new variant is needed so the syscall. Why it matters: The FD table dispatches read(), write(), close(), and. Focus on `FdBackend::UnixSocket` and `read` in `kernel/src/process/mod.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.39.0/kernel/src/process/mod.rs"
+    snippet: "/// Backing store for an open file descriptor.\n#[derive(Clone)]\npub enum FdBackend {\n    /// FD 1/2 stdout/stderr — writes go to serial output.\n    Stdout,\n    /// FD 0 stdin — reads block until data is available from the kernel stdin buffer.\n    Stdin,\n    /// Read-only static ramdisk file (pointer + length into kernel .rodata).\n    Ramdisk {\n        content_addr: usize,\n        content_len: usize,\n    },\n    /// Writable tmpfs file, identified by its path (e.g. \"foo/bar.txt\"\n    /// relative to tmpfs root — no leading `/tmp/`).\n    Tmpfs { path: String },\n    /// FAT32 on-disk file (Phase 24). Stores the relative path within /data,\n    /// the start cluster, file size, and parent directory cluster.\n    Fat32Disk {\n        path: String,\n        start_cluster: u32,\n        file_size: u32,\n        dir_cluster: u32,\n    },\n    /// ext2 on-disk file (Phase 28). Stores the root-relative path"
+    snippetLanguage: "rust"
+  - title: "Route `read()` and `write()` syscalls for Unix sockets"
+    file: "kernel/src/arch/x86_64/syscall.rs"
+    lines: "L35-L36"
+    summary: "writes via standard read(fd, buf, len) and write(fd, buf, len). These must. Why it matters: Once a Unix stream socket is connected, userspace reads and. Focus on `read` and `write` in `kernel/src/arch/x86_64/syscall.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.39.0/kernel/src/arch/x86_64/syscall.rs"
+    snippet: "#[allow(dead_code)]\nconst NEG_EAGAIN: u64 = (-11_i64) as u64;"
+    snippetLanguage: "rust"
 realOsDifferences:
-  - "**SCM_RIGHTS** — pass file descriptors between processes."
-  - "**SCM_CREDENTIALS** — pass sender's PID/UID/GID."
-  - "**SOCK_SEQPACKET** — connection-oriented with message boundaries."
-  - "**Abstract namespace** — sockets without filesystem entries."
-  - "**Autobind** — kernel-assigned abstract addresses."
-  - "**SO_PEERCRED** — query connected peer's credentials."
-  - "**Ancillary data** — arbitrary control messages."
+  - "**SCM_RIGHTS** — Linux passes file descriptors between processes over Unix sockets."
+  - "**SCM_CREDENTIALS** — Linux passes sender's PID/UID/GID as ancillary data."
+  - "**SOCK_SEQPACKET** — Connection-oriented with message boundaries (combines stream reliability with datagram framing)."
+  - "**Abstract namespace** — Linux-specific sockets without filesystem entries (`\\0name`)."
+  - "**Autobind** — Kernel assigns abstract addresses automatically."
+  - "**SO_PEERCRED** — Query connected peer's credentials via `getsockopt()`."
+  - "**sendmsg/recvmsg** — Scatter-gather I/O with ancillary data (control messages)."
 successCriteria:
   - "`socketpair(AF_UNIX, SOCK_STREAM, 0, sv)` creates a working connected pair."
   - "A server can `bind` + `listen` + `accept` on a named socket path."
-  - "A client can `connect` to the named socket and exchange data."
+  - "A client can `connect` to the named socket and exchange data bidirectionally."
   - "`poll()` and `epoll` work with Unix domain socket fds."
   - "Datagram sockets preserve message boundaries."
   - "`unlink()` removes a named socket from the filesystem."
   - "Socket file permissions are enforced (non-root cannot connect to root-owned socket)."
+  - "`shutdown()` half-close works (SHUT_RD, SHUT_WR, SHUT_RDWR)."
+  - "Non-blocking mode (`O_NONBLOCK`) works for Unix sockets."
   - "All existing tests pass without regression."
 ---
 
 ## Why this phase matters
 
-The OS supports `AF_UNIX` (Unix domain) sockets for high-performance local inter-process communication. Programs can create stream and datagram sockets bound to filesystem paths or abstract addresses. This is the primary IPC mechanism on Linux, used by D-Bus, X11, systemd, PostgreSQL, Docker, and many other systems.
+The OS supports `AF_UNIX` (Unix domain) sockets for high-performance local inter-process communication. Programs can create stream and datagram sockets bound to filesystem paths. `socketpair()` creates connected pairs for parent-child IPC after `fork()`. This is the primary IPC mechanism on Linux, used by D-Bus, X11, systemd, PostgreSQL, Docker, and many other systems.
 
 ## How it works in m3OS
 
@@ -52,21 +81,24 @@ This phase builds on Filesystem Enhancements and turns that foundation into Unix
 
 ## Implementation outline
 
-- Add `AF_UNIX` socket type to the socket syscall dispatcher.
-- Implement `UnixSocket` kernel data structure with ring buffers.
-- Implement `socketpair()` — simplest case (no filesystem, pre-connected).
+- Add `UnixSocket` struct and `UNIX_SOCKET_TABLE` in `kernel/src/net/unix.rs`.
+- Add `FdBackend::UnixSocket` variant to process FD infrastructure.
+- Extend `sys_socket()` to accept `AF_UNIX` and allocate Unix sockets.
+- Implement `sys_socketpair()` with real Unix socket pairs (replace pipe delegation).
 - Implement `bind()` for named sockets (create socket file in VFS).
 - Implement `connect()` to named sockets (find socket file, establish connection).
 - Implement `listen()` + `accept()` for stream sockets.
 - Implement `read()`/`write()` for connected stream sockets.
 - Implement `sendto()`/`recvfrom()` for datagram sockets.
 - Add poll/epoll support for Unix socket fds.
-- Test: syslog-style server accepting connections on `/dev/log`.
+- Add `shutdown()` support for Unix sockets.
 - Test: `socketpair()` for parent-child communication.
+- Test: named stream socket server/client.
+- Test: datagram socket message boundary preservation.
 
 ## Task progress snapshot
 
-No checklist tasks were discovered for this phase yet.
+131 of 131 tracked tasks are complete.
 
 ## Documentation targets
 
@@ -80,7 +112,9 @@ No checklist tasks were discovered for this phase yet.
 - Abstract namespace sockets
 - SO_PEERCRED
 - Autobind
+- sendmsg/recvmsg with ancillary data
 
 ## Source materials
 
 - [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/39-unix-domain-sockets.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/39-unix-domain-sockets-tasks.md)

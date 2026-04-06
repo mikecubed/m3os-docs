@@ -1,7 +1,7 @@
 ---
 phase: 40
 title: "Threading Primitives"
-status: planned
+status: complete
 category: foundations
 summary: "The OS supports kernel-level threads via `clone()` with `CLONE_THREAD` and `CLONE_VM`. Multiple threads share an address space and can synchronize via `futex()`. Thread-local storage works via `arch_prctl(ARCH_SET_FS)`. This enables multi-threaded C programs and improves musl libc compatibility (which uses threads internally even for single-threaded programs)."
 learningGoal: "Understand the relationship between processes and threads at the kernel level: threads are tasks that share an address space."
@@ -17,26 +17,50 @@ learningObjectives:
   - "Learn how `futex()` enables efficient userspace synchronization (mutex, condvar, semaphore) with kernel assistance only on contention."
   - "See how thread-local storage (TLS) works via the FS segment base register."
   - "Understand thread lifecycle: creation, join, detach, exit."
-keyFiles: []
-codeSpotlights: []
+keyFiles:
+  - path: "kernel/src/process/mod.rs"
+    summary: "The Process struct in kernel/src/process/mod.rs gains tid and tgid fields."
+  - path: "kernel/src/task/mod.rs"
+    summary: "The Task struct in kernel/src/task/mod.rs is unchanged — it already has pid"
+codeSpotlights:
+  - title: "Add `tid` and `tgid` fields to `Process`"
+    file: "kernel/src/process/mod.rs"
+    lines: "L510-L533"
+    summary: "of thread identity. Every thread-aware syscall (gettid, set_tid_address,. Why it matters: The current Process struct has only pid and no concept. Focus on `tid` and `tgid` in `kernel/src/process/mod.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.40.0/kernel/src/process/mod.rs"
+    snippet: "/// Descriptor for a single userspace process.\npub struct Process {\n    /// This process's unique identifier.\n    pub pid: Pid,\n    pub tid: u32,\n    pub tgid: u32,\n    pub clear_child_tid: u64,\n    /// Parent PID.  0 means no parent (init or an orphan).\n    pub ppid: Pid,\n    /// Current lifecycle state.\n    pub state: ProcessState,\n    /// Root physical address of this process's page table.\n    ///\n    /// `None` means the process has not yet been assigned a dedicated\n    /// address space and shares the kernel's mappings (pre-Phase 12).\n    pub page_table_root: Option<x86_64::PhysAddr>,\n    /// Top of this process's kernel-mode stack (virtual address).\n    pub kernel_stack_top: u64,\n    /// Userspace entry-point virtual address.\n    pub entry_point: u64,\n    /// Initial userspace RSP: the virtual address of `argc` on the ABI stack,\n    /// as returned by `setup_abi_stack`.  This is **not** the raw top of the\n    /// stack allocation — it points into the stack, below the argv/envp data.\n    pub user_stack_top: u64,"
+    snippetLanguage: "rust"
+  - title: "Implement `gettid()` as a distinct syscall"
+    file: "kernel/src/arch/x86_64/syscall.rs"
+    lines: "L1446-L1454"
+    summary: "gettid() to return their unique TID so musl can track thread identity for. Why it matters: Syscall 186 currently aliases to sys_getpid(). Threads need. Focus on `gettid` and `sys_gettid` in `kernel/src/arch/x86_64/syscall.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.40.0/kernel/src/arch/x86_64/syscall.rs"
+    snippet: "/// `gettid()` — return the calling thread's unique thread ID.\nfn sys_gettid() -> u64 {\n    let pid = crate::process::current_pid();\n    crate::process::PROCESS_TABLE\n        .lock()\n        .find(pid)\n        .map(|p| p.tid as u64)\n        .unwrap_or(pid as u64)\n}"
+    snippetLanguage: "rust"
+  - title: "Define futex wait queue table"
+    file: "kernel/src/process/futex.rs"
+    lines: "L46-L48"
+    summary: "synchronization. Every pthread_mutex_lock that contends, every pthread_cond_wait,. Why it matters: The futex table is the core kernel data structure for thread. Focus on `FUTEX_TABLE` and `FutexWaiter` in `kernel/src/process/futex.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.40.0/kernel/src/process/futex.rs"
+    snippet: "/// Global table of futex wait queues, keyed by `(page_table_root, vaddr)`.\npub static FUTEX_TABLE: Lazy<Mutex<BTreeMap<FutexKey, Vec<FutexWaiter>>>> =\n    Lazy::new(|| Mutex::new(BTreeMap::new()));"
+    snippetLanguage: "rust"
 realOsDifferences:
-  - "**NPTL** (Native POSIX Threads Library) — musl and glibc implement pthreads using `clone()` + `futex()`, exactly the mechanism we implement."
-  - "**Robust futexes** — automatically release on thread death."
-  - "**Priority inheritance futexes** — prevent priority inversion."
-  - "**Thread-specific signal masks** via `rt_sigprocmask`."
-  - "**CPU affinity per thread** via `sched_setaffinity`."
-  - "**Thread naming** via `prctl(PR_SET_NAME)`."
-  - "**Thread cgroups** — resource limits per thread group."
-  - "Linux uses `clone3()` (syscall 435) as the modern replacement for `clone()`."
+  - "**NPTL** (Native POSIX Threads Library) -- musl and glibc implement pthreads using `clone()` + `futex()`, exactly the mechanism we implement."
+  - "**Robust futexes** -- automatically release on thread death; we defer this."
+  - "**Priority inheritance futexes** -- prevent priority inversion; we defer this."
+  - "**Thread-specific signal masks** via per-thread `rt_sigprocmask`; we use process-wide masks initially."
+  - "Linux uses `clone3()` (syscall 435) as the modern replacement for `clone()`; we use the classic `clone()`."
+  - "Real kernels use a hash table with bucket locks for the futex table; we use a single `BTreeMap` under one lock."
 successCriteria:
   - "`clone(CLONE_VM | CLONE_THREAD | ...)` creates a thread sharing the parent's address space."
   - "`gettid()` returns different values for threads in the same group."
   - "`getpid()` returns the same value for all threads in a group."
   - "`futex(FUTEX_WAIT)` sleeps and `futex(FUTEX_WAKE)` wakes the sleeper."
-  - "A musl-linked program using `pthread_create` and `pthread_join` works."
   - "`pthread_mutex_lock/unlock` works (built on futex)."
-  - "Thread-local variables (`__thread` / `_Thread_local`) work."
-  - "`exit_group()` terminates all threads in the group."
+  - "Thread-local variables work via per-thread FS base."
+  - "`set_tid_address()` stores the clear_child_tid pointer and wakes futex on thread exit."
+  - "`exit()` (syscall 60) terminates only the calling thread."
+  - "`exit_group()` (syscall 231) terminates all threads in the group."
   - "Multiple threads on different cores can run simultaneously."
   - "All existing tests pass (single-threaded programs unaffected)."
 ---
@@ -55,8 +79,8 @@ This phase builds on Unix Domain Sockets and turns that foundation into Threadin
 
 ## Implementation outline
 
-- Add `tid` and `tgid` fields to `Task`; implement `gettid()`.
-- Implement `ThreadGroup` shared state structure.
+- Add `tid`, `tgid`, and `clear_child_tid` fields to `Process`; implement `gettid()`.
+- Implement `ThreadGroup` struct and membership tracking.
 - Extend `clone()` to accept `CLONE_VM | CLONE_THREAD | CLONE_FILES | CLONE_SIGHAND`.
 - Allocate per-thread kernel stacks; share page table root with `CLONE_VM`.
 - Implement `CLONE_SETTLS` (set FS base for new thread).
@@ -64,13 +88,13 @@ This phase builds on Unix Domain Sockets and turns that foundation into Threadin
 - Implement `FUTEX_WAIT` and `FUTEX_WAKE` with proper wait queues.
 - Implement `FUTEX_WAIT_BITSET` and `FUTEX_WAKE_BITSET`.
 - Update `exit()` for thread-only exit vs `exit_group()` for group exit.
-- Update signal delivery for thread groups.
-- Test with musl's `pthread_create` / `pthread_join`.
-- Stress test: multiple threads incrementing a shared counter via futex mutex.
+- Update signal delivery for thread groups (`tkill`, process-directed signals).
+- Build userspace thread test program.
+- Validate with musl `pthread_create` / `pthread_join` if possible.
 
 ## Task progress snapshot
 
-No checklist tasks were discovered for this phase yet.
+103 of 103 tracked tasks are complete.
 
 ## Documentation targets
 
@@ -80,13 +104,15 @@ No checklist tasks were discovered for this phase yet.
 
 - Robust futexes (auto-release on death)
 - Priority inheritance (PI) futexes
-- clone3() syscall
-- Thread naming (prctl PR_SET_NAME)
-- Per-thread CPU affinity
+- `clone3()` syscall
+- Thread naming (`prctl PR_SET_NAME`)
+- Per-thread CPU affinity (extend existing per-process affinity)
 - POSIX thread cancellation
-- Thread-specific signal masks
+- Per-thread signal masks
 - User-level threading (M:N model)
+- `FUTEX_REQUEUE` / `FUTEX_CMP_REQUEUE` / `FUTEX_WAKE_OP`
 
 ## Source materials
 
 - [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/40-threading-primitives.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/40-threading-primitives-tasks.md)

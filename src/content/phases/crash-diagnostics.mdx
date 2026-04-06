@@ -1,0 +1,72 @@
+---
+phase: 43
+title: "Crash Diagnostics"
+status: complete
+category: infrastructure
+summary: "Learn how Crash Diagnostics fits into m3OS."
+learningGoal: "Understand Crash Diagnostics in m3OS."
+buildsOn:
+  - "ssh-server"
+extends: []
+replaces: []
+components: []
+learningObjectives: []
+keyFiles: []
+codeSpotlights:
+  - title: "Dump CPU registers on panic"
+    file: "kernel/src/main.rs"
+    lines: "L1161-L1184"
+    summary: "Dump CPU registers on panic. Why it matters: The current panic handler at line 1157 prints only the file, line, and message; without register state, the developer cannot determine what value was in RIP, RSP, or any GPR at the point of failure. Focus on `panic` and `_panic_print` in `kernel/src/main.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.43.1/kernel/src/main.rs"
+    snippet: "#[panic_handler]\nfn panic(info: &core::panic::PanicInfo) -> ! {\n    // In test builds, delegate to the test panic handler which exits QEMU\n    // with the failure code so `cargo xtask test` can detect the error.\n    #[cfg(test)]\n    testing::test_panic_handler(info);\n\n    #[cfg(not(test))]\n    {\n        if let Some(location) = info.location() {\n            serial::_panic_print(format_args!(\n                \"KERNEL PANIC at {}:{}\\n\",\n                location.file(),\n                location.line()\n            ));\n        } else {\n            serial::_panic_print(format_args!(\"KERNEL PANIC at unknown location\\n\"));\n        }\n        serial::_panic_print(format_args!(\"  {}\\n\", info.message()));\n        panic_diag::dump_crash_context();\n        trace::dump_trace_rings();\n        hlt_loop();\n    }\n}"
+    snippetLanguage: "rust"
+  - title: "Extract panic diagnostics into a helper module"
+    file: "kernel/src/panic_diag.rs"
+    lines: "L303-L317"
+    summary: "Extract panic diagnostics into a helper module. Why it matters: Fault handlers (Track B) and the future trace-ring dump (Phase 43b) also need the same diagnostic output; extracting it avoids code duplication and keeps the panic handler readable. Focus on `dump_crash_context` and `_panic_print` in `kernel/src/panic_diag.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.43.1/kernel/src/panic_diag.rs"
+    snippet: "/// Dump full crash diagnostics to the serial port.\n///\n/// Called from the panic handler after printing location and message.\n/// Uses only `_panic_print` (deadlock-safe) and `try_lock()` to avoid\n/// secondary deadlocks.\npub fn dump_crash_context() {\n    _panic_print(format_args!(\"=== CRASH DIAGNOSTICS ===\\n\"));\n\n    let regs = capture_registers();\n    dump_registers(&regs);\n    dump_current_task();\n    dump_per_core_state();\n\n    _panic_print(format_args!(\"=== END CRASH DIAGNOSTICS ===\\n\"));\n}"
+    snippetLanguage: "rust"
+  - title: "Enrich page fault handler (userspace)"
+    file: "kernel/src/arch/x86_64/interrupts.rs"
+    lines: "L350-L373"
+    summary: "Enrich page fault handler (userspace). Why it matters: The userspace page fault handler at line 425 prints PID, address, error code, and RIP, but not RSP, task state, scheduler state, or per-core context — exactly the information needed to diagnose the RIP=0x4 crash. Focus on `page_fault_handler` and `RIP=0x4` in `kernel/src/arch/x86_64/interrupts.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.43.1/kernel/src/arch/x86_64/interrupts.rs"
+    snippet: "extern \"x86-interrupt\" fn page_fault_handler(\n    mut stack_frame: InterruptStackFrame,\n    err: PageFaultErrorCode,\n) {\n    let addr = x86_64::registers::control::Cr2::read();\n\n    // Check if the fault came from ring 3 (user mode).\n    if stack_frame.code_segment.rpl() == x86_64::PrivilegeLevel::Ring3 {\n        // P17-T031: detect CoW faults — a write to a present, non-writable\n        // page marked with BIT_9 (the CoW marker set by cow_clone_user_pages).\n        let is_write = err.contains(PageFaultErrorCode::CAUSED_BY_WRITE);\n        let is_present = err.contains(PageFaultErrorCode::PROTECTION_VIOLATION);\n        if is_write\n            && is_present\n            && let Ok(fault_vaddr) = addr\n        {\n            let fault_addr_u64 = fault_vaddr.as_u64();\n            if has_cow_marker(fault_addr_u64) {\n                // CoW fault — resolve directly in the ISR. Safe because\n                // the fault is from ring 3 (no kernel locks held) and\n                // we're on a single CPU. On OOM, fall through to kill.\n                if resolve_cow_fault(fault_addr_u64) {\n                    return;\n                }"
+    snippetLanguage: "rust"
+realOsDifferences: []
+successCriteria: []
+---
+
+## Why this phase matters
+
+Learn how Crash Diagnostics fits into m3OS.
+
+## How it works in m3OS
+
+The roadmap entry defines the learning scope for this phase; a deeper implementation doc has not been matched yet.
+
+## How it builds on earlier phases
+
+This phase builds on SSH Server and turns that foundation into Crash Diagnostics.
+
+## Implementation outline
+
+- Implementation steps have not been extracted yet.
+
+## Task progress snapshot
+
+0 of 75 tracked tasks are complete.
+
+## Documentation targets
+
+- Documentation deliverables have not been listed yet.
+
+## Deferred follow-on work
+
+- No deferred items were listed in the roadmap entry.
+
+## Source materials
+
+- Roadmap entry not found.
+- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/43a-crash-diagnostics-tasks.md)

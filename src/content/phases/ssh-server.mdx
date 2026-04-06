@@ -1,12 +1,12 @@
 ---
 phase: 43
 title: "SSH Server"
-status: planned
+status: complete
 category: infrastructure
 summary: "An SSH server runs inside the OS, providing encrypted remote shell access. Users can connect from any standard SSH client (`ssh user@host`) with password or public key authentication. This replaces the telnet server for untrusted networks and is a major milestone: the OS is now a secure, networked, multi-user system."
 learningGoal: "Understand the SSH protocol: transport layer (encryption), user authentication layer, and connection layer (channels, sessions)."
 buildsOn:
-  - "crypto-primitives"
+  - "async-executor"
 extends: []
 replaces: []
 components:
@@ -18,18 +18,36 @@ learningObjectives:
   - "Learn how key exchange (Diffie-Hellman / X25519) establishes a shared secret."
   - "See how public key authentication works without transmitting the private key."
   - "Understand why SSH is the universal standard for remote system administration."
-keyFiles: []
-codeSpotlights: []
+  - "Learn how an IO-less protocol library integrates with an OS's socket and PTY layers."
+keyFiles:
+  - path: "userspace/sshd/"
+    summary: "Create userspace/sshd/ crate with basic TCP accept loop."
+codeSpotlights:
+  - title: "Create `userspace/sshd/` crate"
+    file: "userspace/sshd/Cargo.toml"
+    lines: "L1-L11"
+    summary: "pattern as telnetd (Phase 30). Separating the server from a library keeps the binary. Why it matters: A dedicated binary crate for the SSH server follows the same. Focus on `sshd` and `no_std` in `userspace/sshd/Cargo.toml` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.43.1/userspace/sshd/Cargo.toml"
+    snippet: "[package]\nname = \"sshd\"\nversion = \"0.1.0\"\nedition = \"2024\"\n\n[[bin]]\nname = \"sshd\"\npath = \"src/main.rs\"\n\n[dependencies]\nsyscall-lib = { path = \"../syscall-lib\", features = [\"alloc\"] }"
+    snippetLanguage: "text"
+  - title: "Verify sunset IO-less API compiles and runs in m3OS"
+    file: "userspace/sshd/src/main.rs"
+    lines: "See file"
+    summary: "tested inside m3OS. This task confirms that creating a sunset server instance,. Why it matters: sunset is designed as an IO-less library, but it has not been. Focus on `sunset::Runner` and `Runner` in `userspace/sshd/src/main.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.43.1/userspace/sshd/src/main.rs"
+  - title: "Generate Ed25519 host key on first boot"
+    file: "userspace/sshd/src/host_key.rs"
+    lines: "L42-L65"
+    summary: "first boot there is no key, so sshd must generate one using crypto-lib's Ed25519. Why it matters: The host key proves the server's identity during key exchange. On. Focus on `generate_host_key` and `crypto_lib::asymmetric::ed25519_keygen` in `userspace/sshd/src/host_key.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.43.1/userspace/sshd/src/host_key.rs"
+    snippet: "/// B.2: Generate a new Ed25519 host key and save to disk.\nfn generate_host_key() -> Result<HostKey, ()> {\n    let key = SignKey::generate(KeyType::Ed25519, None).map_err(|_| ())?;\n\n    // Extract the 32-byte seed from the key.\n    let seed = match &key {\n        SignKey::Ed25519(k) => k.to_bytes(),\n        _ => return Err(()),\n    };\n\n    // Write private key seed (mode 0600).\n    let fd = open(HOST_KEY_PATH, O_WRONLY | O_CREAT | O_TRUNC, 0o600);\n    if fd < 0 {\n        write_str(STDOUT_FILENO, \"sshd: cannot write host key\\n\");\n        return Err(());\n    }\n    let n = syscall_lib::write(fd as i32, &seed);\n    close(fd as i32);\n    if n != 32 {\n        write_str(STDOUT_FILENO, \"sshd: short write on host key\\n\");\n        syscall_lib::unlink(HOST_KEY_PATH);\n        return Err(());\n    }"
+    snippetLanguage: "rust"
 realOsDifferences:
-  - "SFTP and SCP for file transfer"
-  - "Port forwarding and tunneling"
-  - "X11 forwarding"
-  - "Agent forwarding"
-  - "ProxyJump / ProxyCommand"
-  - "Match blocks for conditional configuration"
-  - "Kerberos/GSSAPI authentication"
-  - "Certificate-based authentication"
-  - "Audit logging"
+  - "Production SSH servers (OpenSSH) support SFTP, SCP, port forwarding, tunneling, X11 forwarding, agent forwarding, ProxyJump, certificate auth, and GSSAPI."
+  - "OpenSSH uses privilege separation (unprivileged child handles the network, privileged parent handles authentication) to limit the impact of vulnerabilities."
+  - "Real systems support multiple host key types (RSA, ECDSA, Ed25519) and algorithm negotiation across dozens of ciphers and MACs."
+  - "Dropbear intentionally omits many features for simplicity. Our deployment is further simplified: single-server, no forwarding, no SFTP (initially)."
+  - "Production systems implement connection rate limiting, fail2ban integration, and audit logging for brute-force protection."
 successCriteria:
   - "`sshd` starts at boot and listens on port 22."
   - "`ssh user@host` from a standard OpenSSH client connects successfully."
@@ -53,24 +71,26 @@ The roadmap entry defines the learning scope for this phase; a deeper implementa
 
 ## How it builds on earlier phases
 
-This phase builds on Crypto Primitives and turns that foundation into SSH Server.
+This phase builds on Async Executor and turns that foundation into SSH Server.
 
 ## Implementation outline
 
-- Cross-compile Dropbear with musl (or begin SSH protocol implementation).
-- Generate Ed25519 host key at first boot.
-- Implement SSH transport: version exchange, key exchange, encrypted packets.
-- Implement password authentication against `/etc/shadow`.
-- Implement session channel with PTY allocation.
-- Implement shell execution (fork + setsid + exec login).
+- Evaluate sunset crate: add dependency, verify it compiles for x86_64-m3os target.
+- Create `userspace/sshd/` crate with basic TCP accept loop.
+- Generate Ed25519 host key on first boot, store at `/etc/ssh/ssh_host_ed25519_key`.
+- Implement sunset adapter: feed TCP bytes into sunset, write output back to socket.
+- Implement password authentication callback against `/etc/shadow`.
+- Implement session channel handling: PTY allocation, shell exec, data relay.
+- Implement public key authentication with `~/.ssh/authorized_keys`.
+- (Deferred) Window-change and signal forwarding.
+- Add sshd to init's startup sequence and initrd.
 - Test from host with `ssh -p 2222 user@localhost`.
-- Implement public key authentication.
-- Add sshd to init's startup sequence.
 - Test multiple simultaneous SSH sessions.
+- Verify encryption by inspecting traffic.
 
 ## Task progress snapshot
 
-No checklist tasks were discovered for this phase yet.
+97 of 113 tracked tasks are complete.
 
 ## Documentation targets
 
@@ -84,7 +104,11 @@ No checklist tasks were discovered for this phase yet.
 - Key agent
 - Certificate authentication
 - Connection rate limiting and brute-force protection
+- Privilege separation (sshd runs as a single process per session)
+- Multiple host key types (Ed25519 only)
+- Key re-exchange during long sessions
 
 ## Source materials
 
 - [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/43-ssh-server.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/43-ssh-server-tasks.md)
