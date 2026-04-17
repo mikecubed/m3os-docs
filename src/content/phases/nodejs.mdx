@@ -1,36 +1,48 @@
 ---
-phase: 52
+phase: 61
 title: "Node.js"
 status: planned
 category: productivity
-summary: "Node.js runs natively inside m3OS. The V8 JavaScript engine, libuv event loop, and core Node.js modules (`fs`, `path`, `console`, `process`, `setTimeout`) work. With TLS and DNS from Phase 51, the `https` and `net` modules also work, enabling npm package installation."
-learningGoal: "Understand how V8's JIT compiler uses `mmap(PROT_EXEC)` and `mprotect()` to emit and execute machine code at runtime."
+summary: "Node.js runs natively inside m3OS with the documented level of runtime and networking support, and npm can install the packages needed by the later CLI-agent phase."
+learningGoal: "Understand how JIT-heavy or managed runtimes stress memory, mapping, and execution permissions differently from simpler binaries."
 buildsOn:
   - "networking-and-github"
 extends: []
 replaces: []
 components:
+  - "memory-manager"
+  - "network-stack"
   - "process-model"
+  - "scheduler"
 learningObjectives:
-  - "Understand how V8's JIT compiler uses `mmap(PROT_EXEC)` and `mprotect()` to emit and execute machine code at runtime."
-  - "Learn how libuv's event loop wraps `epoll` for async I/O."
-  - "See how a Go-runtime-style M:N threading model (goroutines) compares to libuv's thread pool model."
-keyFiles: []
-codeSpotlights: []
-realOsDifferences: []
+  - "Understand how JIT-heavy or managed runtimes stress memory, mapping, and execution permissions differently from simpler binaries."
+  - "Learn how libuv-style async I/O builds on the earlier epoll and threading work."
+  - "See why package installation and runtime support boundaries matter for post-1.0 growth."
+  - "Understand which parts of Node.js support are essential for the later CLI-agent milestone and which can still wait."
+keyFiles:
+  - path: "kernel/Cargo.toml"
+    summary: "When the phase lands, bump kernel/Cargo.toml and any release/version references to 0.61.0."
+codeSpotlights:
+  - title: "Cargo"
+    file: "kernel/Cargo.toml"
+    lines: "See file"
+    summary: "When the phase lands, bump kernel/Cargo.toml and any release/version references to 0.61.0."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/Cargo.toml"
+realOsDifferences:
+  - "Mature systems support far broader Node workflows, native addons, inspection tooling, and ecosystem assumptions than m3OS needs here."
+  - "The goal is not to replicate every Linux/npm expectation; it is to support the subset needed by the planned post-1.0 platform story."
+  - "Support boundaries matter especially with large runtimes because ecosystem assumptions expand faster than kernel capability."
 successCriteria:
-  - "`node -e \"console.log('hello from m3OS')\"` works."
-  - "`node -e \"require('fs').writeFileSync('/tmp/test', 'ok')\"` works."
-  - "`node -e \"setTimeout(() => console.log('timer!'), 100)\"` fires the timer."
-  - "`node -e \"console.log(process.platform, process.arch)\"` prints `linux x64`."
-  - "`node -e \"require('https').get('https://httpbin.org/get', ...)\"` completes."
-  - "npm is bundled and `npm --version` works."
-  - "`npm install -g` installs a package to `/usr/lib/node_modules/`."
+  - "Node.js runs the documented local runtime workloads inside m3OS."
+  - "The documented networking-dependent Node workloads and package-install path also work."
+  - "npm or the chosen equivalent package path is usable for the later CLI-agent milestone."
+  - "The phase docs clearly describe what Node support exists and what remains unsupported."
+  - "The runtime configuration and install layout are reproducible through the documented build flow."
 ---
 
 ## Why this phase matters
 
-Node.js runs natively inside m3OS. The V8 JavaScript engine, libuv event loop, and core Node.js modules (`fs`, `path`, `console`, `process`, `setTimeout`) work. With TLS and DNS from Phase 51, the `https` and `net` modules also work, enabling npm package installation.
+Node.js runs natively inside m3OS with the documented level of runtime and networking support, and npm can install the packages needed by the later CLI-agent phase.
 
 ## How it works in m3OS
 
@@ -42,7 +54,11 @@ This phase builds on Networking And GitHub and turns that foundation into Node.j
 
 ## Implementation outline
 
-- Implementation steps have not been extracted yet.
+- Choose the supported Node.js configuration and document the non-goals.
+- Bring up the local runtime behavior first.
+- Add the documented networking and npm path needed for later CLI-agent work.
+- Validate the runtime against the supported use cases.
+- Update docs and standalone Node roadmap material to match the official milestone.
 
 ## Task progress snapshot
 
@@ -54,8 +70,11 @@ No checklist tasks were discovered for this phase yet.
 
 ## Deferred follow-on work
 
-- No deferred items were listed in the roadmap entry.
+- Native addon and `node-gyp` support
+- Full developer-inspector integration
+- Rich multi-runtime JS workflows beyond the documented support set
+- Broader desktop-oriented Node application ecosystems
 
 ## Source materials
 
-- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/52-nodejs.md)
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/61-nodejs.md)

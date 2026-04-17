@@ -3,7 +3,7 @@ phase: 35
 title: "True SMP Multitasking"
 status: complete
 category: foundations
-summary: "All CPU cores dispatch and run user tasks. The BSP-only restriction is removed by making syscall infrastructure per-core. The scheduler uses per-CPU run queues with load balancing, and tasks have priority levels. This is the single highest-impact performance improvement — the OS goes from effectively single-core to true multi-core."
+summary: "All CPU cores dispatch and run user tasks. The BSP-only restriction is removed by making syscall infrastructure per-core. The scheduler introduces per-CPU run queues with load balancing and task priorities, substantially improving dispatch locality and multi-core throughput even though the global scheduler lock remains on the dispatch hot path for task-state coordination."
 learningGoal: "Understand why per-core state (stacks, saved registers) is essential for SMP syscalls."
 buildsOn:
   - "real-time-clock"
@@ -52,7 +52,7 @@ realOsDifferences:
 successCriteria:
   - "Tasks run on all available cores (verified via per-core logging)."
   - "Two processes making syscalls simultaneously on different cores do not corrupt state."
-  - "Per-CPU run queues eliminate global scheduler lock contention."
+  - "Per-CPU run queues reduce ready-queue contention, but the global scheduler lock remains on the dispatch hot path until later work."
   - "Load balancing distributes tasks across cores (no core is idle while another has >1 ready task)."
   - "Priority 0 (real-time) tasks always preempt priority 20 (normal) tasks."
   - "`sched_setaffinity` pins a task to a specific core."
@@ -63,7 +63,7 @@ successCriteria:
 
 ## Why this phase matters
 
-All CPU cores dispatch and run user tasks. The BSP-only restriction is removed by making syscall infrastructure per-core. The scheduler uses per-CPU run queues with load balancing, and tasks have priority levels. This is the single highest-impact performance improvement — the OS goes from effectively single-core to true multi-core.
+All CPU cores dispatch and run user tasks. The BSP-only restriction is removed by making syscall infrastructure per-core. The scheduler introduces per-CPU run queues with load balancing and task priorities, substantially improving dispatch locality and multi-core throughput even though the global scheduler lock remains on the dispatch hot path for task-state coordination.
 
 ## How it works in m3OS
 
@@ -79,7 +79,7 @@ This phase builds on Real Time Clock and turns that foundation into True SMP Mul
 - Verify: two cores can handle syscalls simultaneously without corruption.
 - Remove BSP-only guard in `pick_next()`.
 - Verify: tasks run on multiple cores (log which core runs which task).
-- Implement per-CPU run queues, replacing the global scheduler lock.
+- Implement per-CPU run queues and move ready-queue contention off the single global queue while keeping the global scheduler lock for task-state coordination.
 - Implement load balancing (periodic migration).
 - Add priority field to `Task`; update `pick_next()` to respect priorities.
 - Implement `sched_setaffinity` / `sched_getaffinity` syscalls.

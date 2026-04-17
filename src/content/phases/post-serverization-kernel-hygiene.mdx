@@ -1,0 +1,119 @@
+---
+phase: 54
+title: "Post Serverization Kernel Hygiene"
+status: in-progress
+category: infrastructure
+summary: "Close the `FdEntry` CLOEXEC / NONBLOCK plumbing gap and relocate the four `arch::x86_64::syscall::*_pub` wrappers into their owning subsystems so later phases do not inherit a silent security bug or a process-module arch dependency."
+learningGoal: "Understand why `O_CLOEXEC` must be threaded through every fd-creating syscall path, not only the ones that expose a flags argument at the type level."
+buildsOn:
+  - "deep-serverization"
+extends: []
+replaces: []
+components:
+  - "process-model"
+  - "ipc"
+  - "scheduler"
+  - "boot-path"
+learningObjectives:
+  - "Understand why `O_CLOEXEC` must be threaded through every fd-creating syscall path, not only the ones that expose a flags argument at the type level."
+  - "See how ad-hoc `*_pub` wrappers accumulate when cross-layer calls lack a clear owner module, and how to relocate them into the owning subsystem without changing behavior."
+  - "Recognize when a multi-item debug followup file should be promoted to a tracked phase rather than left as unplanned backlog."
+keyFiles:
+  - path: "kernel/src/arch/x86_64/syscall/mod.rs"
+    summary: "Thin syscall facade, fallback paths, and service routing"
+  - path: "kernel/src/process/mod.rs"
+    summary: "Signal delivery now wakes blocked IPC waiters for dying services"
+  - path: "kernel/src/process/mod.rs::close_cloexec_fds"
+    summary: "Each subsystem that owns an fd backend exposes its own free / release function. kernel/src/process/mod.rs::close_cloexec_fds and close_all_fds_for call those functions directly, eliminating the last arch-specific import from process cleanup."
+  - path: "kernel/src/arch/x86_64/syscall"
+    summary: "false, nonblock: false construction site in kernel/src/arch/x86_64/syscall, including vfs_service_open."
+  - path: "userspace/fat_server/src/main.rs"
+    summary: "Supervised storage-service endpoint"
+  - path: "userspace/vfs_server/src/main.rs"
+    summary: "Migrated rootfs pathname and metadata policy"
+  - path: "userspace/net_server/src/main.rs"
+    summary: "Migrated UDP policy service"
+  - path: "userspace/coreutils-rs/src/service.rs"
+    summary: "Service-stop completion wait used by validation and operators"
+  - path: "userspace/init/src/main.rs"
+    summary: "Degraded-mode logging, restart policy, and service-stop behavior"
+  - path: "userspace/login/src/main.rs"
+    summary: "Hardened passwd/shadow reads against early-boot timing during validation"
+  - path: "kernel/src/ipc/endpoint.rs"
+    summary: "IPC wait cancellation for signaled tasks"
+  - path: "kernel/src/task/scheduler.rs"
+    summary: "Blocked IPC task enumeration for signal wakeup"
+  - path: "xtask/src/main.rs"
+    summary: "Regression harness, smoke flow, and ext2 data-disk provisioning"
+codeSpotlights:
+  - title: "Introduce `FdEntry::from_open_flags(backend, flags)` helper"
+    file: "kernel/src/process/mod.rs"
+    lines: "L215-L229"
+    summary: "Introduce `FdEntry::from_open_flags(backend, flags)` helper. Why it matters: Every non-pipe / non-socket / non-epoll open path currently hardcodes cloexec: false, nonblock: false, silently dropping the O_CLOEXEC guarantee requested by userspace. A single helper that maps syscall-level flags to FdEntry fields keeps every construction site consistent and prevents new paths from re-introducing the bug. Focus on `FdEntry::from_open_flags` and `O_CLOEXEC` in `kernel/src/process/mod.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.54.0/kernel/src/process/mod.rs"
+    snippet: "/// A single open-file entry in the per-process FD table.\n#[derive(Clone)]\npub struct FdEntry {\n    pub backend: FdBackend,\n    pub offset: usize,\n    /// True if the file was opened for reading.\n    pub readable: bool,\n    /// True if the file was opened for writing.\n    pub writable: bool,\n    /// Close-on-exec flag (FD_CLOEXEC).\n    pub cloexec: bool,\n    /// Non-blocking I/O flag (O_NONBLOCK). When set, read/write return\n    /// `-EAGAIN` instead of blocking when no data is available (Phase 37).\n    pub nonblock: bool,\n}"
+    snippetLanguage: "rust"
+  - title: "Convert every hardcoded `cloexec: false, nonblock: false` site to use the helper"
+    file: "kernel/src/arch/x86_64/syscall/mod.rs"
+    lines: "L5740-L5763"
+    summary: "Convert every hardcoded `cloexec: false, nonblock: false` site to use the helper. Why it matters: The helper is only useful if every construction site routes through it. Without an audit-style conversion, new call sites drift back to hardcoded false, false because the helper's existence is easy to miss. Focus on `vfs_service_open` and `sys_linux_openat` in `kernel/src/arch/x86_64/syscall/mod.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.54.0/kernel/src/arch/x86_64/syscall/mod.rs"
+    snippet: "fn vfs_service_open(path: &str, _flags: u64) -> u64 {\n    use crate::ipc::{endpoint, message::Message, registry};\n    use crate::task::scheduler;\n    use kernel_core::fs::vfs_protocol::VFS_OPEN;\n\n    let vfs_ep = match registry::lookup_endpoint_id(\"vfs\") {\n        Some(ep) => ep,\n        None => return NEG_ENOENT,\n    };\n    let task_id = match scheduler::current_task_id() {\n        Some(id) => id,\n        None => return NEG_EINVAL,\n    };\n\n    let mut msg = Message::new(VFS_OPEN);\n    msg.data[0] = 0;\n    msg.data[1] = path.len() as u64;\n    scheduler::deliver_bulk(task_id, alloc::vec::Vec::from(path.as_bytes()));\n\n    let reply = endpoint::call_msg(task_id, vfs_ep, msg);\n    if reply.label != 0 {\n        return reply.label;\n    }"
+    snippetLanguage: "rust"
+  - title: "Regression test: `O_CLOEXEC` clears fd across `execve` for every backend"
+    file: "userspace/cloexec-test/src/main.rs"
+    lines: "See file"
+    summary: "Regression test: `O_CLOEXEC` clears fd across `execve` for every backend. Why it matters: The only reliable way to test O_CLOEXEC is to actually execve and observe whether the child still sees the fd. Without a per-backend regression, A.2's audit can regress without detection. Focus on `O_CLOEXEC` and `execve` in `userspace/cloexec-test/src/main.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.54.0/userspace/cloexec-test/src/main.rs"
+realOsDifferences:
+  - "Linux threads `O_CLOEXEC` through `file_operations`-level open, so the pattern cannot skip a backend in the way `FdEntry` currently can."
+  - "Mature kernels put per-subsystem fd cleanup behind VFS-style dispatch tables; the ad-hoc `*_pub` wrapper pattern is a transitional artifact of m3OS's current flat `FdEntry`."
+  - "Phase 54a does not introduce a dispatch table — it only adds the consistent helper and moves the wrappers."
+successCriteria:
+  - "`open(path, O_RDONLY | O_CLOEXEC)` results in an fd that does not survive `execve`, verified by a regression test, for every backend the kernel exposes."
+  - "`grep -rn \"cloexec: false, nonblock: false\" kernel/src` returns only call sites that deliberately create a non-CLOEXEC fd, each carrying an inline comment explaining why."
+  - "`kernel/src/process/mod.rs` no longer imports any symbol from `crate::arch::x86_64::syscall`."
+  - "`docs/debug/54-followups.md` contains only the two long-term backlog items, each annotated with its owner."
+  - "All existing QEMU tests pass unchanged."
+---
+
+## Why this phase matters
+
+Close the `FdEntry` CLOEXEC / NONBLOCK plumbing gap and relocate the four `arch::x86_64::syscall::*_pub` wrappers into their owning subsystems so later phases do not inherit a silent security bug or a process-module arch dependency.
+
+## How it works in m3OS
+
+Phase 54 moves meaningful storage, pathname, and networking policy out of ring 0 without breaking the existing Linux-like syscall ABI. The kernel keeps the object handles, transport, and bootstrap fallback paths; supervised userspace services now own the migrated policy slices:
+The result is not a fully serverized OS, but it is a materially narrower kernel than the Phase 53 baseline and a more honest microkernel story.
+
+## How it builds on earlier phases
+
+This phase builds on Deep Serverization and turns that foundation into Post Serverization Kernel Hygiene.
+
+## Implementation outline
+
+- Introduce `FdEntry::from_open_flags(backend, flags)` in the module that owns `FdEntry`.
+- Convert every hardcoded `cloexec: false, nonblock: false` construction site in `kernel/src/arch/x86_64/syscall`, including `vfs_service_open`.
+- Add a per-backend userspace regression test that execs and verifies `O_CLOEXEC` cleared the fd.
+- Relocate each of the four `*_pub` wrappers into its owning subsystem; update `kernel/src/process/mod.rs` call sites.
+- Trim `docs/debug/54-followups.md` to the two long-term backlog items (MOUNT_OP_LOCK yielding, scheduler thresholds) that intentionally remain open.
+
+## Task progress snapshot
+
+0 of 35 tracked tasks are complete.
+
+## Documentation targets
+
+- Documentation deliverables have not been listed yet.
+
+## Deferred follow-on work
+
+- MOUNT_OP_LOCK yielding primitive — tracked as long-term scheduling work in `docs/debug/54-followups.md`.
+- Scheduler diagnostic threshold tuning — no action unless the current thresholds become noisy; tracked in `docs/debug/54-followups.md`.
+- Full epoll extraction out of `kernel/src/arch/x86_64/syscall/mod.rs` — Phase 54a hoists only the cleanup helper; a full module split remains a later refactor if it becomes blocking.
+
+## Source materials
+
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/54a-post-serverization-kernel-hygiene.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/54-deep-serverization.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/54a-post-serverization-kernel-hygiene-tasks.md)

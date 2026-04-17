@@ -1,0 +1,118 @@
+---
+phase: 52
+title: "First Service Extractions"
+status: complete
+category: infrastructure
+summary: "m3OS proves that its microkernel direction is real by extracting at least the first visible core services out of the kernel address space. Console and input-related functionality become supervised ring-3 services, and the system demonstrates that they can fail and be restarted without rebooting the machine."
+learningGoal: "Understand how a kernel-resident service becomes a real ring-3 process."
+buildsOn:
+  - "service-model-maturity"
+extends: []
+replaces: []
+components:
+  - "terminal"
+  - "ipc"
+learningObjectives:
+  - "Understand how a kernel-resident service becomes a real ring-3 process."
+  - "Learn how IRQ-driven or event-driven behavior can be mediated by notifications and supervised services."
+  - "See how service restartability changes the cost of failure."
+  - "Understand why console and input policy are ideal first extraction targets before storage or networking."
+keyFiles:
+  - path: "kernel/Cargo.toml"
+    summary: "When the phase lands, bump kernel/Cargo.toml and any release/version references to 0.52.0."
+  - path: "userspace/console_server/src/main.rs"
+    summary: "Ring-3 console rendering service"
+  - path: "userspace/kbd_server/src/main.rs"
+    summary: "Ring-3 keyboard scancode service"
+  - path: "userspace/stdin_feeder/src/main.rs"
+    summary: "Ring-3 scancode-to-byte bridge that forwards via push_raw_input"
+  - path: "userspace/init/src/main.rs"
+    summary: "Service manager integration for extracted services"
+  - path: "kernel-core/src/tty.rs"
+    summary: "Shared kernel line discipline for serial and keyboard input"
+  - path: "kernel/src/arch/x86_64/syscall/mod.rs"
+    summary: "push_raw_input entry point and TTY-facing syscall glue"
+  - path: "kernel/src/main.rs"
+    summary: "Narrowed kernel-side mediation (FB mapping, IRQ, buffers)"
+  - path: "kernel/src/ipc/mod.rs"
+    summary: "Registry and capability infrastructure"
+  - path: "kernel/initrd/etc/services.d/console.conf"
+    summary: "Console service definition"
+  - path: "kernel/initrd/etc/services.d/kbd.conf"
+    summary: "Keyboard service definition"
+codeSpotlights:
+  - title: "Stand up a ring-3 console service endpoint"
+    file: "userspace/console_server/src/main.rs"
+    lines: "L33-L56"
+    summary: "Stand up a ring-3 console service endpoint. Why it matters: Phase 52 is only meaningful if the console becomes a real userspace service with its own endpoint and registration path instead of remaining a kernel-only concept. Focus on `program_main` and `console_server` in `userspace/console_server/src/main.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.52.0/userspace/console_server/src/main.rs"
+    snippet: "fn program_main(_args: &[&str]) -> i32 {\n    syscall_lib::write_str(STDOUT_FILENO, \"console_server: starting\\n\");\n\n    // Phase 52 transitional: skip framebuffer_mmap because it calls\n    // try_yield_console which suppresses ALL kernel framebuffer text output\n    // (login prompt, shell, everything).  The kernel's fb console still\n    // handles sys_write rendering.  The userspace console_server runs as an\n    // IPC-only service: CONSOLE_WRITE payloads are echoed to stdout which\n    // the kernel renders to both serial and framebuffer.\n    //\n    // Full framebuffer takeover will be enabled in a later phase when\n    // sys_write(STDOUT) is routed through IPC to this service.\n\n    // 1. Create an IPC endpoint.\n    let ep_handle = syscall_lib::create_endpoint();\n    if ep_handle == u64::MAX {\n        syscall_lib::write_str(STDOUT_FILENO, \"console_server: create_endpoint failed\\n\");\n        return 1;\n    }\n    let ep_handle = ep_handle as u32;\n\n    // 2. Register as \"console\" service (takes over from kernel entry).\n    let ret = syscall_lib::ipc_register_service(ep_handle, \"console\");\n    if ret == u64::MAX {"
+    snippetLanguage: "rust"
+  - title: "Move keyboard IRQ service ownership to ring 3"
+    file: "userspace/kbd_server/src/main.rs"
+    lines: "L16-L39"
+    summary: "Move keyboard IRQ service ownership to ring 3. Why it matters: This is the first completed hardware-facing service extraction in Phase 52: IRQ-driven keyboard delivery no longer depends on a kernel-resident kbd_server_task. Focus on `program_main` and `kbd_server_task` in `userspace/kbd_server/src/main.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.52.0/userspace/kbd_server/src/main.rs"
+    snippet: "fn program_main(_args: &[&str]) -> i32 {\n    syscall_lib::write_str(STDOUT_FILENO, \"kbd_server: starting\\n\");\n\n    // 1. Create an IPC endpoint.\n    let ep_handle = syscall_lib::create_endpoint();\n    if ep_handle == u64::MAX {\n        syscall_lib::write_str(STDOUT_FILENO, \"kbd_server: failed to create endpoint\\n\");\n        return 1;\n    }\n    let ep_handle = ep_handle as u32;\n\n    // 2. Register as \"kbd\" in the service registry.\n    let ret = syscall_lib::ipc_register_service(ep_handle, \"kbd\");\n    if ret == u64::MAX {\n        syscall_lib::write_str(STDOUT_FILENO, \"kbd_server: failed to register 'kbd'\\n\");\n        return 1;\n    }\n\n    // 3. Create an IRQ1 notification.\n    let notif_cap = syscall_lib::create_irq_notification(1);\n    if notif_cap == u64::MAX {\n        syscall_lib::write_str(\n            STDOUT_FILENO,\n            \"kbd_server: failed to create IRQ1 notification\\n\","
+    snippetLanguage: "rust"
+  - title: "Bridge keyboard IPC back into the existing stdin path"
+    file: "userspace/stdin_feeder/src/main.rs"
+    lines: "L86-L109"
+    summary: "Bridge keyboard IPC back into the existing stdin path. Why it matters: Existing userspace still reads stdin through the traditional TTY path, so Phase 52 needs a bridge from the new keyboard IPC service back into the shared kernel line discipline. Focus on `program_main` and `sys_push_raw_input` in `userspace/stdin_feeder/src/main.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.52.0/userspace/stdin_feeder/src/main.rs"
+    snippet: "fn program_main(_args: &[&str]) -> i32 {\n    syscall_lib::write_str(STDOUT_FILENO, \"stdin_feeder: starting\\n\");\n\n    // Look up the \"kbd\" service to obtain an endpoint capability.\n    // Retry with short sleeps because the service manager starts us as soon\n    // as kbd_server is forked, which is before it has registered its IPC\n    // endpoint.\n    let kbd_handle = {\n        let mut h = u64::MAX;\n        for _ in 0..50 {\n            h = syscall_lib::ipc_lookup_service(\"kbd\");\n            if h != u64::MAX {\n                break;\n            }\n            syscall_lib::nanosleep(20_000_000); // 20 ms\n        }\n        if h == u64::MAX {\n            syscall_lib::write_str(STDOUT_FILENO, \"stdin_feeder: failed to lookup 'kbd'\\n\");\n            return 1;\n        }\n        h as u32\n    };\n\n    syscall_lib::write_str(STDOUT_FILENO, \"stdin_feeder: ready\\n\");"
+    snippetLanguage: "rust"
+realOsDifferences:
+  - "Mature microkernels often perform this extraction work earlier and across more subsystems at once."
+  - "Monolithic kernels keep console and input behavior in-kernel for historical and performance reasons, not because that is the only workable design."
+  - "m3OS should optimize here for clarity, restartability, and teaching value over perfect early performance."
+successCriteria:
+  - "At least one previously kernel-resident core service runs as a real supervised ring-3 process."
+  - "The extracted service uses the Phase 50 IPC path without shared-address-space shortcuts."
+  - "Restarting or crashing the extracted service does not require a full machine reboot to recover basic functionality."
+  - "The service graph, build system, and docs all describe the extracted service as part of the normal system model."
+  - "Boundary measurements and trade-offs are written down for later phases."
+---
+
+## Why this phase matters
+
+m3OS proves that its microkernel direction is real by extracting at least the first visible core services out of the kernel address space. Console and input-related functionality become supervised ring-3 services, and the system demonstrates that they can fail and be restarted without rebooting the machine.
+
+## How it works in m3OS
+
+Phase 52 proves that the m3OS microkernel architecture is real by extracting console rendering and keyboard input handling from kernel-resident tasks into supervised ring-3 services. After this phase, the system demonstrates that user-visible subsystems can cross the ring-0 boundary, communicate through the Phase 50 IPC contract, and be restarted by the Phase 51 service manager without rebooting the machine.
+
+## How it builds on earlier phases
+
+This phase builds on Service Model Maturity and turns that foundation into First Service Extractions.
+
+## Implementation outline
+
+- Choose the first extraction targets and define their ring-3 service contracts.
+- Narrow the kernel side to the minimal notification, mapping, and hardware-mediation responsibilities.
+- Wire the new services into build, initrd, and service-manager configuration.
+- Port console/input policy out of kernel-resident task code.
+- Implement restart and reconnect behavior for the extracted services.
+- Measure the boundary cost and document the new call/data flow.
+- Add smoke or focused validation that proves restartability and correct behavior.
+
+## Task progress snapshot
+
+23 of 27 tracked tasks are complete.
+
+## Documentation targets
+
+- Documentation deliverables have not been listed yet.
+
+## Deferred follow-on work
+
+- Storage, namespace, and networking extraction
+- Rich multi-seat or multi-session input policy
+- Fully graphical display ownership
+- Broad performance tuning of the new boundary
+
+## Source materials
+
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/52-first-service-extractions.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/52-first-service-extractions.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/52-first-service-extractions-tasks.md)

@@ -13,8 +13,11 @@ touchedBy:
   - "build-tools"
   - "real-time-clock"
   - "filesystem-enhancements"
-  - "unix-domain-sockets"
-  - "ports-system"
+  - "expanded-coreutils"
+  - "doom"
+  - "kernel-completion-and-roadmap-alignment"
+  - "kernel-memory-modernization"
+  - "hardware-substrate"
 summary: "The virtual filesystem makes multiple storage backends look like one coherent tree to the rest of the OS."
 responsibilities:
   - "Present a single namespace across storage backends."
@@ -25,16 +28,16 @@ keyFiles:
     summary: "Phase 8 defines three label numbers in kernel/src/fs/protocol.rs. All use the existing"
   - path: "kernel/src/fs/ramdisk.rs"
     summary: "and embedded via include_bytes! in kernel/src/fs/ramdisk.rs."
-  - path: "kernel/src/fs/fat32.rs"
-    summary: "FAT32 volume driver (kernel/src/fs/fat32.rs) — BPB parsing, cluster chain"
+  - path: "kernel/src/fs/ext2.rs"
+    summary: "ext2 volume driver (kernel/src/fs/ext2.rs) — superblock, block groups,"
   - path: "kernel-core/src/fs/tmpfs.rs"
     summary: "FileData and DirData in kernel-core/src/fs/tmpfs.rs each hold"
-  - path: "kernel/src/fs/ext2.rs"
-    summary: "ext2 driver (kernel/src/fs/ext2.rs) reads and writes these fields"
   - path: "kernel-core/src/fs/"
     summary: "Add ext2 data structure definitions to kernel-core/src/fs/: superblock,"
   - path: "kernel-core/src/fs/ext2.rs"
     summary: "All on-disk structures are defined in kernel-core/src/fs/ext2.rs for"
+  - path: "kernel/src/fs/procfs.rs"
+    summary: "A new kernel/src/fs/procfs.rs module synthesizes file content on read from kernel"
 ---
 
-The virtual file system is introduced in Storage And VFS and later touched by 13 phase(s).
+The virtual file system is introduced in Storage And VFS and later touched by 16 phase(s).

@@ -1,0 +1,137 @@
+---
+phase: 52
+title: "Kernel Architecture Evolution"
+status: complete
+category: infrastructure
+summary: "Phase 52c established the architecture direction for per-core scheduling, growable IPC resources, a unified kernel-side line discipline, O(log n) VMA lookup, and ISR wakeup improvements. In the checked-in tree, the VMA tree, growable endpoint/capability/service tables, `LineDiscipline`, the live `push_raw_input` keyboard path, and the ISR wake queue all landed. Phase 52d then recorded the remaining honest limits: the scheduler hot path still relies on the global `SCHEDULER` lock, and notifications remain fixed-size for ISR safety."
+learningGoal: "Understand per-core scheduling with work-stealing (Zircon: WAVL-tree fair scheduler with `StealWork()`)"
+buildsOn:
+  - "kernel-structural-hardening"
+extends: []
+replaces: []
+components:
+  - "terminal"
+  - "ipc"
+  - "scheduler"
+  - "process-model"
+learningObjectives:
+  - "Understand per-core scheduling with work-stealing (Zircon: WAVL-tree fair scheduler with `StealWork()`)"
+  - "Learn how lock-free data structures enable ISR-to-scheduler communication"
+  - "See how a unified kernel line discipline simplifies the terminal subsystem (Linux: N_TTY ldisc)"
+  - "Understand why VMA lookup structure matters for page fault performance"
+  - "Learn the tradeoffs of dynamic vs. fixed-size kernel resource pools"
+keyFiles:
+  - path: "userspace/stdin_feeder"
+    summary: "Completed. userspace/stdin_feeder now forwards raw"
+  - path: "kernel/src/ipc/notification.rs"
+    summary: "MAX_NOTIFS=64, ISR_WAITERS mirror, signal_irq enhancement"
+  - path: "kernel-core/src/tty.rs"
+    summary: "LineDiscipline, SmallVec, LdiscResult (20 unit tests)"
+  - path: "kernel/src/task/scheduler.rs"
+    summary: "Per-core dispatch, work-stealing, task slot reuse, load balancing"
+  - path: "kernel/src/task/mod.rs"
+    summary: "Task struct with last_migrated_tick for cooldown"
+  - path: "kernel/src/ipc/endpoint.rs"
+    summary: "Growable endpoint pool with Vec"
+  - path: "kernel-core/src/ipc/capability.rs"
+    summary: "Growable capability table with Vec"
+  - path: "kernel-core/src/ipc/registry.rs"
+    summary: "Growable service registry with Vec"
+  - path: "kernel/src/tty.rs"
+    summary: "TtyState wraps LineDiscipline"
+  - path: "kernel/src/arch/x86_64/syscall/mod.rs"
+    summary: "push_raw_input syscall (0x1010)"
+  - path: "kernel-core/src/mm.rs"
+    summary: "VmaTree with BTreeMap (23 unit tests)"
+  - path: "kernel/src/process/mod.rs"
+    summary: "Process uses VmaTree instead of Vec"
+  - path: "kernel/src/smp/mod.rs"
+    summary: "IsrWakeQueue, try_per_core()"
+  - path: "userspace/syscall-lib/src/lib.rs"
+    summary: "push_raw_input wrapper"
+codeSpotlights:
+  - title: "Define PerCoreScheduler and TaskRegistry"
+    file: "kernel/src/task/scheduler.rs"
+    lines: "L289-L312"
+    summary: "Define PerCoreScheduler and TaskRegistry. Why it matters: The current global SCHEDULER: Mutex<Scheduler> is a contention bottleneck on multi-core systems. All scheduler operations (spawn, wake, pick_next, block) acquire this lock. Focus on `PerCoreScheduler` and `TaskRegistry` in `kernel/src/task/scheduler.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.52.0/kernel/src/task/scheduler.rs"
+    snippet: "    /// Pick the next task to run on the given core.\n    ///\n    /// Selects from the per-core run queue (highest priority first), then\n    /// attempts work-stealing from other cores, then falls back to the\n    /// idle task.\n    ///\n    /// NOTE: this method is called while the caller holds `SCHEDULER.lock()`,\n    /// so it has access to the full `tasks` vec for state validation. True\n    /// lock-free per-core dispatch is deferred (see module-level doc).\n    fn pick_next(&mut self, core_id: u8) -> Option<(u64, usize)> {\n        let core_bit = 1u64 << core_id;\n\n        // Phase 1: Scan local run queue — highest-priority (lowest numeric)\n        // Ready task in a single pass.\n        if let Some(idx) = self.dequeue_local(core_id, core_bit) {\n            self.last_run = idx;\n            return Some((self.tasks[idx].saved_rsp, idx));\n        }\n\n        // Phase 2: Work-stealing — try to steal one task from another core\n        // (Phase 52c A.2).\n        if let Some(idx) = self.try_steal(core_id, core_bit) {\n            self.tasks[idx].assigned_core = core_id;\n            self.tasks[idx].last_migrated_tick = crate::arch::x86_64::interrupts::tick_count();"
+    snippetLanguage: "rust"
+  - title: "Generation-based task slot reuse"
+    file: "kernel/src/task/mod.rs"
+    lines: "See file"
+    summary: "Generation-based task slot reuse. Why it matters: The current SCHEDULER.tasks vec only grows. Dead tasks keep their index. Over time, the vec becomes large. Generation-based reuse prevents ABA races on recycled slots. Focus on `TaskHandle` and `TaskRegistry` in `kernel/src/task/mod.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.52.0/kernel/src/task/mod.rs"
+  - title: "Growable endpoint pool"
+    file: "kernel/src/ipc/endpoint.rs"
+    lines: "See file"
+    summary: "Growable endpoint pool. Why it matters: MAX_ENDPOINTS = 16 limits the number of concurrent services. Phase 54 (Deep Serverization) will need many more endpoints. Focus on `EndpointPool` in `kernel/src/ipc/endpoint.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.52.0/kernel/src/ipc/endpoint.rs"
+realOsDifferences:
+  - "Zircon uses a hybrid WAVL-tree fair scheduler with per-CPU queues, deadline scheduling, and cluster-aware work-stealing. m3OS's simpler VecDeque-based approach is sufficient for its scale."
+  - "Linux's CFS uses a red-black tree of virtual runtime values. The EEVDF extension adds virtual deadline ordering."
+  - "seL4 uses a two-level bitmap for O(1) priority selection — much simpler than tree-based fair schedulers, but appropriate for a formally verified kernel."
+  - "MINIX3 uses a 16-queue multilevel feedback scheduler with a userspace SCHED server. The userspace scheduler concept is interesting but beyond m3OS's current scope."
+  - "Linux's N_TTY line discipline handles all terminal processing in kernel space. This is the model m3OS should follow for its unified ldisc."
+successCriteria:
+  - "Scheduler dispatch path does not acquire a global lock *(deferred — see Post-Phase Audit Note; global lock still acquired in HEAD; per-core run queues and work-stealing provide dispatch locality but task state transitions require the global SCHEDULER lock; true lock-free per-core dispatch deferred to a future phase)*"
+  - "IPC can create more than 16 endpoints without exhaustion"
+  - "A process can hold more than 64 capabilities"
+  - "Only one line discipline implementation exists in the codebase (kernel-side) *(partial — see Post-Phase Audit Note; stdin_feeder still duplicates ldisc logic)*"
+  - "`stdin_feeder` does not contain any canonical editing, echo, or ISIG logic *(partial — see Post-Phase Audit Note)*"
+  - "VMA lookup for a process with 100 mappings is measurably faster than current"
+  - "Keyboard IRQ → kbd_server wakeup latency is under 1ms (not 10ms)"
+  - "`cargo xtask check` and `cargo xtask test` pass"
+---
+
+## Why this phase matters
+
+Phase 52c established the architecture direction for per-core scheduling, growable IPC resources, a unified kernel-side line discipline, O(log n) VMA lookup, and ISR wakeup improvements. In the checked-in tree, the VMA tree, growable endpoint/capability/service tables, `LineDiscipline`, the live `push_raw_input` keyboard path, and the ISR wake queue all landed. Phase 52d then recorded the remaining honest limits: the scheduler hot path still relies on the global `SCHEDULER` lock, and notifications remain fixed-size for ISR safety.
+
+## How it works in m3OS
+
+Phase 52c addresses five scalability bottlenecks and design limitations that would constrain Phase 53+ work. It introduced per-core run queues and work-stealing, growable endpoint/capability/service tables, a shared kernel line-discipline path, O(log n) VMA lookup, and ISR-delivered wake queues. Phase 52d then closed the live keyboard-path convergence and recorded the two remaining honest limits: dispatch still acquires the global `SCHEDULER` lock, and notifications remain fixed-size for ISR safety.
+
+## How it builds on earlier phases
+
+This phase builds on Kernel Structural Hardening and turns that foundation into Kernel Architecture Evolution.
+
+## Implementation outline
+
+- Replace `SCHEDULER` with `TaskRegistry` + per-core `PerCoreScheduler`
+- Implement work-stealing in `pick_next`
+- Re-enable load balancing with per-task cooldown
+- Replace `EndpointRegistry` fixed array with growable `EndpointPool`
+- Replace `CapabilityTable` fixed array with growable `Vec`
+- Replace notification and service registry fixed arrays similarly
+- Create `LineDiscipline` in `kernel-core/src/tty.rs`
+- Refactor `serial_stdin_feeder_task` to use `LineDiscipline`
+- Add `push_raw_input` syscall
+- Simplify `stdin_feeder` to scancode decode + `push_raw_input`
+- Replace `Vec<MemoryMapping>` with `BTreeMap` in `AddressSpace`
+- Add per-core `IsrWakeQueue` ring buffer
+- Modify `signal_irq` to push to `IsrWakeQueue` when waiter is registered
+- Drain `IsrWakeQueue` on every scheduler loop iteration
+
+## Task progress snapshot
+
+46 of 49 tracked tasks are complete.
+
+## Documentation targets
+
+- Documentation deliverables have not been listed yet.
+
+## Deferred follow-on work
+
+- Full fair scheduler with virtual runtime (Zircon WAVL / Linux CFS) — current priority + round-robin is sufficient
+- **True per-core scheduling** (lock-free dispatch hot path) — per-core run queues and work-stealing landed, but task state transitions still require the global `SCHEDULER` lock; splitting task ownership per-core is a larger architectural change deferred past Phase 52
+- **Growable notification pool** — notifications remain fixed-size (`MAX_NOTIFS = 64`) because ISR-safe access requires lock-free fixed-size arrays; a two-level design (fixed ISR-visible table + growable overflow) is possible but not needed at current scale
+- Atomic `reply_recv` (seL4-style) — nice optimization but not critical
+- Preemptive scheduling from interrupt context — requires deeper `switch_context` redesign
+- Dynamic PTY pool — can grow the fixed array to a larger number as a simpler intermediate step
+
+## Source materials
+
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/52c-kernel-architecture-evolution.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/52c-kernel-architecture-evolution.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/52c-kernel-architecture-evolution-tasks.md)

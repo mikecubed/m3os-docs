@@ -11,20 +11,25 @@ extends: []
 replaces: []
 components:
   - "ipc"
+  - "memory-manager"
   - "scheduler"
 learningObjectives:
   - "Understand why microkernels move services out of ring 0."
   - "Learn synchronous rendezvous IPC semantics."
   - "Introduce capability tables as the security boundary."
 keyFiles:
+  - path: "kernel/src/ipc/endpoint.rs"
+    summary: "cross-table move — see transfer_cap in kernel/src/ipc/endpoint.rs and"
   - path: "kernel/src/arch/x86_64/syscall.rs"
     summary: "authoritative mapping lives in kernel/src/arch/x86_64/syscall.rs, and"
   - path: "userspace/syscall-lib"
     summary: "userspace uses it via userspace/syscall-lib. Treat the table above as"
+  - path: "kernel/src/mm/user_mem.rs"
+    summary: "kernel/src/mm/user_mem.rs) to transfer bytes through the caller's page"
+  - path: "kernel-core/src/ipc/buffer.rs"
+    summary: "validate_user_buffer(addr, len) (defined in kernel-core/src/ipc/buffer.rs),"
   - path: "kernel/src/ipc/mod.rs"
     summary: "kernel/src/ipc/mod.rs — module overview and syscall dispatcher"
-  - path: "kernel/src/ipc/endpoint.rs"
-    summary: "kernel/src/ipc/endpoint.rs — rendezvous endpoint implementation"
   - path: "kernel/src/ipc/notification.rs"
     summary: "kernel/src/ipc/notification.rs — async notification objects"
   - path: "kernel/src/ipc/capability.rs"

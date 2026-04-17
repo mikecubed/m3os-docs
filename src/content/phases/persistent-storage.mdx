@@ -18,16 +18,16 @@ learningObjectives:
   - "Understand the difference between synchronous (blocking) block I/O and an async I/O queue, and why synchronous is acceptable here."
   - "See how `mount` integrates a new filesystem backend into the VFS dispatch table."
 keyFiles:
-  - path: "kernel/src/fs/fat32.rs"
-    summary: "FAT32 volume driver (kernel/src/fs/fat32.rs) — BPB parsing, cluster chain"
+  - path: "kernel/src/fs/ext2.rs"
+    summary: "ext2 volume driver (kernel/src/fs/ext2.rs) — superblock, block groups,"
   - path: "kernel/src/blk/virtio_blk.rs"
     summary: "virtio-blk driver (kernel/src/blk/virtio_blk.rs) — sector-level I/O via"
 codeSpotlights:
-  - title: "Fat32"
-    file: "kernel/src/fs/fat32.rs"
+  - title: "ext2 volume driver (kernel/src/fs/ext2.rs) — superblock, block groups,"
+    file: "kernel/src/fs/ext2.rs"
     lines: "See file"
-    summary: "FAT32 volume driver (kernel/src/fs/fat32.rs) — BPB parsing, cluster chain"
-    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.24.0/kernel/src/fs/fat32.rs"
+    summary: "ext2 volume driver (kernel/src/fs/ext2.rs) — superblock, block groups,"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.24.0/kernel/src/fs/ext2.rs"
   - title: "virtio-blk driver (kernel/src/blk/virtio_blk.rs) — sector-level I/O via"
     file: "kernel/src/blk/virtio_blk.rs"
     lines: "See file"
@@ -55,7 +55,10 @@ Give m3OS a persistent block device so that files written during one boot sessio
 
 ## How it works in m3OS
 
-Phase 24 gives m3OS a persistent block device: a 64 MB FAT32 data partition on a virtio-blk disk, mounted at `/data` during boot. Files written to `/data` survive reboots because they are stored on the QEMU disk image (`disk.img`) rather than in RAM.
+Phase 24 gives m3OS persistent block storage via a virtio-blk disk. The current storage model uses an **ext2 filesystem mounted at `/`** as the root filesystem. Init mounts the ext2 volume at boot (`mount /dev/blk0 / ext2`), making all paths — `/etc`, `/var`, `/home` — persistent across reboots (backed by the QEMU disk image `disk.img`).
+The original Phase 24 implementation used a 64 MB FAT32 partition mounted at `/data`. The FAT32 path routing (`/data/...` → FAT32 volume) remains as a legacy fallback, but all new code and service configuration targets the ext2 root.
+**What persists where:**
+**Checking storage health**: `df /` shows ext2 capacity and usage. `stat <path>` confirms whether a file is on the ext2 volume. If init reports "/ mount failed", the ext2 partition may be corrupted — recreate the disk with `cargo xtask clean` followed by `cargo xtask run`.
 
 ## How it builds on earlier phases
 

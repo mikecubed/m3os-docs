@@ -3,7 +3,7 @@ phase: 33
 title: "Kernel Memory Improvements"
 status: complete
 category: foundations
-summary: "The kernel heap allocator is robust, efficient, and recoverable. Out-of-memory conditions no longer panic the kernel — the allocator grows on demand and retries failed allocations. A slab allocator handles fixed-size kernel objects with O(1) performance. Userspace `munmap()` actually reclaims memory, and the userspace heap coalesces free blocks."
+summary: "The kernel heap allocator is robust, efficient, and recoverable. Out-of-memory conditions no longer panic the kernel — the allocator grows on demand and retries failed allocations. Buddy allocation, working `munmap()`, userspace-heap coalescing, and slab-cache infrastructure all land. Broad migration of hot kernel object families onto slab caches remains later work."
 learningGoal: "Understand the trade-offs between allocator designs: linked-list, buddy, slab."
 buildsOn:
   - "build-tools"
@@ -72,7 +72,7 @@ realOsDifferences:
 successCriteria:
   - "Allocation-heavy workloads (many fork/exec cycles) no longer panic with OOM."
   - "The kernel heap grows on demand and the retry path works."
-  - "Slab-allocated objects (Task, FD) allocate and free in O(1)."
+  - "Slab-cache infrastructure for hot kernel object sizes allocates and frees in O(1) in direct cache tests; broad object-family migration is deferred."
   - "`munmap()` returns physical frames; a program that maps and unmaps in a loop does not exhaust memory."
   - "Userspace programs that allocate and free many small objects do not fragment the heap excessively (coalescing verified)."
   - "`heap_stats()` shows reasonable utilization under load."
@@ -81,7 +81,7 @@ successCriteria:
 
 ## Why this phase matters
 
-The kernel heap allocator is robust, efficient, and recoverable. Out-of-memory conditions no longer panic the kernel — the allocator grows on demand and retries failed allocations. A slab allocator handles fixed-size kernel objects with O(1) performance. Userspace `munmap()` actually reclaims memory, and the userspace heap coalesces free blocks.
+The kernel heap allocator is robust, efficient, and recoverable. Out-of-memory conditions no longer panic the kernel — the allocator grows on demand and retries failed allocations. Buddy allocation, working `munmap()`, userspace-heap coalescing, and slab-cache infrastructure all land. Broad migration of hot kernel object families onto slab caches remains later work.
 
 ## How it works in m3OS
 
@@ -96,7 +96,7 @@ This phase builds on Build Tools and turns that foundation into Kernel Memory Im
 - Implement OOM retry wrapper around the global allocator.
 - Verify: allocation-heavy workloads no longer panic (heap grows and retries).
 - Implement buddy allocator for page-granularity allocations.
-- Implement slab allocator caches for Task, FD, endpoint, pipe, socket objects.
+- Implement slab allocator caches for Task, FD, endpoint, pipe, and socket-sized objects, and validate them in direct cache tests.
 - Implement working `munmap()` with frame reclamation and TLB invalidation.
 - Add free-block coalescing to userspace `BrkAllocator`.
 - Add `heap_stats()` and verify with a stress-test program.
@@ -119,6 +119,7 @@ This phase builds on Build Tools and turns that foundation into Kernel Memory Im
 - Kernel memory accounting and cgroups
 - vmalloc for large virtually-contiguous allocations
 - Memory pressure notifications
+- Broad migration of hot kernel object families onto slab caches
 
 ## Source materials
 

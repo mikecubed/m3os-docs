@@ -10,9 +10,12 @@ touchedBy:
   - "tty-pty"
   - "text-editor"
   - "pty-subsystem"
-  - "expanded-coreutils"
   - "ssh-server"
-  - "ports-system"
+  - "service-model-maturity"
+  - "first-service-extractions"
+  - "kernel-architecture-evolution"
+  - "kernel-completion-and-roadmap-alignment"
+  - "audio-and-local-session"
   - "claude-code"
 summary: "The terminal stack turns raw console I/O into an interactive environment people can actually use."
 responsibilities:
@@ -24,10 +27,16 @@ keyFiles:
     summary: "kernel/src/stdin.rs — kernel stdin buffer with line editing"
   - path: "userspace/shell/src/main.rs"
     summary: "sh0 (Phase 20 shell, renamed)"
-  - path: "kernel-core/src/tty.rs"
-    summary: "The Termios struct is defined in kernel-core/src/tty.rs and is"
   - path: "kernel/src/tty.rs"
-    summary: "Removed old alloc_pty skeleton"
+    summary: "kernel/src/tty.rs — TTY0 global state"
+  - path: "kernel-core/src/tty.rs"
+    summary: "kernel-core/src/tty.rs — Termios, Winsize, EditBuffer, constants"
+  - path: "userspace/stdin_feeder/src/main.rs"
+    summary: "userspace/stdin_feeder/src/main.rs — Keyboard line discipline (userspace)"
+  - path: "userspace/stdin_feeder/src/main.rs:220"
+    summary: "userspace/stdin_feeder/src/main.rs:220 — tcgetattr(0) called once at startup. c_cc array never refreshed."
+  - path: "userspace/stdin_feeder"
+    summary: "Completed. userspace/stdin_feeder now forwards raw"
 ---
 
-The terminal stack is introduced in Userspace Entry and later touched by 12 phase(s).
+The terminal stack is introduced in Userspace Entry and later touched by 15 phase(s).

@@ -17,10 +17,62 @@ learningObjectives:
   - "Learn how syslog provides centralized logging for all system services."
   - "See how cron enables scheduled automation."
   - "Understand daemon processes: double-fork, setsid, and why they exist."
-keyFiles: []
-codeSpotlights: []
+keyFiles:
+  - path: "userspace/init/src/main.rs"
+    summary: "PID 1 service manager: parser, dep graph, lifecycle, restart, shutdown"
+  - path: "userspace/syslogd/src/main.rs"
+    summary: "System logging daemon: /dev/log socket, log formatting, file output"
+  - path: "userspace/crond/src/main.rs"
+    summary: "Cron daemon: crontab parser, scheduler, job executor"
+  - path: "userspace/coreutils-rs/src/service.rs"
+    summary: "service command: list, status, start, stop, restart"
+  - path: "userspace/coreutils-rs/src/logger.rs"
+    summary: "logger command: send messages to syslog via /dev/log"
+  - path: "userspace/coreutils-rs/src/dmesg.rs"
+    summary: "dmesg command: print kernel ring buffer from /proc/kmsg"
+  - path: "userspace/coreutils-rs/src/shutdown.rs"
+    summary: "shutdown command: halt the system"
+  - path: "userspace/coreutils-rs/src/reboot_cmd.rs"
+    summary: "reboot command: restart the system"
+  - path: "userspace/coreutils-rs/src/hostname.rs"
+    summary: "hostname command: get/set hostname"
+  - path: "userspace/coreutils-rs/src/who.rs"
+    summary: "who command: show logged-in users"
+  - path: "userspace/coreutils-rs/src/last.rs"
+    summary: "last command: show login history"
+  - path: "userspace/coreutils-rs/src/crontab.rs"
+    summary: "crontab command: manage user crontabs"
+  - path: "kernel/src/arch/x86_64/syscall.rs"
+    summary: "sys_reboot syscall + kernel_shutdown helper"
+  - path: "userspace/syscall-lib/src/lib.rs"
+    summary: "reboot() wrapper, signal constants"
+  - path: "kernel/initrd/etc/services.d/*.conf"
+    summary: "Service definition files"
+codeSpotlights:
+  - title: "Create service definition files for existing daemons"
+    file: "kernel/initrd/etc/services.d/sshd.conf"
+    lines: "L4-L7"
+    summary: "spawn_sshd() calls in init. Creating them alongside the format design. Why it matters: These files replace the hardcoded spawn_telnetd() and. Focus on `spawn_telnetd` and `spawn_sshd` in `kernel/initrd/etc/services.d/sshd.conf` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.46.0/kernel/initrd/etc/services.d/sshd.conf"
+    snippet: "restart=always\nmax_restart=10\ndepends=syslogd"
+    snippetLanguage: "text"
+  - title: "Implement service definition parser in init"
+    file: "userspace/init/src/main.rs"
+    lines: "L406-L429"
+    summary: "parse them into structured ServiceDef values. This replaces the hardcoded. Why it matters: Init must read all .conf files from /etc/services.d/ and. Focus on `parse_service_def` and `ServiceDef` in `userspace/init/src/main.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.46.0/userspace/init/src/main.rs"
+    snippet: "/// Parse a service definition from a buffer of `key=value` lines.\nfn parse_service_def(buf: &[u8], len: usize) -> Option<ServiceDef> {\n    let mut svc = ServiceDef::empty();\n    let mut pos = 0;\n\n    while pos < len {\n        // Skip whitespace and blank lines.\n        while pos < len && (buf[pos] == b' ' || buf[pos] == b'\\t' || buf[pos] == b'\\r') {\n            pos += 1;\n        }\n        if pos >= len {\n            break;\n        }\n        // Skip comment lines.\n        if buf[pos] == b'#' {\n            while pos < len && buf[pos] != b'\\n' {\n                pos += 1;\n            }\n            if pos < len {\n                pos += 1;\n            }\n            continue;\n        }\n        if buf[pos] == b'\\n' {"
+    snippetLanguage: "rust"
+  - title: "Create the `service` command binary"
+    file: "userspace/coreutils-rs/src/service.rs"
+    lines: "L143-L166"
+    summary: "for the service manager. It must communicate with init to request operations. Why it matters: The service command is the primary administration interface. Focus on `service` and `main` in `userspace/coreutils-rs/src/service.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.46.0/userspace/coreutils-rs/src/service.rs"
+    snippet: "fn main(args: &[&str]) -> i32 {\n    if args.len() < 2 {\n        write_str(\n            STDERR_FILENO,\n            \"usage: service {list|status|start|stop|restart} [name]\\n\",\n        );\n        return 1;\n    }\n\n    match args[1] {\n        \"list\" => cmd_list(),\n        \"status\" => {\n            if args.len() < 3 {\n                write_str(STDERR_FILENO, \"usage: service status <name>\\n\");\n                return 1;\n            }\n            cmd_status(args[2])\n        }\n        \"start\" => {\n            if args.len() < 3 {\n                write_str(STDERR_FILENO, \"usage: service start <name>\\n\");\n                return 1;\n            }\n            send_command(\"start\", args[2])"
+    snippetLanguage: "rust"
 realOsDifferences:
   - "systemd: unit files, socket activation, cgroups, journal, timer units — enormous scope"
+  - "rustysd (MIT, Rust): systemd-compatible unit files, socket activation, sd_notify readiness protocol, thread-per-event model. Our PID table dispatch, service state machine, and reverse-order shutdown patterns are inspired by rustysd's design."
   - "runit: simple supervision tree, process 1/2/3 stages"
   - "OpenRC: dependency-based init with parallel startup"
   - "launchd (macOS): combines init, cron, inetd, and more"
@@ -28,10 +80,15 @@ realOsDifferences:
   - "Timezone-aware scheduling"
   - "Randomized delay"
   - "Access control (cron.allow, cron.deny)"
+  - "Remote syslog (UDP/TCP to log servers)"
+  - "Facility/priority-based routing to different files"
+  - "Log rotation and compression"
+  - "Structured logging (RFC 5424)"
 successCriteria:
   - "Services defined in `/etc/services.d/` start automatically at boot in dependency order."
   - "`service status sshd` shows the service is running with its PID."
   - "Killing a `restart=always` service causes it to be automatically restarted."
+  - "A service that crashes more than `max_restart` times is marked permanently stopped."
   - "`service stop telnetd` cleanly stops the telnet server."
   - "Log messages from services appear in `/var/log/messages`."
   - "`logger \"test message\"` writes to the system log."
@@ -47,7 +104,7 @@ The OS has a service manager, system logging, and scheduled task execution. Serv
 
 ## How it works in m3OS
 
-The roadmap entry defines the learning scope for this phase; a deeper implementation doc has not been matched yet.
+Phase 46 transforms m3OS from a system that hardcodes which daemons to run into one that reads service definitions from configuration files, starts them in dependency order, restarts them on failure, logs their output centrally, schedules recurring tasks, and shuts down cleanly. This is the layer that gives the later headless/reference release story a real operator-facing control plane.
 
 ## How it builds on earlier phases
 
@@ -55,21 +112,26 @@ This phase builds on Ports System and turns that foundation into System Services
 
 ## Implementation outline
 
-- Enhance init to read service definitions from `/etc/services.d/`.
-- Implement dependency ordering (topological sort).
-- Implement the `service` command.
-- Implement service restart monitoring (SIGCHLD handler).
-- Write `syslogd`: listen on `/dev/log` (or a named pipe), write to log files.
+- Design the service definition file format (including `max_restart`) and create `/etc/services.d/` entries.
+- Enhance init to parse service definitions and fill bidirectional dependency edges.
+- Implement dependency-ordered startup (topological sort or iterative readiness check).
+- Implement PID table mapping child PIDs to service entries for O(1) SIGCHLD dispatch.
+- Implement `ServiceStatus` state machine enum (`NeverStarted -> Starting -> Running -> Stopping -> Stopped`).
+- Implement SIGCHLD-based service exit detection with PID table lookup and automatic restart (capped by `max_restart`).
+- Write the `service` command (start, stop, restart, status, list).
+- Write `syslogd`: bind `/dev/log`, accept connections, write to log files.
 - Write the `logger` command.
-- Write `crond`: parse crontab format, sleep until next job, execute.
-- Write `crontab` command.
-- Write `shutdown`, `reboot`, `hostname`, `date`, `who` utilities.
-- Implement kernel reboot/shutdown syscalls.
+- Write `crond`: parse crontab format, compute next run time, sleep-and-execute loop.
+- Write the `crontab` command.
+- Implement `sys_reboot()` syscall and kernel shutdown path.
+- Write `shutdown` and `reboot` commands.
+- Write/update `hostname`, `who`, `w`, `last` utilities.
+- Implement iterative reverse-dependency shutdown (find service with no unstopped dependents, stop it, repeat).
 - Test full lifecycle: boot → services start → cron runs → remote login → shutdown.
 
 ## Task progress snapshot
 
-No checklist tasks were discovered for this phase yet.
+0 of 160 tracked tasks are complete.
 
 ## Documentation targets
 
@@ -77,7 +139,8 @@ No checklist tasks were discovered for this phase yet.
 
 ## Deferred follow-on work
 
-- Socket activation (systemd-style)
+- Socket activation (systemd-style, as in rustysd)
+- sd_notify readiness protocol (rustysd supports this; we use timeout-based heuristics)
 - Service sandboxing (cgroups, namespaces)
 - Journal (structured logging)
 - Log rotation
@@ -89,3 +152,5 @@ No checklist tasks were discovered for this phase yet.
 ## Source materials
 
 - [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/46-system-services.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/46-system-services.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/46-system-services-tasks.md)

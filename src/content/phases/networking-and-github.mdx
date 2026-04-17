@@ -1,10 +1,10 @@
 ---
-phase: 51
+phase: 60
 title: "Networking And GitHub"
 status: planned
 category: infrastructure
-summary: "m3OS can make HTTPS connections to the outside world. The GitHub CLI (`gh`) runs natively, enabling pull requests, issues, and CI status checks from the command line. git gains HTTPS remote support for clone, push, and pull to GitHub. DNS resolution works via musl's built-in resolver."
-learningGoal: "Understand TLS 1.3 and how certificate verification works (CA chains, root stores)."
+summary: "m3OS can use authenticated outbound network tooling for real developer workflows: DNS works, HTTPS is trustworthy enough for the supported use cases, git can speak to remotes, and the GitHub CLI runs inside the OS."
+learningGoal: "Understand how DNS resolution, HTTPS, and authenticated developer tooling build on the earlier security and networking layers."
 buildsOn:
   - "cross-compiled-toolchains"
 extends: []
@@ -12,27 +12,34 @@ replaces: []
 components:
   - "network-stack"
 learningObjectives:
-  - "Understand TLS 1.3 and how certificate verification works (CA chains, root stores)."
-  - "Learn how DNS stub resolution works (UDP query to a configured nameserver)."
-  - "See how Go binaries bundle their own TLS and DNS, making them easier to deploy than C programs that depend on OpenSSL."
-keyFiles: []
-codeSpotlights: []
-realOsDifferences: []
+  - "Understand how DNS resolution, HTTPS, and authenticated developer tooling build on the earlier security and networking layers."
+  - "Learn why outbound tooling raises the bar for entropy, certificate validation, and credential handling."
+  - "See how post-1.0 growth phases still depend on strong release and security discipline."
+  - "Understand how to stage network-facing developer tools without pretending the whole system is a general-purpose internet workstation."
+keyFiles:
+  - path: "kernel/Cargo.toml"
+    summary: "When the phase lands, bump kernel/Cargo.toml and any release/version references to 0.60.0."
+codeSpotlights:
+  - title: "Cargo"
+    file: "kernel/Cargo.toml"
+    lines: "See file"
+    summary: "When the phase lands, bump kernel/Cargo.toml and any release/version references to 0.60.0."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/Cargo.toml"
+realOsDifferences:
+  - "Mature systems support far more network tools, trust stores, background services, and credential helpers than m3OS should assume here."
+  - "The goal is not to duplicate a modern Linux workstation; it is to support a small, credible remote developer workflow."
+  - "Strong trust boundaries matter even more once the system starts handling real authenticated network traffic."
 successCriteria:
-  - "`/etc/resolv.conf` exists with `nameserver 10.0.2.3`."
-  - "`getrandom()` syscall works (RDRAND-seeded CSPRNG)."
-  - "`gh auth status` shows authenticated (with `GH_TOKEN` env var)."
-  - "`gh repo list --limit 5` lists repositories."
-  - "`gh issue create --repo user/repo --title \"test\"` creates an issue."
-  - "`gh pr create` creates a pull request."
-  - "`git clone https://github.com/user/repo.git` clones a repository."
-  - "`git push origin main` pushes with token authentication."
-  - "DNS resolution of `github.com` succeeds."
+  - "The supported resolver configuration works for the documented outbound environment."
+  - "The chosen HTTPS trust path is documented and used by the supported developer tools."
+  - "git can perform the documented remote workflows inside m3OS."
+  - "The GitHub CLI can complete the documented authenticated workflows inside m3OS."
+  - "The phase docs clearly describe the supported remote workflows and their limits."
 ---
 
 ## Why this phase matters
 
-m3OS can make HTTPS connections to the outside world. The GitHub CLI (`gh`) runs natively, enabling pull requests, issues, and CI status checks from the command line. git gains HTTPS remote support for clone, push, and pull to GitHub. DNS resolution works via musl's built-in resolver.
+m3OS can use authenticated outbound network tooling for real developer workflows: DNS works, HTTPS is trustworthy enough for the supported use cases, git can speak to remotes, and the GitHub CLI runs inside the OS.
 
 ## How it works in m3OS
 
@@ -44,7 +51,11 @@ This phase builds on Cross Compiled Toolchains and turns that foundation into Ne
 
 ## Implementation outline
 
-- Implementation steps have not been extracted yet.
+- Define the supported resolver and HTTPS trust configuration for the phase.
+- Choose and implement the supported git remote transport path.
+- Bundle and validate the GitHub CLI workflow.
+- Test authenticated remote workflows inside the supported environment.
+- Update support docs and post-1.0 roadmap notes to match the shipped behavior.
 
 ## Task progress snapshot
 
@@ -56,8 +67,11 @@ No checklist tasks were discovered for this phase yet.
 
 ## Deferred follow-on work
 
-- No deferred items were listed in the roadmap entry.
+- Full workstation-grade browser and GUI networking stack
+- Rich credential-helper ecosystems
+- Large language-specific package managers that depend on heavier runtimes
+- Broad general internet-client expectations beyond the supported developer tools
 
 ## Source materials
 
-- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/51-networking-and-github.md)
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/60-networking-and-github.md)

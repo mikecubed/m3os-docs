@@ -1,0 +1,120 @@
+---
+phase: 53
+title: "Headless Hardening"
+status: complete
+category: infrastructure
+summary: "m3OS becomes a deliberately operable headless/reference system: the security floor is repaired, the service model is trustworthy, the basic developer workflow is boringly repeatable, and the project has explicit validation gates for what it now claims to support."
+learningGoal: "Understand the difference between \"the feature exists\" and \"the feature is reliable enough to anchor a release claim.\""
+buildsOn:
+  - "kernel-completion-and-roadmap-alignment"
+extends: []
+replaces: []
+components:
+  - "boot-path"
+learningObjectives:
+  - "Understand the difference between \"the feature exists\" and \"the feature is reliable enough to anchor a release claim.\""
+  - "Learn how validation, support boundaries, and operator docs become part of system design."
+  - "See how ports, Rust std binaries, services, and diagnostics interact in day-to-day system use."
+  - "Understand why release discipline is a prerequisite for later scope growth."
+keyFiles:
+  - path: "kernel/Cargo.toml"
+    summary: "Keep kernel/Cargo.toml and any roadmap-facing version references aligned at 0.53.0; the version tracks the roadmap phase number and does not by itself mark the phase complete before the post-53a evidence bundle passes."
+  - path: "docs/roadmap/53-headless-hardening.md"
+    summary: "Canonical phase scope, gate bundle, support boundary, and 53/53a closure contract"
+  - path: "xtask/src/main.rs"
+    summary: "Implements smoke, regression, stress, and the headless workflow steps those commands drive"
+  - path: "docs/43c-regression-stress-ci.md"
+    summary: "Maps automated gates, CI tiers, and artifact locations for the published bundle"
+  - path: "docs/24-persistent-storage.md"
+    summary: "Explains the persistent ext2 root and the storage checks used in the operator workflow"
+  - path: "docs/46-system-services.md"
+    summary: "Explains the service/logging/shutdown model that Phase 53 treats as normal operations"
+  - path: "docs/45-ports-system.md"
+    summary: "Documents the bounded ports baseline and host-cache caveats that remain manual validation"
+  - path: "docs/44-rust-cross-compilation.md"
+    summary: "Documents the supported Rust std demos and their host prerequisites"
+codeSpotlights:
+  - title: "Align smoke coverage with the published headless workflows"
+    file: "xtask/src/main.rs"
+    lines: "L2502-L2525"
+    summary: "Align smoke coverage with the published headless workflows. Why it matters: The smoke test is the broadest end-to-end headless gate. If it does not match the workflows the docs claim to support, the release story is rhetorical instead of evidence-backed. Focus on `smoke_test_script` and `cmd_smoke_test` in `xtask/src/main.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.53.0/xtask/src/main.rs"
+    snippet: "/// Comprehensive smoke test: login, coreutils, TCC, Phase 32 build tools.\n///\n/// Replaces the Phase 31 smoke test with a more thorough script that validates\n/// the full userspace stack including new utilities and the make build tool.\n#[allow(unreachable_code)]\nfn smoke_test_script(doom_wad_available: bool) -> Vec<SmokeStep> {\n    let _ = doom_wad_available;\n    let mut steps = Vec::new();\n\n    // -----------------------------------------------------------------------\n    // 1. Boot and login (handles both first-boot locked accounts and normal login)\n    // -----------------------------------------------------------------------\n    // First-boot: account is locked (hash \"!\"), login prompts to set password.\n    // Normal boot: account has a password, login prompts for it.\n    // Both paths use \"root\" as the password.\n    const FIRST_BOOT_LOGIN: &[SmokeStep] = &[\n        SmokeStep::Send {\n            input: \"root\\n\",\n            label: \"set initial password\",\n        },\n        SmokeStep::Wait {\n            pattern: \"Retype password:\",\n            timeout_secs: 10,\n            label: \"wait for password confirmation prompt\","
+    snippetLanguage: "rust"
+  - title: "Make service state inspection and control part of the normal path"
+    file: "userspace/init/src/main.rs"
+    lines: "L659-L669"
+    summary: "Make service state inspection and control part of the normal path. Why it matters: A headless/reference system needs one documented way to inspect, restart, stop, and reason about services. If the normal path is still ad hoc, the service model is not trustworthy enough for a release claim. Focus on `ServiceManager` and `cmd_list` in `userspace/init/src/main.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.53.0/userspace/init/src/main.rs"
+    snippet: "struct ServiceManager {\n    services: [ServiceDef; MAX_SERVICES],\n    count: usize,\n    discovered_disabled: [FixedStr<MAX_NAME>; MAX_DISCOVERED_DISABLED],\n    discovered_disabled_count: usize,\n    pid_table: PidTable,\n    shutdown_requested: bool,\n    login_pid: i32,\n    /// File descriptor for the syslog socket (`/dev/log`), or -1 if unavailable.\n    syslog_fd: i32,\n}"
+    snippetLanguage: "rust"
+  - title: "Make the storage workflow part of the supported headless path"
+    file: "userspace/coreutils-rs/src/mount.rs"
+    lines: "L11-L34"
+    summary: "Make the storage workflow part of the supported headless path. Why it matters: Phase 53's release story explicitly includes storage. Operators need a documented way to verify that the writable data path backing packages, logs, and user data is healthy and recoverable. Focus on `main` in `userspace/coreutils-rs/src/mount.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.53.0/userspace/coreutils-rs/src/mount.rs"
+    snippet: "fn main(args: &[&str]) -> i32 {\n    // No arguments: print /proc/mounts.\n    if args.len() == 1 {\n        return show_mounts();\n    }\n\n    // Parse: mount -t TYPE SOURCE TARGET\n    let mut argi = 1usize;\n    let mut fstype: Option<&str> = None;\n\n    if argi < args.len() && args[argi] == \"-t\" {\n        argi += 1;\n        if argi >= args.len() {\n            write_str(STDERR_FILENO, \"usage: mount -t TYPE SOURCE TARGET\\n\");\n            return 1;\n        }\n        fstype = Some(args[argi]);\n        argi += 1;\n    }\n\n    if args.len() - argi != 2 || fstype.is_none() {\n        write_str(STDERR_FILENO, \"usage: mount -t TYPE SOURCE TARGET\\n\");\n        return 1;\n    }"
+    snippetLanguage: "rust"
+realOsDifferences:
+  - "Mature operating systems ship with far richer packaging, telemetry, and operator tooling than m3OS needs here."
+  - "The key lesson to borrow is not feature count but discipline: release claims must map to validated workflows."
+  - "m3OS should choose a narrow, supportable headless story rather than pretending to be a full server distribution."
+successCriteria:
+  - "The supported headless/reference workflow (§ above) is a single documented normal-operator path covering boot/login, service inspection/control, storage verification, log inspection, package/build basics, failure recovery, and clean shutdown/reboot."
+  - "The gate bundle names exact `cargo xtask` commands and manual checks, not generic references to smoke/regression."
+  - "The docs state where the Phase 48 security floor is exercised in the normal boot/admin path (steps 1 and 7)."
+  - "SSH is the documented default remote-admin path; telnet is documented as a non-default testing posture only."
+  - "Broad outbound developer tooling (HTTPS clients, git, DNS) is explicitly deferred as a non-goal."
+  - "GUI/local-session features, broad hardware certification, and large runtime ecosystems are explicitly out of scope."
+  - "The support boundary is narrow enough to feed Phase 58 without reopening Phase 53 scope."
+  - "The Phase 53 / Phase 53a closure contract states which decisions are defined now versus satisfied only after the published gates pass on the allocator-sensitive baseline."
+  - "The post-53a closure bundle names the exact final-close commands and manual checks, records where regression/stress evidence lives, and states that smoke output remains stdout-only until the harness writes a dedicated artifact."
+  - "Nightly `cargo xtask stress --test ssh-overlap --iterations 50 --timeout 90` is explicitly classified as sustaining evidence rather than a per-PR or final-close rerun."
+  - "No documentation implies that Phase 53 is already complete before the gate bundle passes on the post-53a image."
+---
+
+## Why this phase matters
+
+m3OS becomes a deliberately operable headless/reference system: the security floor is repaired, the service model is trustworthy, the basic developer workflow is boringly repeatable, and the project has explicit validation gates for what it now claims to support.
+
+## How it works in m3OS
+
+Phase 53 turns the current QEMU-first system into an explicit headless/reference-system promise. Instead of adding one brand-new subsystem, it converges the already-shipped security floor, service model, storage layout, logging path, build tooling, and validation harness into one supported operator workflow. The point of the phase is to make the release claim narrow, testable, and honest before the roadmap expands into broader hardware, GUI, or large runtime work.
+Phase 53 is also intentionally not "done" just because the workflow is written down. The workflow, gate bundle, and support boundary are published now, but the phase does not close until those gates pass on an image that includes the Phase 53a allocator changes.
+
+## How it builds on earlier phases
+
+This phase builds on Kernel Completion And Roadmap Alignment and turns that foundation into Headless Hardening.
+
+## Implementation outline
+
+- Define the supported headless/reference workflow, gate bundle, and support boundary (Track A — this document).
+- Turn the gate bundle into repeatable automation and evidence capture (Track B).
+- Audit the Rust std and ports flows for the release story and fix the rough edges that block routine use (Track C).
+- Harden service/logging/admin workflows into documented normal operations (Track D).
+- Update learning docs, subsystem docs, and evaluation docs to align with the new claim (Track E).
+- Collect closure evidence after Phase 53a and align version references (Track F).
+
+## Task progress snapshot
+
+0 of 78 tracked tasks are complete.
+
+## Documentation targets
+
+- Documentation deliverables have not been listed yet.
+
+## Deferred follow-on work
+
+- Broad outbound developer networking (HTTPS/TLS clients, DNS resolution, git remotes, GitHub tooling)
+- GUI / display compositor / graphical session / local desktop
+- Mouse input, audio output
+- Large third-party runtime ecosystems (Python, Node.js, JVM)
+- Broad hardware certification beyond QEMU x86_64 with OVMF
+- Package feeds, remote package repositories, dynamic linking
+- Full POSIX compliance testing
+
+## Source materials
+
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/53-headless-hardening.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/53-headless-hardening.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/53-headless-hardening-tasks.md)

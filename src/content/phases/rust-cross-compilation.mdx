@@ -10,14 +10,47 @@ buildsOn:
 extends: []
 replaces: []
 components:
-  - "process-model"
+  - "boot-path"
 learningObjectives:
   - "Understand Rust's cross-compilation model: targets, sysroots, and linkers."
   - "Learn how `#![no_std]` Rust programs interact with a minimal libc."
   - "See the difference between `std` programs (full libc) and `no_std` programs (bare syscalls) on a non-Linux OS."
   - "Experience building a custom Rust target specification."
-keyFiles: []
-codeSpotlights: []
+keyFiles:
+  - path: "kernel/initrd/"
+    summary: "resulting binaries, and copies them to kernel/initrd/ for inclusion in the disk"
+  - path: "xtask/src/main.rs"
+    summary: "Cross-compilation and packaging pipeline"
+  - path: "x86_64-m3os.json"
+    summary: "Custom Rust target spec for no_std programs"
+  - path: "userspace/hello-rust/src/main.rs"
+    summary: "Minimal Rust std validation"
+  - path: "userspace/sysinfo-rust/src/main.rs"
+    summary: "File I/O via std::fs"
+  - path: "userspace/httpd-rust/src/main.rs"
+    summary: "TCP server via std::net"
+  - path: "userspace/calc-rust/src/main.rs"
+    summary: "Interactive I/O via std::io"
+  - path: "userspace/todo-rust/src/main.rs"
+    summary: "Persistent storage via std::fs"
+codeSpotlights:
+  - title: "Create `userspace/hello-rust/` crate"
+    file: "userspace/hello-rust/Cargo.toml"
+    lines: "See file"
+    summary: "userspace crates (which are no_std and use syscall-lib), this crate uses Rust's. Why it matters: This is the first Rust std program targeting m3OS. Unlike existing. Focus on `hello-rust` and `std` in `userspace/hello-rust/Cargo.toml` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.44.0/userspace/hello-rust/Cargo.toml"
+  - title: "Run hello-rust inside m3OS"
+    file: "userspace/hello-rust/src/main.rs"
+    lines: "See file"
+    summary: "inside m3OS using the Linux syscall compatibility layer. If it prints its message and. Why it matters: This is the key proof-of-concept: a musl-linked Rust binary running. Focus on `hello-rust` in `userspace/hello-rust/src/main.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.44.0/userspace/hello-rust/src/main.rs"
+  - title: "Audit musl startup syscalls"
+    file: "kernel/src/arch/x86_64/syscall.rs"
+    lines: "L8788-L8799"
+    summary: "syscalls to set up the C runtime (e.g., set_tid_address, sigaltstack,. Why it matters: Before main() runs, musl's CRT startup code makes several. Focus on `sys_*` and `main` in `kernel/src/arch/x86_64/syscall.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.44.0/kernel/src/arch/x86_64/syscall.rs"
+    snippet: "\n// ---------------------------------------------------------------------------\n// set_tid_address(tidptr) — syscall 218 (musl TLS initialization)\n// ---------------------------------------------------------------------------\n\n/// `set_tid_address(tidptr)` — store the `clear_child_tid` pointer for the\n/// calling thread and return the caller's TID.\n///\n/// musl calls this during `__init_tls` to record the address that the kernel\n/// should clear (and futex-wake) when the thread exits.\nfn sys_linux_set_tid_address(tidptr: u64) -> u64 {\n    let pid = crate::process::current_pid();"
+    snippetLanguage: "rust"
 realOsDifferences:
   - "Full `std` library ports with OS-specific backends"
   - "Cargo registry access for pulling dependencies"
@@ -38,7 +71,7 @@ Rust programs compiled on the host run natively inside the OS. A documented tool
 
 ## How it works in m3OS
 
-The roadmap entry defines the learning scope for this phase; a deeper implementation doc has not been matched yet.
+Phase 44 enables Rust programs compiled on the host to run natively inside m3OS. Programs are cross-compiled with `--target x86_64-unknown-linux-musl`, producing statically-linked ELF binaries that make Linux syscalls. Because m3OS already implements a Linux syscall compatibility layer (Phase 12), these musl-linked binaries run without any kernel changes. The phase also introduces a custom `x86_64-m3os` target spec for `#![no_std]` programs and xtask automation for building and packaging Rust userspace binaries.
 
 ## How it builds on earlier phases
 
@@ -58,7 +91,7 @@ This phase builds on Regression Stress Ci and turns that foundation into Rust Cr
 
 ## Task progress snapshot
 
-No checklist tasks were discovered for this phase yet.
+0 of 76 tracked tasks are complete.
 
 ## Documentation targets
 
@@ -75,3 +108,5 @@ No checklist tasks were discovered for this phase yet.
 ## Source materials
 
 - [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/44-rust-cross-compilation.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/44-rust-cross-compilation.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/44-rust-cross-compilation-tasks.md)

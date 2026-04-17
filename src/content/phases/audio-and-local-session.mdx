@@ -1,0 +1,79 @@
+---
+phase: 57
+title: "Audio And Local Session"
+status: planned
+category: infrastructure
+summary: "m3OS supports a minimal local interactive session that feels like a system rather than a demo: there is a defined graphical session entry path, a basic terminal or launcher workflow, and audible PCM output on the supported platform."
+learningGoal: "Understand how audio output fits into a minimally useful graphical system."
+buildsOn:
+  - "display-and-input-architecture"
+extends: []
+replaces: []
+components:
+  - "process-model"
+  - "terminal"
+learningObjectives:
+  - "Understand how audio output fits into a minimally useful graphical system."
+  - "Learn how session entry, launcher/terminal behavior, and recovery rules make a UI feel like an operating environment instead of a technology demo."
+  - "See how DMA- or device-driven audio differs from text and graphics subsystems in its latency and buffering requirements."
+  - "Understand which parts of local-session polish are essential and which can wait."
+keyFiles:
+  - path: "kernel/Cargo.toml"
+    summary: "When the phase lands, bump kernel/Cargo.toml and any release/version references to 0.57.0."
+codeSpotlights:
+  - title: "Cargo"
+    file: "kernel/Cargo.toml"
+    lines: "See file"
+    summary: "When the phase lands, bump kernel/Cargo.toml and any release/version references to 0.57.0."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/Cargo.toml"
+realOsDifferences:
+  - "Mature desktop operating systems ship with richer sound servers, multimedia stacks, login managers, and application ecosystems."
+  - "m3OS should begin with a deliberately small local-session story that proves the concept and stays operable."
+  - "The right comparison is not \"does this match Linux desktop polish?\" but \"does this create a coherent local-system milestone?\""
+successCriteria:
+  - "The supported target can produce audible PCM output through the documented audio contract."
+  - "There is a documented and working path into a local graphical session."
+  - "A user can launch and use at least one genuinely useful graphical client, such as a terminal."
+  - "Session shutdown, crash recovery, and fallback to administration are documented and tested."
+  - "The docs clearly distinguish this minimal local session from a broader future desktop ecosystem."
+---
+
+## Why this phase matters
+
+m3OS supports a minimal local interactive session that feels like a system rather than a demo: there is a defined graphical session entry path, a basic terminal or launcher workflow, and audible PCM output on the supported platform.
+
+## How it works in m3OS
+
+The roadmap entry defines the learning scope for this phase; a deeper implementation doc has not been matched yet.
+
+## How it builds on earlier phases
+
+This phase builds on Display And Input Architecture and turns that foundation into Audio And Local Session.
+
+## Implementation outline
+
+- Choose the first supported audio target and userspace-facing API.
+- Implement the minimum audio-output path needed for the local-system story.
+- Define and wire the graphical session entry flow.
+- Ship at least one useful graphical client workflow, such as a terminal plus launcher.
+- Validate shutdown, recovery, and fallback behavior for the local session.
+- Update docs to distinguish the supported local-system path from later desktop ambitions.
+
+## Task progress snapshot
+
+No checklist tasks were discovered for this phase yet.
+
+## Documentation targets
+
+- Documentation deliverables have not been listed yet.
+
+## Deferred follow-on work
+
+- Rich desktop audio routing and mixing
+- Media playback, recording, and advanced codecs
+- Multiple graphical sessions or richer display-manager features
+- Full desktop shell, notifications, settings panels, and broader app ecosystems
+
+## Source materials
+
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/57-audio-and-local-session.md)

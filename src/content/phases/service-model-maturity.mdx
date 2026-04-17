@@ -1,0 +1,101 @@
+---
+phase: 51
+title: "Service Model Maturity"
+status: complete
+category: infrastructure
+summary: "m3OS turns its new service-management baseline into a reliable lifecycle model: boot ordering is explicit, restart semantics are trustworthy, shutdown behavior is deterministic, logs are coherent, and extracted ring-3 services can plug into the same operator workflow instead of inventing their own."
+learningGoal: "Understand how service definition formats, status models, restart policy, and shutdown semantics fit together."
+buildsOn:
+  - "ipc-completion"
+extends: []
+replaces: []
+components:
+  - "boot-path"
+  - "memory-manager"
+  - "process-model"
+  - "terminal"
+learningObjectives:
+  - "Understand how service definition formats, status models, restart policy, and shutdown semantics fit together."
+  - "Learn why supervision is part of the microkernel story, not just operational polish."
+  - "See how logging, service control, and status reporting become part of the release surface."
+  - "Understand how a service manager grows without immediately becoming systemd-sized."
+keyFiles:
+  - path: "kernel/Cargo.toml"
+    summary: "When the phase lands, bump kernel/Cargo.toml and any release/version references to 0.51.0."
+  - path: "userspace/init/src/main.rs"
+    summary: "Service manager: parser, dep graph, lifecycle, restart backoff, shutdown, control path"
+  - path: "userspace/syslogd/src/main.rs"
+    summary: "Syslog daemon: init log integration, facility coverage"
+  - path: "userspace/coreutils-rs/src/service.rs"
+    summary: "service command: list, status, start, stop, restart, enable, disable"
+  - path: "kernel/initrd/etc/services.d/*.conf"
+    summary: "Service definition files with new fields"
+codeSpotlights:
+  - title: "Cargo"
+    file: "kernel/Cargo.toml"
+    lines: "See file"
+    summary: "When the phase lands, bump kernel/Cargo.toml and any release/version references to 0.51.0."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.51.0/kernel/Cargo.toml"
+  - title: "Init entry"
+    file: "userspace/init/src/main.rs"
+    lines: "See file"
+    summary: "Service manager: parser, dep graph, lifecycle, restart backoff, shutdown, control path"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.51.0/userspace/init/src/main.rs"
+  - title: "Syslog daemon: init log integration, facility coverage"
+    file: "userspace/syslogd/src/main.rs"
+    lines: "See file"
+    summary: "Syslog daemon: init log integration, facility coverage"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.51.0/userspace/syslogd/src/main.rs"
+realOsDifferences:
+  - "Mature init systems ship with many more features: socket activation, sandboxing, journal retention, dependency conditions, watchdogs, and complex unit types."
+  - "m3OS should aim for a small, predictable service model that supports its architecture goals, not a clone of systemd."
+  - "The project should copy the discipline of explicit lifecycle rules and observability rather than the full feature surface of a production init stack."
+successCriteria:
+  - "Service definitions are stable enough to describe dependencies, restart rules, and privileges without ad hoc per-service behavior."
+  - "Service restart, stop, status, and log inspection behave predictably for the shipped daemon set."
+  - "Shutdown and reboot drain services in a defined order and leave logs/status information useful for diagnosis."
+  - "Validation coverage exists for service restart, shutdown, and operator-facing status flows."
+  - "Later extracted services have a documented and working path into the service model."
+---
+
+## Why this phase matters
+
+m3OS turns its new service-management baseline into a reliable lifecycle model: boot ordering is explicit, restart semantics are trustworthy, shutdown behavior is deterministic, logs are coherent, and extracted ring-3 services can plug into the same operator workflow instead of inventing their own.
+
+## How it works in m3OS
+
+Phase 51 hardens the Phase 46 service manager into a trusted lifecycle model. Where Phase 46 introduced data-driven service definitions, dependency ordering, restart policies, syslog, cron, and admin commands, Phase 51 strengthens every layer so that later extracted ring-3 services can join the same supervision framework without inventing their own conventions. The key changes are: a stabilized service-definition contract with privilege and timeout fields, a validated state machine with enforced transition guards, restart backoff with crash classification, deterministic shutdown ordering with per-service timeouts and orphan reaping, syslog integration for init itself, and a hardened admin control path.
+
+## How it builds on earlier phases
+
+This phase builds on IPC Completion and turns that foundation into Service Model Maturity.
+
+## Implementation outline
+
+- Audit the Phase 46 service model against the needs of later extracted services.
+- Stabilize service definition fields, dependency semantics, and service states.
+- Strengthen restart, crash classification, and shutdown behavior.
+- Harden the status and logging surfaces used by operators and validation tooling.
+- Extend the admin/control path so it remains stable as the service graph grows.
+- Add validation for restart, shutdown, service status, and log visibility.
+- Update phase, subsystem, and evaluation docs to reflect the matured service model.
+
+## Task progress snapshot
+
+No checklist tasks were discovered for this phase yet.
+
+## Documentation targets
+
+- Documentation deliverables have not been listed yet.
+
+## Deferred follow-on work
+
+- Advanced service sandboxing and capability confinement
+- Socket activation and readiness protocols
+- Rich health probes, backoff tuning, and multi-instance orchestration
+- Structured journaling and long-term log retention policy
+
+## Source materials
+
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/51-service-model-maturity.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/51-service-model-maturity.md)

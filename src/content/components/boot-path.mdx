@@ -8,14 +8,24 @@ touchedBy:
   - "hardware-discovery"
   - "userspace-init-shell"
   - "ion-shell"
+  - "tty-pty"
   - "user-accounts"
   - "ext2-filesystem"
   - "telnet-server"
   - "compiler-bootstrap"
   - "build-tools"
   - "real-time-clock"
+  - "expanded-coreutils"
+  - "regression-stress-ci"
+  - "rust-cross-compilation"
+  - "ports-system"
   - "doom"
-  - "cross-compiled-toolchains"
+  - "security-foundation"
+  - "service-model-maturity"
+  - "kernel-completion-and-roadmap-alignment"
+  - "headless-hardening"
+  - "deep-serverization"
+  - "post-serverization-kernel-hygiene"
 summary: "The boot path moves the system from firmware and build tooling into a running kernel with visible early diagnostics."
 responsibilities:
   - "Build and launch the bootable image."
@@ -32,4 +42,4 @@ keyFiles:
     summary: "xtask/vendor/ion; if absent, build it from source using the musl target. Copy"
 ---
 
-The boot path is introduced in Boot Foundation and later touched by 14 phase(s).
+The boot path is introduced in Boot Foundation and later touched by 24 phase(s).

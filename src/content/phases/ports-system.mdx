@@ -3,28 +3,66 @@ phase: 45
 title: "Ports System"
 status: complete
 category: infrastructure
-summary: "A simple \"ports\" system enables building and installing third-party software inside the OS from source recipes. A port is a directory containing a `Makefile`, patches, and a description file that automates downloading (or bundling), compiling, and installing a piece of software."
+summary: "A simple BSD-style ports system enables building and installing third-party software inside the OS from source recipes. A port is a directory containing a Makefile, patches, and a Portfile that automates extracting, compiling, and installing a piece of software. At least 5 ports build and install successfully, with dependency resolution."
 learningGoal: "Understand how BSD ports and Gentoo portage work: source-based package management."
 buildsOn:
   - "rust-cross-compilation"
 extends: []
 replaces: []
 components:
-  - "terminal"
-  - "vfs"
+  - "boot-path"
 learningObjectives:
   - "Understand how BSD ports and Gentoo portage work: source-based package management."
   - "Learn what \"porting\" software means: identifying dependencies, patching for compatibility, and verifying correct behavior on a new platform."
   - "See how a package system provides reproducible builds."
-keyFiles: []
-codeSpotlights: []
+  - "Understand install manifests and package databases for tracking installed software."
+keyFiles:
+  - path: "ports/port.sh"
+    summary: "The port command — installed at /usr/bin/port"
+  - path: "ports/lang/lua/Portfile"
+    summary: "Lua port metadata"
+  - path: "ports/lang/lua/Makefile"
+    summary: "Lua build rules (TCC compilation)"
+  - path: "ports/lib/zlib/Portfile"
+    summary: "zlib port metadata"
+  - path: "ports/lib/zlib/Makefile"
+    summary: "zlib build rules (static library)"
+  - path: "ports/math/bc/src/bc.c"
+    summary: "Self-contained bc calculator implementation"
+  - path: "ports/core/sbase/Makefile"
+    summary: "Multi-binary build for 15 sbase utilities"
+  - path: "ports/doc/mandoc/src/mandoc.c"
+    summary: "Simplified man page formatter"
+  - path: "ports/util/minizip/Portfile"
+    summary: "minizip port with DEPS=zlib for dep testing"
+  - path: "xtask/src/main.rs"
+    summary: "Lua source download at build time"
+codeSpotlights:
+  - title: "Add `populate_ports_tree()` function to xtask"
+    file: "xtask/src/main.rs"
+    lines: "L4150-L4173"
+    summary: "into the ext2 data partition during cargo xtask image. This follows the same. Why it matters: The ports tree and bundled source archives must be placed. Focus on `populate_ports_tree` and `populate_tcc_files` in `xtask/src/main.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.45.0/xtask/src/main.rs"
+    snippet: "/// Phase 45: Populate the ports tree into `/usr/ports/` on the ext2 partition.\n///\n/// Mirrors the host-side `ports/` directory (Portfiles, Makefiles, patches) and\n/// downloaded source files into the ext2 image. Also installs the `port` command\n/// at `/usr/bin/port` and creates `/usr/local/` and `/var/db/ports/` directories.\nfn populate_ports_tree(part_path: &Path, workspace_root: &Path, ports_src: &Path) {\n    let ports_dir = workspace_root.join(\"ports\");\n    if !ports_dir.is_dir() {\n        return;\n    }\n\n    let mut dirs: Vec<String> = Vec::new();\n    let mut files: Vec<(String, PathBuf)> = Vec::new();\n\n    // Collect port metadata files (Portfiles, Makefiles, patches, .gitkeep).\n    collect_ports_entries(&ports_dir, \"usr/ports\", &mut dirs, &mut files);\n\n    // Collect downloaded source files into the port tree.\n    // Source files go to usr/ports/<category>/<name>/src/\n    if ports_src.is_dir() {\n        for category in &[\"lang\", \"lib\", \"math\", \"core\", \"doc\", \"util\"] {\n            let cat_dir = ports_src.join(category);\n            if !cat_dir.is_dir() {\n                continue;"
+    snippetLanguage: "rust"
+  - title: "Verify no regressions in existing tests"
+    file: "kernel/tests/*.rs"
+    lines: "See file"
+    summary: "directories or xtask code must not break existing functionality. Why it matters: Adding the ports tree to the disk image and any new. Focus on `kernel/tests/*.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.45.0/kernel/tests/*.rs"
+  - title: "The port command — installed at /usr/bin/port"
+    file: "ports/port.sh"
+    lines: "See file"
+    summary: "The port command — installed at /usr/bin/port"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.45.0/ports/port.sh"
 realOsDifferences:
-  - "Binary package distribution (apt, pacman, pkg) — precompiled packages avoid build times"
-  - "Cryptographic signing for package integrity"
-  - "Version constraints and conflict resolution"
-  - "Automatic security updates"
-  - "Mirror networks for distribution"
-  - "Build farms for cross-compilation"
+  - "Binary package distribution (apt, pacman, pkg) — precompiled packages avoid build times."
+  - "Cryptographic signing for package integrity."
+  - "Version constraints and conflict resolution."
+  - "Automatic security updates."
+  - "Mirror networks for distribution."
+  - "Build farms for cross-compilation."
+  - "BSD ports (FreeBSD, OpenBSD) are the closest model: source-based, Makefile-driven, with patches. Our version is much simpler: no version conflict resolution, no binary packages, no signing."
 successCriteria:
   - "`port install lua` builds Lua from source inside the OS and installs it."
   - "`lua -e \"print('hello from m3os')\"` runs successfully."
@@ -32,16 +70,17 @@ successCriteria:
   - "`port info lua` shows Lua's version and description."
   - "`port remove lua` uninstalls the package."
   - "At least 5 ports build and install successfully."
-  - "Dependency resolution works: installing a port that depends on `zlib` builds `zlib` first."
+  - "Dependency resolution works: installing minizip builds zlib first."
 ---
 
 ## Why this phase matters
 
-A simple "ports" system enables building and installing third-party software inside the OS from source recipes. A port is a directory containing a `Makefile`, patches, and a description file that automates downloading (or bundling), compiling, and installing a piece of software.
+A simple BSD-style ports system enables building and installing third-party software inside the OS from source recipes. A port is a directory containing a Makefile, patches, and a Portfile that automates extracting, compiling, and installing a piece of software. At least 5 ports build and install successfully, with dependency resolution.
 
 ## How it works in m3OS
 
-The roadmap entry defines the learning scope for this phase; a deeper implementation doc has not been matched yet.
+Phase 45 adds a BSD-style ports system for building and installing a bounded set of third-party software from source inside m3OS. Each port is a directory containing a Portfile (metadata), a Makefile (build rules), bundled source code, and optional patches. The `port` shell command automates the full lifecycle: dependency resolution, source extraction, compilation with TCC, installation to `/usr/local/`, and package tracking with file manifests for clean removal.
+Phase 53 keeps this capability in the headless/reference story as a documented manual validation surface rather than a mandatory smoke/regression gate. The important convergence work is therefore predictability: the in-repo baseline must always ship, and the host-cached Lua/zlib expansion path must be explicit instead of silently assumed.
 
 ## How it builds on earlier phases
 
@@ -49,19 +88,19 @@ This phase builds on Rust Cross Compilation and turns that foundation into Ports
 
 ## Implementation outline
 
-- Design the `Portfile` format (keep it simple: shell variables).
-- Write the `port` script/program.
-- Create the ports tree directory structure in the disk image.
-- Port Lua as the first test case (small, portable, no dependencies).
-- Verify: `port install lua` builds and installs Lua, `lua -e "print('hello')"` works.
-- Port remaining initial packages, adding patches as needed.
+- Design the Portfile format (shell variables) and Makefile target contract.
+- Create the `ports/` directory structure with category/program/ hierarchy.
+- Write the `port.sh` shell script with list/info/install/remove/clean subcommands.
+- Add `populate_ports_tree()` to xtask for mirroring ports into the ext2 image.
+- Fetch Lua and zlib sources at build time; bundle other port sources in-repo.
+- Create Portfiles and Makefiles for all initial ports.
 - Implement dependency resolution in the `port` command.
-- Track installed packages.
-- Document how to create a new port.
+- Implement install manifest generation and package tracking.
+- Verify end-to-end: `port install lua` produces a working Lua binary.
 
 ## Task progress snapshot
 
-No checklist tasks were discovered for this phase yet.
+101 of 101 tracked tasks are complete.
 
 ## Documentation targets
 
@@ -74,8 +113,11 @@ No checklist tasks were discovered for this phase yet.
 - Version conflict resolution
 - Automatic updates
 - Mirror/repository support
+- Network fetching of source tarballs
 - Cross-compilation of ports on the host
 
 ## Source materials
 
 - [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/45-ports-system.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/45-ports-system.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/45-ports-system-tasks.md)

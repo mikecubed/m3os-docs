@@ -3,69 +3,77 @@ phase: 47
 title: "Doom"
 status: complete
 category: showcase
-summary: "DOOM runs inside the OS. The shareware `doom1.wad` loads from disk, renders to the framebuffer, and accepts keyboard input for gameplay. This is the \"it runs DOOM\" milestone — the classic proof that a hobby OS has reached a meaningful level of capability."
-learningGoal: "Understand what a real graphical application needs from the OS: raw framebuffer access, input events, timing, and large file I/O."
+summary: "m3OS can run DOOM as a real full-screen graphical application. The game loads its WAD data from disk, renders through the framebuffer path, accepts keyboard input for gameplay, and returns the system to a usable administration path when it exits."
+learningGoal: "Understand what a real graphical program needs from the OS beyond text output."
 buildsOn:
   - "system-services"
 extends: []
 replaces: []
 components:
+  - "interrupt-router"
+  - "vfs"
   - "boot-path"
 learningObjectives:
-  - "Understand what a real graphical application needs from the OS: raw framebuffer access, input events, timing, and large file I/O."
-  - "Learn how the DOOM rendering pipeline works: BSP traversal, palette-indexed 320x200 software rendering, scaled blit to native resolution."
-  - "See how a minimal platform abstraction layer bridges a large C codebase to a new OS."
-  - "Experience porting a real program — the gap between \"all syscalls pass tests\" and \"a real program actually works\" teaches more than any unit test."
+  - "Understand what a real graphical program needs from the OS beyond text output."
+  - "Learn how framebuffer access, timing, input events, and large file I/O interact in one concrete workload."
+  - "See how a thin platform layer such as `doomgeneric` bridges a larger C codebase to a new OS."
+  - "Understand why \"it runs DOOM\" is a useful milestone but not the same thing as a display server or desktop stack."
 keyFiles:
-  - path: "kernel/initrd/doom.elf"
-    summary: "Binary goes to kernel/initrd/doom.elf or the ext2 disk image."
+  - path: "kernel/src/arch/x86_64/syscall.rs"
+    summary: "Framebuffer syscalls, raw scancode syscall, TSC-backed gettimeofday() and short nanosleep() behavior"
+  - path: "kernel/src/arch/x86_64/interrupts.rs"
+    summary: "Keyboard IRQ handling, raw scancode buffers, bounded i8042 drain loop"
+  - path: "kernel/src/fs/ext2.rs"
+    summary: "WAD read hot path, enlarged block cache, zero-copy read_block_into_slice() helper"
+  - path: "kernel/src/fb/mod.rs"
+    summary: "Framebuffer ownership, console yield/restore path"
+  - path: "userspace/doom/dg_m3os.c"
+    summary: "m3OS doomgeneric platform layer: framebuffer init, blit path, key translation, timing wrappers"
+  - path: "userspace/doom/patches/i_input.c"
+    summary: "Persistent local patch removing the upstream key-up drain asymmetry"
+  - path: "xtask/src/main.rs"
+    summary: "doomgeneric clone/build flow, patch overlay, WAD population on the ext2 image"
 codeSpotlights:
   - title: "`sys_framebuffer_info` syscall"
     file: "kernel/src/arch/x86_64/syscall.rs"
-    lines: "L894-L917"
+    lines: "L7161-L7184"
     summary: "and pixel format before it can render anything — this is the discovery mechanism. Why it matters: Userspace needs the framebuffer dimensions, pitch, bytes-per-pixel,. Focus on `sys_framebuffer_info` and `0x1002` in `kernel/src/arch/x86_64/syscall.rs` while you trace the snippet."
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/arch/x86_64/syscall.rs"
-    snippet: "/// Linux syscall number → handler dispatch (Phase 12, T011–T026).\n///\n/// Numbers that happen to match our Phase 11 ABI are handled identically.\n/// The custom debug-print syscall is moved from 12 → 0x1000 to free up\n/// Linux brk = 12.\n///\n/// # Syscall audit (T011) — Linux numbers that musl requires\n///\n/// | Linux # | Name        | Implementation        |\n/// |---------|-------------|----------------------|\n/// |       0 | read        | ramdisk / stdin stub  |\n/// |       1 | write       | stdout → serial       |\n/// |       2 | open        | ramdisk lookup        |\n/// |       3 | close       | fd-table release      |\n/// |       5 | fstat       | minimal stat struct   |\n/// |       8 | lseek       | per-fd offset update  |\n/// |       9 | mmap        | anonymous only        |\n/// |      11 | munmap      | stub (no-op)          |\n/// |      12 | brk         | frame-backed heap     |\n/// |      16 | ioctl       | TIOCGWINSZ only       |\n/// |      19 | readv       | loop over read        |\n/// |      20 | writev      | loop over write       |\n/// |      39 | getpid      | ✓ same as Phase 11    |\n/// |      57 | fork        | ✓ same as Phase 11    |"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.47.0/kernel/src/arch/x86_64/syscall.rs"
+    snippet: "fn sys_framebuffer_info(buf_addr: u64, buf_len: u64) -> u64 {\n    const USER_LIMIT: u64 = 0x0000_8000_0000_0000;\n    const FB_INFO_SIZE: u64 = core::mem::size_of::<FbInfo>() as u64;\n\n    if buf_addr == 0 || buf_addr >= USER_LIMIT || buf_len < FB_INFO_SIZE {\n        return NEG_EINVAL;\n    }\n\n    let (width, height, stride, bpp, pixel_format) = match crate::fb::framebuffer_raw_info() {\n        Some(info) => info,\n        None => return NEG_EINVAL,\n    };\n\n    let pixel_format_val: u32 = match pixel_format {\n        bootloader_api::info::PixelFormat::Rgb => 0,\n        bootloader_api::info::PixelFormat::Bgr => 1,\n        _ => return NEG_EINVAL,\n    };\n\n    let info = FbInfo {\n        width: width as u32,\n        height: height as u32,\n        stride: stride as u32,\n        bpp: bpp as u32,"
     snippetLanguage: "rust"
   - title: "Syscall constants in `syscall-lib`"
     file: "userspace/syscall-lib/src/lib.rs"
-    lines: "L247-L248"
+    lines: "L253-L257"
     summary: "assembly or direct syscall invocation) need named constants for the new syscall. Why it matters: Rust userspace programs (and the C platform layer via inline. Focus on `syscall-lib` and `SYS_FRAMEBUFFER_INFO` in `userspace/syscall-lib/src/lib.rs` while you trace the snippet."
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/userspace/syscall-lib/src/lib.rs"
-    snippet: "/// Custom kernel meminfo syscall (Phase 33).\npub const SYS_MEMINFO: u64 = 0x1001;"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.47.0/userspace/syscall-lib/src/lib.rs"
+    snippet: "/// Phase 47: framebuffer info syscall.\npub const SYS_FRAMEBUFFER_INFO: u64 = 0x1005;\n\n/// Phase 47: framebuffer mmap syscall.\npub const SYS_FRAMEBUFFER_MMAP: u64 = 0x1006;"
     snippetLanguage: "rust"
   - title: "Console yield function"
     file: "kernel/src/fb/mod.rs"
-    lines: "L789-L799"
+    lines: "L954-L964"
     summary: "same framebuffer memory, causing garbled output. Why it matters: Without this, the kernel text console and DOOM would race on the. Focus on `yield_console` and `write_str` in `kernel/src/fb/mod.rs` while you trace the snippet."
-    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/fb/mod.rs"
-    snippet: "    /// Write all characters in `s`, processing through the ANSI parser.\n    fn write_str(&mut self, s: &str) {\n        // Erase cursor before modifying the framebuffer.\n        self.hide_cursor();\n        for c in s.chars() {\n            let cmd = self.parser.process_char(c);\n            self.execute_cmd(cmd);\n        }\n        // Redraw cursor at (possibly new) position.\n        self.show_cursor();\n    }"
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.47.0/kernel/src/fb/mod.rs"
+    snippet: "/// Suppresses all framebuffer console output.\n///\n/// For internal use only.  External callers that need to claim the\n/// framebuffer should use [`try_yield_console`] which performs an\n/// atomic compare-and-swap ownership check.\nfn yield_console(owner_pid: u32) {\n    FB_OWNER_PID.store(owner_pid, Ordering::Release);\n    crate::arch::x86_64::interrupts::reset_raw_input_state();\n    let _guard = CONSOLE.lock();\n    CONSOLE_YIELDED.store(true, Ordering::Release);\n}"
     snippetLanguage: "rust"
 realOsDifferences:
-  - "**Linux framebuffer** (`/dev/fb0`) with `fbdev` ioctls for mode setting."
-  - "**DRM/KMS** (Direct Rendering Manager / Kernel Mode Setting) for modern GPU access."
-  - "**X11/Wayland** compositing window managers for multi-application graphics."
-  - "**OpenGL/Vulkan** hardware-accelerated 3D rendering."
-  - "**ALSA/PulseAudio** for sound output."
-  - "**evdev** (`/dev/input/event*`) for unified input events (keyboard, mouse, gamepad)."
+  - "Mature systems usually expose standardized graphics and input interfaces rather than one milestone app driving the first visible proof."
+  - "Real desktops rely on compositors, richer input stacks, audio, toolkit layers, and often hardware acceleration."
+  - "m3OS should use this phase to validate the substrate with a real workload, not to freeze the wrong long-term abstraction."
 successCriteria:
-  - "`doom` binary starts from the shell and displays the DOOM title screen."
-  - "The framebuffer shows the game at a playable resolution."
-  - "Keyboard input works: arrow keys move, Ctrl fires, Space opens doors, Enter selects menu items."
-  - "The game runs at a playable frame rate (15+ FPS)."
-  - "WAD file loads from the ext2 disk without errors."
-  - "Exiting DOOM (quit menu or Ctrl-C) returns to the shell."
-  - "`cargo xtask run-gui` launches QEMU in GUI mode with the game playable."
-  - "The shareware episode (E1M1 through E1M8) is completable."
+  - "DOOM or the chosen equivalent graphical workload launches from m3OS and renders through the documented framebuffer path."
+  - "The application loads its assets from the supported storage path without undocumented host-side tricks."
+  - "Interactive keyboard input works well enough for real use of the application."
+  - "Exiting or crashing the graphical program returns the system to a usable administration path."
+  - "The docs explicitly describe this milestone as a graphics proof point, not a complete GUI stack."
 ---
 
 ## Why this phase matters
 
-DOOM runs inside the OS. The shareware `doom1.wad` loads from disk, renders to the framebuffer, and accepts keyboard input for gameplay. This is the "it runs DOOM" milestone — the classic proof that a hobby OS has reached a meaningful level of capability.
+m3OS can run DOOM as a real full-screen graphical application. The game loads its WAD data from disk, renders through the framebuffer path, accepts keyboard input for gameplay, and returns the system to a usable administration path when it exits.
 
 ## How it works in m3OS
 
-The roadmap entry defines the learning scope for this phase; a deeper implementation doc has not been matched yet.
+Phase 47 is where m3OS stops proving isolated subsystems and starts carrying a real graphical application end to end. It adds framebuffer mapping, raw scancode input, doomgeneric build integration, shareware WAD delivery on the ext2 image, and the debugging work needed to keep a real game responsive under QEMU. The end result is a working DOOM port with known remaining performance headroom.
 
 ## How it builds on earlier phases
 
@@ -73,15 +81,11 @@ This phase builds on System Services and turns that foundation into Doom.
 
 ## Implementation outline
 
-- Implement `sys_framebuffer_info` syscall — return dimensions, pitch, pixel format.
-- Implement `sys_framebuffer_mmap` syscall — map framebuffer into userspace.
-- Implement `sys_read_scancode` syscall — return raw PS/2 scancodes.
-- Clone doomgeneric source; write m3os platform layer (~200 lines).
-- Cross-compile with `musl-gcc -static`; add to xtask build.
-- Add `doom1.wad` to the ext2 disk image.
-- Boot with `cargo xtask run-gui` and test.
-- Tune scaling and input mapping.
-- Screenshot the running game for the README.
+- Define the documented userspace framebuffer and keyboard path used by the port.
+- Implement or finish the platform layer for DOOM.
+- Integrate the WAD and binary into the supported image/build flow.
+- Validate launch, rendering, gameplay input, and exit/recovery behavior.
+- Document what this phase proves and what it does not prove about the later GUI stack.
 
 ## Task progress snapshot
 
@@ -93,16 +97,13 @@ This phase builds on System Services and turns that foundation into Doom.
 
 ## Deferred follow-on work
 
-- Sound output (PC speaker beeps, Sound Blaster emulation)
-- Mouse input (PS/2 mouse driver)
-- Network multiplayer (IPX/UDP)
-- Save games to persistent storage (could work already via file I/O)
-- DOOM II and commercial WAD support
-- Higher-resolution rendering (GZDoom-style)
+- Multi-application composition and windowing
+- Pointer-driven GUI policy
+- Audio output for the graphical session
 - Hardware-accelerated rendering
-- Window manager / compositor for multi-app graphics
 
 ## Source materials
 
 - [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/47-doom.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/47-doom.md)
 - [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/47-doom-tasks.md)

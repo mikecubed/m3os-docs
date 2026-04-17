@@ -2,14 +2,21 @@
 title: "Memory Manager"
 introducedIn: "memory-basics"
 touchedBy:
+  - "ipc-core"
   - "posix-compat"
   - "shell-and-tools"
   - "memory-reclamation"
   - "signal-handlers"
   - "text-editor"
   - "kernel-memory-improvements"
-  - "mouse-input"
+  - "ipc-completion"
+  - "service-model-maturity"
+  - "kernel-completion-and-roadmap-alignment"
+  - "kernel-structural-hardening"
+  - "kernel-memory-modernization"
+  - "display-and-input-architecture"
   - "cross-compiled-toolchains"
+  - "nodejs"
 summary: "The memory manager owns frame allocation, virtual mappings, and the policies that let later phases isolate work safely."
 responsibilities:
   - "Allocate and reclaim physical frames."
@@ -27,7 +34,7 @@ keyFiles:
   - path: "kernel/src/mm/debug.rs"
     summary: "The debug helpers live in kernel/src/mm/debug.rs, and the smoke-test allocations"
   - path: "kernel/src/mm/user_mem.rs"
-    summary: "Both functions in kernel/src/mm/user_mem.rs follow the same pattern:"
+    summary: "kernel/src/mm/user_mem.rs) to transfer bytes through the caller's page"
   - path: "kernel/src/mm/elf.rs"
     summary: "kernel/src/mm/elf.rs — setup_abi_stack_with_envp (envp support)"
   - path: "kernel/src/mm/mod.rs"
@@ -38,6 +45,10 @@ keyFiles:
     summary: "allocator is host-testable via kernel-core."
   - path: "kernel/src/mm/slab.rs"
     summary: "New: kernel slab cache instances"
+  - path: "kernel/src/mm/magazine.rs"
+    summary: "A fixed-size array of physical frame addresses per CPU, accessed via smp::per_core(). Cooperative scheduling removes kernel task migration during the fast path, but IRQ re-entrancy still exists, so local mutations occur with interrupts masked or an equivalent local non-reentrancy guard. The per-CPU cache sits between callers and the global BuddyAllocator, absorbing the vast majority of single-page allocations while coordinated reclaim drains caches via owner-CPU self-drain or equivalent synchronized handoff."
+  - path: "kernel/src/mm/*"
+    summary: ":position()-based free-block removal with an O(1)-removable per-order representation while preserving kernel-core as a pure, host-testable data structure. If page-body metadata is used, keep it in the kernel-side wrapper rather than baking physical-page assumptions into kernel-core."
 ---
 
-The memory manager is introduced in Memory Basics and later touched by 8 phase(s).
+The memory manager is introduced in Memory Basics and later touched by 15 phase(s).

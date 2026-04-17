@@ -1,0 +1,135 @@
+---
+phase: 53
+title: "Kernel Memory Modernization"
+status: complete
+category: infrastructure
+summary: "The kernel memory subsystem becomes SMP-scalable and auditable: per-CPU page caching removes the global frame-allocator lock from the common single-page path, a magazine-based slab allocator with out-of-line slab metadata replaces the linked-list heap for small kernel objects, and the allocator preserves Phase 52b's zero-before-user-exposure guarantee while eliminating the double-lock and O(n) buddy removal paths."
+learningGoal: "Understand why per-CPU caching is the dominant design pattern in every production kernel allocator"
+buildsOn:
+  - "headless-hardening"
+extends: []
+replaces: []
+components:
+  - "memory-manager"
+  - "vfs"
+learningObjectives:
+  - "Understand why per-CPU caching is the dominant design pattern in every production kernel allocator"
+  - "Learn the magazine/bucket pattern (Bonwick & Adams, FreeBSD UMA) and how it amortizes lock contention"
+  - "Understand size-class-based allocation and why geometric spacing bounds internal fragmentation"
+  - "See where Rust's type system can encode memory-state invariants even when full type-state frame wrappers are deferred"
+  - "Learn the trade-offs between embedded freelists (SLUB) and bitmap allocation (current m3OS)"
+keyFiles:
+  - path: "kernel/src/mm/frame_allocator.rs"
+    summary: "Per-CPU page cache, refcount ordering, zero-before-exposure helpers, high-order reclaim retry"
+  - path: "kernel/src/mm/slab.rs"
+    summary: "Kernel magazine fast paths, cross-CPU routing, reclaim ordering, empty-slab return"
+  - path: "kernel/src/mm/magazine.rs"
+    summary: "A fixed-size array of physical frame addresses per CPU, accessed via smp::per_core(). Cooperative scheduling removes kernel task migration during the fast path, but IRQ re-entrancy still exists, so local mutations occur with interrupts masked or an equivalent local non-reentrancy guard. The per-CPU cache sits between callers and the global BuddyAllocator, absorbing the vast majority of single-page allocations while coordinated reclaim drains caches via owner-CPU self-drain or equivalent synchronized handoff."
+  - path: "kernel-core/src/slab.rs"
+    summary: "Embedded-freelist slab cache with D.5 pointer hardening and out-of-line span metadata"
+  - path: "kernel/src/mm/heap.rs"
+    summary: "Size-class GlobalAlloc, dense PageMeta, bootstrap fallback, allocator-local reclaim coordination"
+  - path: "kernel-core/src/buddy.rs"
+    summary: "Host-testable buddy allocator with summary bitmaps for fast free-block tracking"
+  - path: "kernel/src/mm/*"
+    summary: ":position()-based free-block removal with an O(1)-removable per-order representation while preserving kernel-core as a pure, host-testable data structure. If page-body metadata is used, keep it in the kernel-side wrapper rather than baking physical-page assumptions into kernel-core."
+  - path: "kernel/src/fs/procfs.rs"
+    summary: "/proc/meminfo reporting for the new allocator layers"
+  - path: "kernel/src/arch/x86_64/syscall/mod.rs"
+    summary: ":position()-based free-block removal with an O(1)-removable per-order representation while preserving kernel-core as a pure, host-testable data structure. If page-body metadata is used, keep it in the kernel-side wrapper rather than baking physical-page assumptions into kernel-core."
+  - path: "kernel-core/src/magazine.rs"
+    summary: "Fixed-capacity magazines and shared depot for per-CPU object caching"
+  - path: "kernel-core/src/size_class.rs"
+    summary: "Exact 13-class table and waste-bound tests"
+  - path: "kernel-core/src/cross_cpu_free.rs"
+    summary: "Lock-free intrusive MPSC queue for cross-CPU slab frees"
+  - path: "userspace/coreutils-rs/src/meminfo.rs"
+    summary: "User-visible memory reporting consistent with the new accounting policy"
+  - path: "kernel/src/main.rs"
+    summary: "QEMU regression coverage for allocator-local reclaim and related phase tests"
+codeSpotlights:
+  - title: "Cache phys_offset in a static to eliminate double-lock in free_frame"
+    file: "kernel/src/mm/frame_allocator.rs"
+    lines: "L690-L713"
+    summary: "Cache phys_offset in a static to eliminate double-lock in free_frame. Why it matters: free_frame() currently acquires the frame allocator lock twice — once to read phys_offset (a constant after init) and once to call free_to_pool(). The first acquisition is unnecessary and doubles lock contention on every free. Focus on `free_frame` and `phys_offset` in `kernel/src/mm/frame_allocator.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.53.0/kernel/src/mm/frame_allocator.rs"
+    snippet: "/// Return a frame to the allocator.\n///\n/// If refcounting is initialized, decrements the reference count first.\n/// The frame is only reclaimed when the count reaches zero. Frames allocated\n/// before refcounting was enabled (refcount == 0) are freed directly.\n///\n/// # Minimal allocation-context contract (F.1)\n///\n/// - [`AllocationContext::IrqSensitive`] callers mutate the local page cache\n///   with interrupts masked and a same-core guard. A re-entrant free bypasses\n///   the cache and returns directly to the buddy/free-list pool.\n/// - [`AllocationContext::Sleepable`] callers may tolerate cache-overflow\n///   drains that briefly spin on the global allocator lock.\n///\n/// # Slow-path behavior\n///\n/// When the cache exceeds the high watermark, the allocator drains a batch of\n/// 32 frames back to the buddy. This path does **not** sleep and does not\n/// retry; it may briefly spin on `FRAME_ALLOCATOR`.\n///\n/// Does **not** zero the frame — the zero-before-exposure invariant is\n/// enforced on the allocation side via [`allocate_frame_zeroed`]. Panics on\n/// double-free (frame already on the free list).\npub fn free_frame(phys: u64) {"
+    snippetLanguage: "rust"
+  - title: "Replace O(n) buddy removal with an O(1)-removable free-block representation"
+    file: "kernel-core/src/buddy.rs"
+    lines: "L318-L331"
+    summary: "Replace O(n) buddy removal with an O(1)-removable free-block representation. Why it matters: remove_free does an O(n) linear scan of a Vec<usize> to find and remove a buddy during coalescing. With thousands of free blocks, this defeats the O(log n) guarantee. The replacement must preserve kernel-core host testability instead of assuming direct access to real free-page bodies inside the pure data-structure crate. Focus on `BuddyAllocator::free_lists` and `BuddyAllocator::remove_free` in `kernel-core/src/buddy.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.53.0/kernel-core/src/buddy.rs"
+    snippet: "    /// Remove a specific PFN from the free pool at `order` in O(1) by clearing\n    /// its leaf bit plus the affected summary words.\n    fn remove_free(&mut self, order: usize, pfn: usize) {\n        if !self.is_free(order, pfn) {\n            debug_assert!(\n                false,\n                \"BuddyAllocator::remove_free: pfn {} not found in free map for order {}\",\n                pfn, order,\n            );\n            return;\n        }\n        self.clear_free(order, pfn);\n        self.free_counts[order] -= 1;\n    }"
+    snippetLanguage: "rust"
+  - title: "Add freelist pointer hardening"
+    file: "kernel-core/src/slab.rs"
+    lines: "See file"
+    summary: "Add freelist pointer hardening. Why it matters: Embedded freelist pointers inside free objects are a target for heap corruption attacks. XOR-encoding with a per-cache random value and the object address makes exploitation significantly harder with near-zero overhead (two XOR instructions). Focus on `encode_freeptr` and `decode_freeptr` in `kernel-core/src/slab.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.53.0/kernel-core/src/slab.rs"
+realOsDifferences:
+  - "Linux SLUB uses a lockless CAS+tid scheme for per-CPU allocation; m3OS uses the simpler CPU-local fast path with interrupt masking because it lacks kernel preemption but still must handle IRQ re-entrancy"
+  - "FreeBSD UMA supports constructor/destructor caching for objects with expensive initialization; Phase 53a defers this as it adds complexity with uncertain benefit for m3OS's current object types"
+  - "Linux has 6 migration types for anti-fragmentation; m3OS defers migration-type support as it's primarily valuable for memory compaction and hotplug"
+  - "Production allocators support NUMA-aware per-domain caching; m3OS defers NUMA but the per-CPU design is forward-compatible"
+  - "Linux KASAN provides compile-time-instrumented shadow memory for all memory accesses; m3OS defers full sanitizer support but adds freelist pointer hardening"
+successCriteria:
+  - "`allocate_frame()` cache-hit fast path does not acquire any global lock and mutates only CPU-local state with interrupts masked or an equivalent local non-reentrancy guard"
+  - "Global cache drain / reclaim never performs unsynchronized remote mutation of another CPU's lockless cache"
+  - "Kernel object allocation (`Box::new`, `Vec::push`) routes through size-class slab caches for small objects, while layouts >4 KiB or requiring stronger alignment use a documented page-backed path"
+  - "Per-CPU magazine allocation completes without lock acquisition in the common case, with out-of-line slab metadata that keeps the 4 KiB size class usable"
+  - "`free_frame()` acquires the frame allocator lock at most once (not twice)"
+  - "Buddy free-block removal no longer linearly scans `Vec::position()`"
+  - "Refcount atomics use Acquire/Release ordering (not SeqCst)"
+  - "All existing QEMU tests pass unchanged (API-compatible)"
+  - "`cargo test -p kernel-core --target x86_64-unknown-linux-gnu` passes with new allocator unit tests, and loom coverage exists for new cross-CPU free / ordering-sensitive queues"
+  - "`frame_stats()`, `heap_stats()`, `/proc/meminfo`, and `sys_meminfo` show updated statistics reflecting the new allocator layers"
+  - "Cross-CPU free of slab objects does not acquire the victim CPU's slab lock"
+  - "Any frame that can become user-visible is zeroed before exposure, including contiguous and lazy-fault / CoW-sensitive paths that depend on allocator zeroing"
+  - "A bring-up kill switch or equivalent fallback exists while the new allocator is being integrated"
+---
+
+## Why this phase matters
+
+The kernel memory subsystem becomes SMP-scalable and auditable: per-CPU page caching removes the global frame-allocator lock from the common single-page path, a magazine-based slab allocator with out-of-line slab metadata replaces the linked-list heap for small kernel objects, and the allocator preserves Phase 52b's zero-before-user-exposure guarantee while eliminating the double-lock and O(n) buddy removal paths.
+
+## How it works in m3OS
+
+Phase 53a replaces the old "everything goes through one lock" kernel allocator stack with an SMP-aware design. Where Phase 33 introduced a correct buddy allocator, heap growth, and slab scaffolding, Phase 53a turns those pieces into a coherent hot-path allocator: per-CPU page caches take most single-page traffic off the global buddy lock, magazines cache small objects per CPU, a size-class `GlobalAlloc` routes ordinary kernel allocations away from the linked-list heap, cross-CPU frees stop taking the victim CPU's slab lock, and allocator-local reclaim flushes hidden pages and objects before high-order allocation or OOM failure.
+
+## How it builds on earlier phases
+
+This phase builds on Headless Hardening and turns that foundation into Kernel Memory Modernization.
+
+## Implementation outline
+
+- **Track D (foundation fixes):** Fix double-lock, O(n) remove_free, refcount ordering, and restate the exact zero-before-exposure guarantee before changing zeroing behavior.
+- **Track F.1 (contract):** Define IRQ/atomic-context rules, reclaim hooks, and observability surfaces before replacing hot paths.
+- **Track A (per-CPU page cache):** Add per-CPU frame lists, modify `allocate_frame()` / `free_frame()` to check per-CPU first, and implement coordinated owner-CPU drain/reclaim.
+- **Track B (slab + magazines):** Rewrite `kernel-core/src/slab.rs` with embedded freelist, out-of-line metadata, and the magazine layer. Create size-class caches.
+- **Track C (GlobalAlloc replacement):** Wire size-class slab caches into a new `GlobalAlloc` implementation, define bootstrap consumers/cutover, and migrate stats / meminfo surfaces.
+- **Track E (cross-CPU free):** Add atomic free list per CPU per size class and implement MPSC push + batch collection.
+- **Track F.2-F.4 (integration):** Add allocator-local reclaim, kill switch, and final stress / compatibility validation.
+
+## Task progress snapshot
+
+107 of 107 tracked tasks are complete.
+
+## Documentation targets
+
+- Documentation deliverables have not been listed yet.
+
+## Deferred follow-on work
+
+- NUMA-aware per-domain slab and page caches (forward-compatible design, implement when NUMA target exists)
+- Constructor/destructor object caching (add when profiling shows object init is a bottleneck)
+- Full memory debugging suite (red zones, poison fill, KFENCE-style sampling) — planned for a later sub-phase or Phase 53
+- Memory pressure callbacks (shrinker interface) for non-allocator caches — deferred to Phase 54; 53a only adds allocator-local drain/reclaim hooks
+- Full GFP-like allocation-context flags — 53a defines a minimal sleepable vs IRQ-sensitive contract, richer policy comes later
+- Type-state `Frames<Free/Allocated/Mapped>` wrappers — high value but large refactor surface; evaluate after core allocator lands
+
+## Source materials
+
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/53a-kernel-memory-modernization.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/53a-kernel-memory-modernization.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/53a-kernel-memory-modernization-tasks.md)

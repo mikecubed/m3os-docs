@@ -1,0 +1,115 @@
+---
+phase: 50
+title: "IPC Completion"
+status: complete
+category: infrastructure
+summary: "m3OS gains the missing IPC and bulk-data pieces required for serious userspace services: safe capability transfer, practical large-payload transport, ring-3-safe service registration, and clear failure semantics for the canonical server loop."
+learningGoal: "Understand why control flow and bulk-data transport must be designed together in a microkernel-style system."
+buildsOn:
+  - "architectural-declaration"
+extends: []
+replaces: []
+components:
+  - "ipc"
+  - "memory-manager"
+learningObjectives:
+  - "Understand why control flow and bulk-data transport must be designed together in a microkernel-style system."
+  - "Learn how capability transfer, service discovery, and reply/receive semantics interact."
+  - "See why kernel-pointer shortcuts become architectural bugs once services really move to ring 3."
+  - "Understand the trade-offs between copying, grants, and zero-copy data paths."
+keyFiles:
+  - path: "kernel/Cargo.toml"
+    summary: "When the phase lands, bump kernel/Cargo.toml and any release/version references to 0.50.0."
+  - path: "kernel/src/ipc/mod.rs"
+    summary: "copy_from_user in register/lookup, sys_cap_grant"
+  - path: "kernel/src/main.rs"
+    summary: "| console_server_task write payload | kernel/src/main.rs | 350–361 | Still uses copy_nonoverlapping — kernel-task shortcut; migration planned for ring-3 move |"
+  - path: "kernel/src/mm/user_mem.rs"
+    summary: "copy_from_user / copy_to_user implementations"
+  - path: "kernel-core/src/ipc/capability.rs"
+    summary: "CapabilityTable::grant, Capability::Grant variant"
+  - path: "kernel-core/src/ipc/message.rs"
+    summary: "Message.cap field, updated constructors"
+  - path: "kernel-core/src/ipc/buffer.rs"
+    summary: "validate_user_buffer pure-logic address checks"
+  - path: "kernel-core/src/ipc/registry.rs"
+    summary: "Owner-tracked registry, replace_service, capacity 16"
+  - path: "kernel/src/ipc/endpoint.rs"
+    summary: "Capability transfer during message delivery"
+  - path: "kernel/src/arch/x86_64/syscall/ipc.rs"
+    summary: "IPC syscall dispatch module"
+codeSpotlights:
+  - title: "Enumerate kernel-pointer shortcuts in IPC service syscalls"
+    file: "kernel/src/ipc/mod.rs"
+    lines: "L270-L293"
+    summary: "Enumerate kernel-pointer shortcuts in IPC service syscalls. Why it matters: The safety comments at ipc_register_service (line 229) and ipc_lookup_service (line 254) explicitly state that name pointers are dereferenced as raw kernel addresses because all callers are kernel tasks — this assumption must be catalogued before it can be removed. Focus on `ipc_register_service` and `ipc_lookup_service` in `kernel/src/ipc/mod.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.50.0/kernel/src/ipc/mod.rs"
+    snippet: "/// Syscall 9: register a named endpoint in the service registry.\n///\n/// `name_ptr` is a userspace virtual address pointing to `name_len` bytes of\n/// UTF-8. The name is safely copied from the caller's address space via\n/// `copy_from_user`. Invalid or unmapped pointers return an error.\nfn ipc_register_service(ep_id: EndpointId, name_ptr: u64, name_len: u64) -> u64 {\n    if name_ptr == 0 {\n        return u64::MAX;\n    }\n    if name_len > 32 {\n        return u64::MAX;\n    }\n    let name_len = name_len as usize;\n    let mut name_buf = [0u8; 32];\n    if crate::mm::user_mem::copy_from_user(&mut name_buf[..name_len], name_ptr).is_err() {\n        return u64::MAX;\n    }\n    let name = match core::str::from_utf8(&name_buf[..name_len]) {\n        Ok(s) => s,\n        Err(_) => return u64::MAX,\n    };\n    match registry::register(name, ep_id) {\n        Ok(()) => 0,\n        Err(_) => u64::MAX,"
+    snippetLanguage: "rust"
+  - title: "Write failing tests for capability grant through IPC messages"
+    file: "kernel-core/src/ipc/capability.rs"
+    lines: "L95-L117"
+    summary: "Write failing tests for capability grant through IPC messages. Why it matters: TDD requires failing tests before implementation — the grant path must verify that a capability can be atomically moved from one table to another without duplication or loss. Focus on `CapabilityTable::grant` and `kernel-core` in `kernel-core/src/ipc/capability.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.50.0/kernel-core/src/ipc/capability.rs"
+    snippet: "    /// Atomically transfer a capability from `self[source_handle]` to `dest_table`.\n    ///\n    /// On success the source slot is cleared and the new handle in the\n    /// destination table is returned.  On failure (invalid source handle or\n    /// destination table full) the source retains its capability and an error\n    /// is returned — no side effects.\n    pub fn grant(\n        &mut self,\n        source_handle: CapHandle,\n        dest_table: &mut CapabilityTable,\n    ) -> Result<CapHandle, CapError> {\n        // Validate source handle first, without removing yet.\n        let cap = self.get(source_handle)?;\n\n        // Try to insert into destination — if it fails, source keeps the cap.\n        let dest_handle = dest_table.insert(cap)?;\n\n        // Destination succeeded — now remove from source (infallible since we\n        // already validated the handle above and hold &mut self).\n        let _ = self.remove(source_handle);\n\n        Ok(dest_handle)\n    }"
+    snippetLanguage: "rust"
+  - title: "Extend Message to carry a capability slot"
+    file: "kernel-core/src/ipc/message.rs"
+    lines: "L3-L12"
+    summary: "Extend Message to carry a capability slot. Why it matters: The current Message struct has no field for capability transfer — services cannot exchange authorities through the existing message format. Focus on `Message` and `new` in `kernel-core/src/ipc/message.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.50.0/kernel-core/src/ipc/message.rs"
+    snippet: "/// A small, register-sized IPC message.\n#[derive(Debug, Clone, Copy, Default)]\npub struct Message {\n    /// Operation identifier, chosen by convention between sender and receiver.\n    pub label: u64,\n    /// Inline data payload — up to 4 machine words.\n    pub data: [u64; 4],\n    /// Optional capability transferred with this message.\n    pub cap: Option<Capability>,\n}"
+    snippetLanguage: "rust"
+realOsDifferences:
+  - "Mature microkernels often invest heavily in message layout, grant semantics, and zero-copy transport much earlier."
+  - "Monolithic kernels avoid some of this design pressure by keeping drivers and services in one address space, at the cost of a larger TCB."
+  - "m3OS should favor a clear, teachable, reusable transport contract over premature optimization."
+successCriteria:
+  - "Capabilities can be granted safely and atomically between isolated processes."
+  - "There is a documented and implemented bulk-data path suitable for storage, packet, and framebuffer-sized transfers."
+  - "Core service registration no longer relies on kernel-task-only assumptions."
+  - "At least one representative service path uses the new transport without kernel-pointer shortcuts."
+  - "The IPC docs and validation coverage describe the same control flow and failure semantics the code actually implements."
+---
+
+## Why this phase matters
+
+m3OS gains the missing IPC and bulk-data pieces required for serious userspace services: safe capability transfer, practical large-payload transport, ring-3-safe service registration, and clear failure semantics for the canonical server loop.
+
+## How it works in m3OS
+
+Phase 50 finishes the IPC transport model that Phase 6 introduced as a control-path-only design. The kernel now supports safe capability transfer between process capability tables, a two-tier bulk-data mechanism (validated copy for small payloads, page grants for large transfers), ring-3-safe service registration with owner tracking and re-registration, and documented server-loop failure semantics. These additions close the gap between the existing message-passing infrastructure and the requirements of real ring-3 services.
+
+## How it builds on earlier phases
+
+This phase builds on Architectural Declaration and turns that foundation into IPC Completion.
+
+## Implementation outline
+
+- Audit current IPC shortcuts and identify every service path that still depends on shared kernel addresses.
+- Finish and document the capability-grant semantics.
+- Implement the generic bulk-data transport model and its ownership rules.
+- Remove kernel-only assumptions from the service registry and service-address paths.
+- Standardize the canonical server loop and service-death semantics.
+- Port at least one real service path to the new transport as proof.
+- Extend validation so later extraction phases can depend on this transport with confidence.
+
+## Task progress snapshot
+
+134 of 134 tracked tasks are complete.
+
+## Documentation targets
+
+- Documentation deliverables have not been listed yet.
+
+## Deferred follow-on work
+
+- Deep performance tuning of zero-copy paths
+- Rich typed service IDLs or code-generated message bindings
+- Advanced delegation patterns beyond the basic capability and buffer model
+
+## Source materials
+
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/50-ipc-completion.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/50-ipc-completion.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/50-ipc-completion-tasks.md)

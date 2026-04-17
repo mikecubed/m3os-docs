@@ -1,0 +1,78 @@
+---
+phase: 58
+title: "Release 1 0 Gate"
+status: planned
+category: infrastructure
+summary: "m3OS defines and validates what \"1.0\" actually means. The phase produces an explicit support matrix, release gates, non-goals, and documentation commitments for either a headless/reference 1.0 or a broader local-system milestone if the optional graphical branch is ready."
+learningGoal: "Understand why release engineering is an architectural discipline rather than an administrative afterthought."
+buildsOn:
+  - "audio-and-local-session"
+extends: []
+replaces: []
+components: []
+learningObjectives:
+  - "Understand why release engineering is an architectural discipline rather than an administrative afterthought."
+  - "Learn how support matrices, validation gates, and non-goals protect a project from uncontrolled scope."
+  - "See how a headless/reference 1.0 and a local-system 1.0 can share groundwork while still being different promises."
+  - "Understand how documentation quality becomes part of the release artifact."
+keyFiles:
+  - path: "kernel/Cargo.toml"
+    summary: "When the phase lands, bump kernel/Cargo.toml and any release/version references to 0.58.0."
+codeSpotlights:
+  - title: "Cargo"
+    file: "kernel/Cargo.toml"
+    lines: "See file"
+    summary: "When the phase lands, bump kernel/Cargo.toml and any release/version references to 0.58.0."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/Cargo.toml"
+realOsDifferences:
+  - "Mature releases usually have much more automation, hardware lab coverage, packaging, and support staffing than m3OS should assume here."
+  - "The important habit to borrow is disciplined promise-making, not industrial-scale release process."
+  - "A small but honest 1.0 is more valuable than a sprawling roadmap that never becomes a stable release."
+successCriteria:
+  - "A written 1.0 support matrix exists that starts from the Phase 53 bounded headless/reference baseline, with explicit supported workflows, hardware scope, and non-goals."
+  - "The project has a documented validation bundle that extends the Phase 53 gate bundle with any Phase 55 hardware-specific gates."
+  - "The docs explicitly state whether 1.0 is headless/reference-only or also includes the local-system branch."
+  - "Top-level docs, roadmap docs, and version references all reflect the same release promise."
+  - "Later work such as toolchains, GitHub integration, Node.js, and Claude Code is explicitly framed as 1.x growth if not part of the chosen release."
+  - "Phase 53 gates have already passed on the post-53a allocator baseline (the Phase 53/53a closure rule is a prerequisite, not re-evaluated here)."
+---
+
+## Why this phase matters
+
+m3OS defines and validates what "1.0" actually means. The phase produces an explicit support matrix, release gates, non-goals, and documentation commitments for either a headless/reference 1.0 or a broader local-system milestone if the optional graphical branch is ready.
+
+## How it works in m3OS
+
+The roadmap entry defines the learning scope for this phase; a deeper implementation doc has not been matched yet.
+
+## How it builds on earlier phases
+
+This phase builds on Audio And Local Session and turns that foundation into Release 1 0 Gate.
+
+## Implementation outline
+
+- Draft the support matrix and release non-goals for the headless/reference 1.0 story.
+- Decide whether the local-system branch is part of the same release or explicitly deferred.
+- Define the final validation gate bundle and evidence trail.
+- Align top-level docs, roadmap docs, and learning-doc indexes with the release promise.
+- Record the versioning policy and release communication posture.
+- Publish the release-gate checklist and the chosen support boundary.
+
+## Task progress snapshot
+
+No checklist tasks were discovered for this phase yet.
+
+## Documentation targets
+
+- Documentation deliverables have not been listed yet.
+
+## Deferred follow-on work
+
+- Broader hardware certification and distribution-style packaging promises
+- Large runtime ecosystems as release blockers
+- A full desktop claim if the local-system branch is not yet ready
+- Advanced CI/lab automation beyond what the support matrix requires
+
+## Source materials
+
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/58-release-1-0-gate.md)

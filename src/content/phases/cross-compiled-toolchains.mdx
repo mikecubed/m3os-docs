@@ -1,40 +1,45 @@
 ---
-phase: 50
+phase: 59
 title: "Cross Compiled Toolchains"
 status: planned
 category: productivity
-summary: "Three major development tools — git, Python, and Clang — are cross-compiled on the host and bundled on the m3OS disk image. Users can version-control code with git, run Python scripts, and compile optimized C/C++ programs with Clang, all inside the OS. This follows the same pattern as TCC (Phase 31): build on host with musl, copy to disk image, run inside the OS."
-learningGoal: "Understand how large C and C++ projects are cross-compiled with musl for static linking."
+summary: "m3OS can host larger post-1.0 development tools built on the host and bundled into the disk image. git, Python, and Clang become routine parts of the developer environment instead of future one-off experiments."
+learningGoal: "Understand how large host-built toolchains are staged into the m3OS image."
 buildsOn:
-  - "audio"
+  - "release-1-0-gate"
 extends: []
 replaces: []
 components:
-  - "boot-path"
   - "memory-manager"
-  - "scheduler"
 learningObjectives:
-  - "Understand how large C and C++ projects are cross-compiled with musl for static linking."
-  - "Learn how `xtask` integrates external tool builds into the disk image pipeline."
-  - "See how demand paging (Phase 36) enables running binaries much larger than TCC."
-keyFiles: []
-codeSpotlights: []
-realOsDifferences: []
+  - "Understand how large host-built toolchains are staged into the m3OS image."
+  - "Learn how disk size, memory pressure, and runtime expectations change once binaries become much larger than the early core utilities."
+  - "See how existing standalone roadmaps for git, Python, and Clang fit into the official phase plan."
+  - "Understand the difference between \"toolchain exists\" and \"toolchain is part of the supported developer workflow.\""
+keyFiles:
+  - path: "kernel/Cargo.toml"
+    summary: "When the phase lands, bump kernel/Cargo.toml and any release/version references to 0.59.0."
+codeSpotlights:
+  - title: "Cargo"
+    file: "kernel/Cargo.toml"
+    lines: "See file"
+    summary: "When the phase lands, bump kernel/Cargo.toml and any release/version references to 0.59.0."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/Cargo.toml"
+realOsDifferences:
+  - "Mature systems ship many more toolchains, package feeds, and update mechanisms than m3OS should attempt here."
+  - "The important thing is to make a small number of powerful tools reliable instead of pretending to offer a whole distribution overnight."
+  - "Post-1.0 growth should remain intentional and supportable, not a dumping ground for every interesting package."
 successCriteria:
-  - "`git init && git add . && git commit -m \"test\"` works inside m3OS."
-  - "`git log --oneline` shows commit history."
-  - "`git diff` shows file changes."
-  - "`python3 -c \"print('hello from m3OS')\"` works."
-  - "`python3 -c \"import json; print(json.dumps({'os': 'm3OS'}))\"` works."
-  - "`python3 /usr/src/fibonacci.py` runs a script."
-  - "`clang -O2 /usr/src/hello.c -o /tmp/hello && /tmp/hello` works."
-  - "`clang++ /usr/src/hello.cpp -o /tmp/hello_cpp && /tmp/hello_cpp` works."
-  - "`clang -O2 /usr/src/tcc/tcc.c -o /tmp/tcc-opt` compiles TCC with optimization."
+  - "git supports the documented local repository workflows inside m3OS."
+  - "Python can run the documented REPL and script workloads inside m3OS."
+  - "Clang/LLD can build and run the documented sample programs inside m3OS."
+  - "The host-build and image-staging flow for the supported toolchains is reproducible and documented."
+  - "Disk, memory, and support-boundary changes introduced by the larger toolchains are documented."
 ---
 
 ## Why this phase matters
 
-Three major development tools — git, Python, and Clang — are cross-compiled on the host and bundled on the m3OS disk image. Users can version-control code with git, run Python scripts, and compile optimized C/C++ programs with Clang, all inside the OS. This follows the same pattern as TCC (Phase 31): build on host with musl, copy to disk image, run inside the OS.
+m3OS can host larger post-1.0 development tools built on the host and bundled into the disk image. git, Python, and Clang become routine parts of the developer environment instead of future one-off experiments.
 
 ## How it works in m3OS
 
@@ -42,11 +47,15 @@ The roadmap entry defines the learning scope for this phase; a deeper implementa
 
 ## How it builds on earlier phases
 
-This phase builds on Audio and turns that foundation into Cross Compiled Toolchains.
+This phase builds on Release 1 0 Gate and turns that foundation into Cross Compiled Toolchains.
 
 ## Implementation outline
 
-- Implementation steps have not been extracted yet.
+- Define the supported post-1.0 toolchain set and image layout.
+- Implement reproducible host-build and staging flows for git, Python, and Clang.
+- Validate local git workflows, Python scripts/REPL use, and Clang-based compilation inside m3OS.
+- Update developer docs and standalone roadmaps to align with the official phase.
+- Record the disk, RAM, and support-boundary implications of the added toolchains.
 
 ## Task progress snapshot
 
@@ -58,8 +67,11 @@ No checklist tasks were discovered for this phase yet.
 
 ## Deferred follow-on work
 
-- No deferred items were listed in the roadmap entry.
+- Networked git operations and GitHub integration
+- Python package installation and richer networking-heavy modules
+- Self-hosting the larger toolchains inside m3OS
+- Broader language/runtime stacks beyond the documented set
 
 ## Source materials
 
-- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/50-cross-compiled-toolchains.md)
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/59-cross-compiled-toolchains.md)

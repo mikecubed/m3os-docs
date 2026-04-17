@@ -19,16 +19,23 @@ touchedBy:
   - "compiler-bootstrap"
   - "kernel-memory-improvements"
   - "expanded-memory"
-  - "filesystem-enhancements"
+  - "io-multiplexing"
   - "threading-primitives"
-  - "expanded-coreutils"
+  - "async-executor"
+  - "crypto-primitives"
+  - "crash-diagnostics"
+  - "kernel-trace-ring"
   - "ssh-server"
-  - "rust-cross-compilation"
   - "system-services"
-  - "mouse-input"
-  - "audio"
+  - "architectural-declaration"
+  - "service-model-maturity"
+  - "kernel-architecture-evolution"
+  - "kernel-structural-hardening"
+  - "deep-serverization"
+  - "post-serverization-kernel-hygiene"
+  - "display-and-input-architecture"
+  - "audio-and-local-session"
   - "nodejs"
-  - "claude-code"
 summary: "The process model defines what a userspace program is in m3OS and how execution moves into and between processes."
 responsibilities:
   - "Represent userspace processes and their lifecycle."
@@ -37,6 +44,8 @@ responsibilities:
 keyFiles:
   - path: "kernel/src/process/mod.rs"
     summary: "Referenced in the implementation notes."
+  - path: "kernel/src/process/mod.rs::close_cloexec_fds"
+    summary: "Each subsystem that owns an fd backend exposes its own free / release function. kernel/src/process/mod.rs::close_cloexec_fds and close_all_fds_for call those functions directly, eliminating the last arch-specific import from process cleanup."
 ---
 
-The process model is introduced in Userspace Entry and later touched by 27 phase(s).
+The process model is introduced in Userspace Entry and later touched by 34 phase(s).

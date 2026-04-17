@@ -1,0 +1,122 @@
+---
+phase: 54
+title: "Deep Serverization"
+status: complete
+category: infrastructure
+summary: "m3OS moves beyond proof-of-concept extraction and pushes real storage, namespace, and networking responsibilities out of the kernel. The kernel becomes a thinner object and transport layer, while userspace services own more of the policy-heavy behavior that currently dominates the trusted computing base."
+learningGoal: "Understand why storage, namespace, and networking are the hardest parts of microkernel convergence."
+buildsOn:
+  - "kernel-memory-modernization"
+extends: []
+replaces: []
+components:
+  - "process-model"
+  - "ipc"
+  - "scheduler"
+  - "boot-path"
+learningObjectives:
+  - "Understand why storage, namespace, and networking are the hardest parts of microkernel convergence."
+  - "Learn how to preserve a stable userspace ABI while moving implementation ownership behind service boundaries."
+  - "See how restartability, fault isolation, and explicit data transport interact at larger subsystem scale."
+  - "Understand the trade-offs between a thin kernel facade and a compatibility-heavy monolithic design."
+keyFiles:
+  - path: "kernel/Cargo.toml"
+    summary: "When the phase lands, bump kernel/Cargo.toml and any release/version references to 0.54.0."
+  - path: "userspace/fat_server/src/main.rs"
+    summary: "Supervised storage-service endpoint"
+  - path: "userspace/vfs_server/src/main.rs"
+    summary: "Migrated rootfs pathname and metadata policy"
+  - path: "userspace/net_server/src/main.rs"
+    summary: "Migrated UDP policy service"
+  - path: "userspace/coreutils-rs/src/service.rs"
+    summary: "Service-stop completion wait used by validation and operators"
+  - path: "userspace/init/src/main.rs"
+    summary: "Degraded-mode logging, restart policy, and service-stop behavior"
+  - path: "userspace/login/src/main.rs"
+    summary: "Hardened passwd/shadow reads against early-boot timing during validation"
+  - path: "kernel/src/arch/x86_64/syscall/mod.rs"
+    summary: "Thin syscall facade, fallback paths, and service routing"
+  - path: "kernel/src/process/mod.rs"
+    summary: "Signal delivery now wakes blocked IPC waiters for dying services"
+  - path: "kernel/src/ipc/endpoint.rs"
+    summary: "IPC wait cancellation for signaled tasks"
+  - path: "kernel/src/task/scheduler.rs"
+    summary: "Blocked IPC task enumeration for signal wakeup"
+  - path: "xtask/src/main.rs"
+    summary: "Regression harness, smoke flow, and ext2 data-disk provisioning"
+codeSpotlights:
+  - title: "Task A1 — Route the first rootfs storage path through ring 3"
+    file: "kernel/src/arch/x86_64/syscall/mod.rs"
+    lines: "L5973-L5996"
+    summary: "path crosses a supervised ring-3 service boundary. Why it matters: Phase 54 is not real unless at least one meaningful storage. Focus on `sys_open` and `open_resolved_path` in `kernel/src/arch/x86_64/syscall/mod.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.54.0/kernel/src/arch/x86_64/syscall/mod.rs"
+    snippet: "fn open_resolved_path(name: &str, flags: u64, mode_arg: u64) -> u64 {\n    // Decode POSIX access mode (O_ACCMODE = 0o3).\n    let (readable, writable) = match flags & 0o3 {\n        0 => (true, false),     // O_RDONLY\n        1 => (false, true),     // O_WRONLY\n        2 => (true, true),      // O_RDWR\n        _ => return NEG_EINVAL, // invalid combination\n    };\n\n    // Phase 27: Permission check for existing files.\n    let create = (flags & 0x40) != 0; // O_CREAT\n    let file_meta = path_metadata(name);\n    if (!create || file_meta.is_some())\n        && let Some((fu, fg, fm)) = file_meta\n    {\n        let (_, _, euid, egid) = current_process_ids();\n        let required = (if readable { 4u8 } else { 0 }) | (if writable { 2u8 } else { 0 });\n        if required != 0 && !check_permission(fu, fg, fm, euid, egid, required) {\n            return NEG_EACCES;\n        }\n    }\n\n    // Phase 27: When creating a new file, check parent directory write+execute permission.\n    if create"
+    snippetLanguage: "rust"
+  - title: "Task A2 — Stand up the storage services"
+    file: "userspace/fat_server/src/main.rs"
+    lines: "L37-L60"
+    summary: "service, not just a design note. Why it matters: The storage boundary must be backed by a real supervised. Focus on `program_main` and `populate_ext2_files` in `userspace/fat_server/src/main.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.54.0/userspace/fat_server/src/main.rs"
+    snippet: "fn program_main(_args: &[&str]) -> i32 {\n    syscall_lib::write_str(STDOUT_FILENO, \"fat_server: starting\\n\");\n\n    // 1. Create an IPC endpoint.\n    let ep_handle = syscall_lib::create_endpoint();\n    if ep_handle == u64::MAX {\n        syscall_lib::write_str(STDOUT_FILENO, \"fat_server: create_endpoint failed\\n\");\n        return 1;\n    }\n    let ep_handle = ep_handle as u32;\n\n    // 2. Register as \"fat\" service.\n    let ret = syscall_lib::ipc_register_service(ep_handle, \"fat\");\n    if ret == u64::MAX {\n        syscall_lib::write_str(STDOUT_FILENO, \"fat_server: register_service failed\\n\");\n        return 1;\n    }\n\n    syscall_lib::write_str(\n        STDOUT_FILENO,\n        \"fat_server: registered, entering recv loop\\n\",\n    );\n\n    // 3. Supervised recv loop — reply with \"not implemented\" to any request."
+    snippetLanguage: "rust"
+  - title: "Task A2 — Stand up the storage services"
+    file: "xtask/src/main.rs"
+    lines: "L4367-L4390"
+    summary: "service, not just a design note. Why it matters: The storage boundary must be backed by a real supervised. Focus on `program_main` and `populate_ext2_files` in `xtask/src/main.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.54.0/xtask/src/main.rs"
+    snippet: "/// Populate the ext2 partition image with initial directories and files\n/// using `debugfs -w`. Creates temp host files for the `write` command.\nfn populate_ext2_files(\n    part_path: &Path,\n    output_dir: &Path,\n    enable_telnet: bool,\n    smoke_test_mode: bool,\n) {\n    // Standard Unix root filesystem layout.\n    let passwd_content =\n        \"root:x:0:0:root:/root:/bin/ion\\nuser:x:1000:1000:user:/home/user:/bin/ion\\n\";\n    // Pre-provisioned password hashes for CI/testing.  Format: $sha256$hex_salt$hex_hash\n    // where hash = SHA-256(salt_bytes || password_bytes).  Passwords: root=\"root\", user=\"user\".\n    let shadow_content = \"root:$sha256$63695f726f6f745f73616c7431323334$5c8e5a851fee488aae9fc5890dd433f8a391fba2860899c271a6e6f5d3e4c439::::::\\nuser:$sha256$63695f757365725f73616c7435363738$64fb26f3575e26ed5fc3b07e6c4ca2b6af8bf1f17267c34babb76448301a16ca::::::\\n\";\n    let group_content = \"root:x:0:root\\nuser:x:1000:user\\n\";\n\n    // Phase 46: service definition files.\n    let sshd_conf = \"name=sshd\\ncommand=/bin/sshd\\ntype=daemon\\nrestart=always\\nmax_restart=10\\ndepends=syslogd\\n\";\n    let telnetd_conf = \"name=telnetd\\ncommand=/bin/telnetd\\ntype=daemon\\nrestart=always\\nmax_restart=10\\ndepends=syslogd\\n\";\n    let syslogd_conf = \"name=syslogd\\ncommand=/bin/syslogd\\ntype=daemon\\nrestart=always\\nmax_restart=10\\ndepends=\\n\";\n    let crond_conf = \"name=crond\\ncommand=/bin/crond\\ntype=daemon\\nrestart=always\\nmax_restart=10\\ndepends=syslogd\\n\";\n\n    // Phase 52: service definitions for extracted ring-3 services.\n    let console_conf = \"name=console\\ncommand=/bin/console_server\\ntype=daemon\\nrestart=always\\nmax_restart=10\\ndepends=\\n\";"
+    snippetLanguage: "rust"
+realOsDifferences:
+  - "Mature microkernels often accept more coordination overhead to gain stricter isolation earlier."
+  - "Linux keeps storage and networking in the kernel for very different historical and performance reasons."
+  - "m3OS should focus on making the ownership split explicit, testable, and understandable before chasing every optimization."
+successCriteria:
+  - "At least one real storage path runs through userspace-owned block/filesystem service logic."
+  - "The namespace/VFS split is thinner and explicitly documented as kernel mechanism versus userspace policy."
+  - "At least one meaningful networking or socket-facing path runs through userspace-owned service logic."
+  - "Existing applications continue to work through a stable syscall facade while the implementation moves outward."
+  - "Updated docs can explain the new call/data flow concretely instead of only describing the intended architecture."
+---
+
+## Why this phase matters
+
+m3OS moves beyond proof-of-concept extraction and pushes real storage, namespace, and networking responsibilities out of the kernel. The kernel becomes a thinner object and transport layer, while userspace services own more of the policy-heavy behavior that currently dominates the trusted computing base.
+
+## How it works in m3OS
+
+Phase 54 moves meaningful storage, pathname, and networking policy out of ring 0 without breaking the existing Linux-like syscall ABI. The kernel keeps the object handles, transport, and bootstrap fallback paths; supervised userspace services now own the migrated policy slices:
+The result is not a fully serverized OS, but it is a materially narrower kernel than the Phase 53 baseline and a more honest microkernel story.
+
+## How it builds on earlier phases
+
+This phase builds on Kernel Memory Modernization and turns that foundation into Deep Serverization.
+
+## Implementation outline
+
+- Choose the first storage and network paths to move behind userspace services.
+- Define the thin kernel object/handle facade required to preserve the current ABI.
+- Move filesystem and namespace policy outward while keeping the syscall contract stable.
+- Move at least one meaningful network or socket-facing policy path outward.
+- Validate restartability, error handling, and performance well enough to document the trade-offs honestly.
+- Update architecture, storage, and network docs to reflect the shipped boundaries.
+
+## Task progress snapshot
+
+No checklist tasks were discovered for this phase yet.
+
+## Documentation targets
+
+- Documentation deliverables have not been listed yet.
+
+## Deferred follow-on work
+
+- Broader filesystem matrix beyond the first migrated path
+- Full network-service ecosystem and higher-level userland daemons
+- Aggressive performance tuning once the boundary is correct
+- Complete POSIX policy removal from the kernel
+
+## Source materials
+
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/54-deep-serverization.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/54-deep-serverization.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/54-deep-serverization-tasks.md)

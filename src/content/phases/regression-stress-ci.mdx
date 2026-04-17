@@ -3,15 +3,36 @@ phase: 43
 title: "Regression Stress Ci"
 status: complete
 category: infrastructure
-summary: "Learn how Regression Stress Ci fits into m3OS."
-learningGoal: "Understand Regression Stress Ci in m3OS."
+summary: "A layered test infrastructure that catches SMP race conditions through focused QEMU regression tests, looped stress tests with automatic artifact capture, seed-based iteration for reproducibility (guest-side timing variation deferred), host-side property and concurrency testing for extracted scheduler/fork/IPC models, and CI tier mapping that runs regressions on every PR and stress tests nightly."
+learningGoal: "Understand tiered testing strategies (host tests, regression, smoke, stress)"
 buildsOn:
   - "kernel-trace-ring"
 extends: []
 replaces: []
-components: []
-learningObjectives: []
-keyFiles: []
+components:
+  - "boot-path"
+  - "scheduler"
+learningObjectives:
+  - "Understand tiered testing strategies (host tests, regression, smoke, stress)"
+  - "Understand property-based testing with proptest for state machine invariants"
+  - "Understand concurrency model checking with loom for IPC protocols"
+  - "Understand CI pipeline design with artifact capture for post-mortem analysis"
+  - "Understand seed-based reproducibility for timing-dependent failures"
+keyFiles:
+  - path: "xtask/src/main.rs"
+    summary: "cmd_regression, cmd_stress, test registries"
+  - path: "kernel-core/tests/scheduler_props.rs"
+    summary: "Proptest scheduler invariants"
+  - path: "kernel-core/tests/ipc_loom.rs"
+    summary: "Loom IPC concurrency tests"
+  - path: "kernel-core/tests/fork_props.rs"
+    summary: "Proptest fork queue invariants"
+  - path: ".github/workflows/pr.yml"
+    summary: "PR CI with regression step"
+  - path: ".github/workflows/build.yml"
+    summary: "Build CI with regression step"
+  - path: ".github/workflows/nightly-stress.yml"
+    summary: "Nightly stress workflow"
 codeSpotlights:
   - title: "Add `regression` subcommand to xtask"
     file: "xtask/src/main.rs"
@@ -30,17 +51,29 @@ codeSpotlights:
     lines: "See file"
     summary: "Fork overlap guest test. Why it matters: The RIP=0x4 crash occurs during overlapping fork() calls from different processes; this test reproduces the exact pattern by forking rapidly from multiple parents. Focus on `fork_overlap_test` and `RIP=0x4` in `userspace/regression/fork-overlap.c` while you trace the snippet."
     githubUrl: "https://github.com/mikecubed/m3os/blob/v0.43.1/userspace/regression/fork-overlap.c"
-realOsDifferences: []
-successCriteria: []
+realOsDifferences:
+  - "Linux uses KernelCI, syzkaller (coverage-guided syscall fuzzing), and kselftest for automated testing at scale"
+  - "Production stress testing uses thousands of iterations across diverse hardware"
+  - "CI-integrated fuzz testing (OSS-Fuzz) continuously explores syscall paths"
+  - "Lock ordering validators (lockdep) run in-kernel rather than as host models"
+  - "Hardware-specific timing variation (NUMA, different CPU vendors) affects which interleavings are exercised"
+successCriteria:
+  - "`cargo xtask check` passes"
+  - "`cargo xtask test` passes"
+  - "`cargo test -p kernel-core` passes including proptest tests"
+  - "`cargo xtask regression` is a valid subcommand"
+  - "`cargo xtask stress --test fork-overlap --iterations 1` is a valid subcommand"
+  - "CI workflows updated with regression step and nightly stress schedule"
 ---
 
 ## Why this phase matters
 
-Learn how Regression Stress Ci fits into m3OS.
+A layered test infrastructure that catches SMP race conditions through focused QEMU regression tests, looped stress tests with automatic artifact capture, seed-based iteration for reproducibility (guest-side timing variation deferred), host-side property and concurrency testing for extracted scheduler/fork/IPC models, and CI tier mapping that runs regressions on every PR and stress tests nightly.
 
 ## How it works in m3OS
 
-The roadmap entry defines the learning scope for this phase; a deeper implementation doc has not been matched yet.
+Phase 43c adds a layered test infrastructure for catching SMP race conditions. The system has four tiers: host-side property/concurrency tests (proptest, loom), QEMU regression tests for specific SMP-sensitive paths, smoke tests for full-boot validation, and looped stress tests for timing-dependent failures.
+Phase 53 later turns the automated half of this stack into the published headless/reference gate bundle: `cargo xtask check` (which already runs the host-side `cargo test -p kernel-core --target x86_64-unknown-linux-gnu` tier plus `cargo test -p passwd --target x86_64-unknown-linux-gnu --no-default-features --features host-tests --test passwd_host` in CI), `RUSTFLAGS='--cfg loom' cargo test -p kernel-core --target x86_64-unknown-linux-gnu --test allocator_loom`, `cargo xtask smoke-test --timeout 300`, and `cargo xtask regression --timeout 90`. Nightly `cargo xtask stress --test ssh-overlap --iterations 50 --timeout 90` is sustaining evidence rather than a per-PR or final-close rerun.
 
 ## How it builds on earlier phases
 
@@ -48,7 +81,15 @@ This phase builds on Kernel Trace Ring and turns that foundation into Regression
 
 ## Implementation outline
 
-- Implementation steps have not been extracted yet.
+- Add `regression` and `stress` subcommands to xtask
+- Implement regression test framework with pass/fail detection
+- Register fork-overlap, ipc-wake, and pty-overlap regressions
+- Implement stress test loop with seed and artifact capture
+- Add proptest dev-dependency and scheduler/fork property tests
+- Add loom dev-dependency and IPC concurrency tests
+- Add regression step to PR and build CI workflows
+- Create nightly stress workflow with artifact upload
+- Create documentation
 
 ## Task progress snapshot
 
@@ -60,9 +101,15 @@ This phase builds on Kernel Trace Ring and turns that foundation into Regression
 
 ## Deferred follow-on work
 
-- No deferred items were listed in the roadmap entry.
+- Full syzkaller-style syscall fuzzing
+- QEMU gdbstub integration in xtask
+- lockdep-lite integration with stress tests
+- Performance regression benchmarks
+- Coverage-guided fuzzing for kernel syscall paths
+- Kernel watchdog timer (per-core, dumps on stuck scheduler)
 
 ## Source materials
 
-- Roadmap entry not found.
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/43c-regression-stress-ci.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/43c-regression-stress-ci.md)
 - [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/43c-regression-stress-ci-tasks.md)

@@ -4,10 +4,12 @@ introducedIn: "interrupts"
 touchedBy:
   - "hardware-discovery"
   - "ion-shell"
+  - "tty-pty"
   - "smp"
   - "expanded-memory"
-  - "mouse-input"
-  - "audio"
+  - "crash-diagnostics"
+  - "doom"
+  - "hardware-substrate"
 summary: "The interrupt router connects CPU exceptions and hardware IRQs to the kernel handlers that keep the system responsive."
 responsibilities:
   - "Install interrupt and exception handlers."
@@ -18,4 +20,4 @@ keyFiles:
     summary: "Stack demand paging"
 ---
 
-The interrupt router is introduced in Interrupts and later touched by 6 phase(s).
+The interrupt router is introduced in Interrupts and later touched by 8 phase(s).

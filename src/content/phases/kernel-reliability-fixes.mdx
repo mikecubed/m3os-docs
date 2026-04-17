@@ -1,0 +1,101 @@
+---
+phase: 52
+title: "Kernel Reliability Fixes"
+status: complete
+category: infrastructure
+summary: "All four confirmed kernel bugs from the Phase 52 bug investigations are fixed, with targeted regression tests proving each fix."
+learningGoal: "Understand why per-core mutable scratch for syscall return state is fragile"
+buildsOn:
+  - "first-service-extractions"
+extends: []
+replaces: []
+components:
+  - "ipc"
+learningObjectives:
+  - "Understand why per-core mutable scratch for syscall return state is fragile"
+  - "Learn how blocking IPC paths interact with the scheduler's per-core state overwriting"
+  - "See how a single-line waker bug can stall an entire async I/O pipeline"
+  - "Understand the POSIX contracts for `pthread_join` (CLONE_CHILD_CLEARTID) and exec signal reset"
+keyFiles:
+  - path: "kernel/src/ipc/mod.rs"
+    summary: "IPC dispatch with restore_caller_context at the boundary"
+  - path: "userspace/sshd/src/session.rs"
+    summary: "SSH relay task that depends on correct waker behavior"
+  - path: "kernel/src/arch/x86_64/syscall/mod.rs"
+    summary: "clear_child_tid cleanup and signal reset on exec"
+  - path: "sunset-local/src/channel.rs"
+    summary: "Write waker fix in vendored SSH library"
+codeSpotlights:
+  - title: "Add `restore_caller_context` to IPC dispatch"
+    file: "kernel/src/ipc/mod.rs"
+    lines: "L58-L81"
+    summary: "Add `restore_caller_context` to IPC dispatch. Why it matters: All seven IPC blocking syscalls (recv, call, reply_recv, notify_wait, call_buf, recv_msg, reply_recv_msg) return with a stale per-core syscall_user_rsp after a context switch. This is the confirmed root cause of wrong user RSP on return from blocking IPC. Focus on `restore_caller_context` and `dispatch` in `kernel/src/ipc/mod.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.52.0/kernel/src/ipc/mod.rs"
+    snippet: "/// IPC syscall dispatcher, called from `arch::x86_64::syscall::syscall_handler`.\n///\n/// Userspace syscall numbers `0x1100`–`0x110F` are translated to internal\n/// dispatch numbers 1–16 by the flat dispatch table in `arch/x86_64/syscall/mod.rs`.\n///\n/// | Internal | Userspace | Operation | Args (SysV: rdi=arg0, rsi=arg1, rdx=arg2) |\n/// |---|---|---|---|\n/// | 1 | 0x1100 | `ipc_recv(ep_cap)` | `arg0 = ep_cap_handle` |\n/// | 2 | 0x1101 | `ipc_send(ep_cap, label, data0)` | `arg0..2` |\n/// | 3 | 0x1102 | `ipc_call(ep_cap, label, data0)` | `arg0..2` |\n/// | 4 | 0x1103 | `ipc_reply(reply_cap, label, data0)` | `arg0..2` |\n/// | 5 | 0x1104 | `ipc_reply_recv(reply_cap, label, ep_cap)` | `arg0..2` — ep_cap in arg2 |\n/// | 6 | 0x1105 | `sys_cap_grant(source_handle, target_task_id)` | `arg0, arg1` |\n/// | 7 | 0x1106 | `notify_wait(notif_cap)` | `arg0 = notif_cap_handle` |\n/// | 8 | 0x1107 | `notify_signal(notif_cap, bits)` | `arg0, arg1` |\n/// | 9 | 0x1108 | `ipc_register_service(ep_cap, name_ptr, name_len)` | `arg0..2` |\n/// | 10 | 0x1109 | `ipc_lookup_service(name_ptr, name_len)` | `arg0, arg1` → new CapHandle |\n/// | 11 | 0x110A | `create_irq_notification(irq)` | `arg0 = IRQ number` → new CapHandle |\n/// | 12 | 0x110B | `create_endpoint()` | — → new CapHandle |\n/// | 13 | 0x110C | `ipc_send_buf(ep_cap, label, data0, buf_ptr, buf_len)` | `arg0..4` |\n/// | 14 | 0x110D | `ipc_call_buf(ep_cap, label, data0, buf_ptr, buf_len)` | `arg0..4` → label |\n/// | 15 | 0x110E | `ipc_recv_msg(ep_cap, msg_ptr, buf_ptr, buf_len)` | `arg0..3` → label |\n/// | 16 | 0x110F | `ipc_reply_recv_msg(reply_cap, label, ep_cap, msg_ptr, buf_ptr)` | `arg0..4` → label |\n///"
+    snippetLanguage: "rust"
+  - title: "Add futex WAIT restore (same pattern)"
+    file: "kernel/src/arch/x86_64/syscall/mod.rs"
+    lines: "L11219-L11242"
+    summary: "Add futex WAIT restore (same pattern). Why it matters: The futex WAIT path has the same structural hole — it blocks via block_current_on_futex_unless_woken() and returns without an adjacent restore_caller_context(). This was identified in the copy_to_user investigation as a parallel defect. Focus on `sys_futex` and `block_current_on_futex_unless_woken` in `kernel/src/arch/x86_64/syscall/mod.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.52.0/kernel/src/arch/x86_64/syscall/mod.rs"
+    snippet: "/// Futex wait/wake implementation for thread synchronization.\n/// Supports WAIT, WAKE, WAIT_BITSET, WAKE_BITSET with real blocking queues.\n///\n/// Supports `FUTEX_WAIT`, `FUTEX_WAKE`, `FUTEX_WAIT_BITSET`, and\n/// `FUTEX_WAKE_BITSET` operations with the `FUTEX_PRIVATE_FLAG`.\npub(super) fn sys_futex(uaddr: u64, op: u64, val: u64, val3: u64) -> u64 {\n    const FUTEX_WAIT: u64 = 0;\n    const FUTEX_WAKE: u64 = 1;\n    const FUTEX_WAIT_BITSET: u64 = 9;\n    const FUTEX_WAKE_BITSET: u64 = 10;\n    const FUTEX_PRIVATE_FLAG: u64 = 128;\n\n    use crate::process::futex::{FUTEX_BITSET_MATCH_ANY, FUTEX_TABLE, FutexWaiter};\n\n    let is_private = (op & FUTEX_PRIVATE_FLAG) != 0;\n    let cmd = op & !(FUTEX_PRIVATE_FLAG);\n\n    // Build the futex key: (addr_space pml4_phys, uaddr).\n    // Private futexes use 0 as root; shared futexes use the real CR3.\n    let futex_root = if is_private {\n        0u64\n    } else {\n        let pid = crate::process::current_pid();\n        match crate::process::PROCESS_TABLE"
+    snippetLanguage: "rust"
+  - title: "Verify relay task write waker registration"
+    file: "userspace/sshd/src/session.rs"
+    lines: "L668-L691"
+    summary: "> **Note:** B.2 was already implemented. The should_wait block at line 874-880 checks pty_pending_len > 0 and registers set_channel_write_waker before sleeping. Why it matters: The relay task must register set_channel_write_waker() when pty_pending_len > 0. This was previously missing but may have been partially fixed. Verify the registration is correct and complete. Focus on `channel_relay_task` and `set_channel_write_waker` in `userspace/sshd/src/session.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.52.0/userspace/sshd/src/session.rs"
+    snippet: "async fn channel_relay_task(\n    sock_fd: i32,\n    pty_fd: i32,\n    runner: SharedRunner,\n    state: SharedState,\n    chan: SharedChan,\n    progress_notify: SharedNotify,\n    session_notify: SharedNotify,\n    output_lock: SharedOutputLock,\n) {\n    let mut chan_buf = [0u8; 4096];\n    let mut pty_buf = [0u8; 4096];\n    let mut pty_pending = [0u8; 4096];\n    let mut pty_pending_len: usize = 0;\n    // Pending data from channel -> PTY that couldn't be written (EAGAIN).\n    let mut pty_write_pending = [0u8; 4096];\n    let mut pty_write_pending_len: usize = 0;\n    // The relay task wakes on:\n    //   - PTY readable (shell produced output) — via reactor\n    //   - Channel data available (client typed something) — via channel_read_waker\n    //   - Channel write capacity returned (backpressure cleared) — via channel_write_waker\n\n    loop {\n        if state.borrow().session_done {"
+    snippetLanguage: "rust"
+realOsDifferences:
+  - "Linux's syscall return path restores all user state from the `pt_regs` structure on the kernel stack — there is no per-core mutable scratch that needs manual restoration"
+  - "Linux's `exit_mm()` and `exit_signal()` properly handle `clear_child_tid` and signal reset as standard parts of the exit/exec code paths"
+  - "Production SSH libraries (OpenSSH, libssh) use multi-process or multi-threaded models rather than cooperative async, avoiding the single-threaded waker coordination problem entirely"
+successCriteria:
+  - "IPC blocking syscalls (recv, call, reply_recv, notify_wait) return with correct user RSP on SMP4"
+  - "SSH session displays shell prompt without requiring a client keystroke after authentication"
+  - "musl `pthread_join` completes (does not hang) when a CLONE_CHILD_CLEARTID thread exits"
+  - "exec'd program does not inherit `Handler` signal dispositions from its predecessor"
+  - "`cargo xtask check` passes with all fixes"
+  - "Each fix has a corresponding entry in the `copy_to_user` or SSHD hang investigation doc showing it resolves the identified issue"
+---
+
+## Why this phase matters
+
+All four confirmed kernel bugs from the Phase 52 bug investigations are fixed, with targeted regression tests proving each fix.
+
+## How it works in m3OS
+
+Phase 52a addresses four confirmed kernel bugs discovered during the Phase 52 service extraction work. These are not design improvements -- they are direct correctness fixes for stale IPC return state, a vendored SSH library waker bug, missing POSIX `clear_child_tid` on thread exit, and missing signal action reset on exec. All four bugs blocked either the `copy_to_user` reliability investigation or the SSHD post-authentication hang.
+
+## How it builds on earlier phases
+
+This phase builds on First Service Extractions and turns that foundation into Kernel Reliability Fixes.
+
+## Implementation outline
+
+- Add `restore_caller_context` to `kernel/src/ipc/mod.rs` dispatch function
+- Fix `Channel::wake_write()` in `sunset-local/src/channel.rs`
+- Add `clear_child_tid` cleanup to thread exit in `kernel/src/arch/x86_64/syscall/mod.rs`
+- Add signal action reset to `sys_execve` in `kernel/src/arch/x86_64/syscall/mod.rs`
+- Write targeted regression tests for each fix
+
+## Task progress snapshot
+
+17 of 18 tracked tasks are complete.
+
+## Documentation targets
+
+- Documentation deliverables have not been listed yet.
+
+## Deferred follow-on work
+
+- Moving `syscall_user_rsp` to task-owned state (Phase 52b structural hardening)
+- Typed `UserBuffer` wrappers to make `copy_to_user` auditable (Phase 52b)
+- AddressSpace object for the underlying mapping divergence (Phase 52b)
+
+## Source materials
+
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/52a-kernel-reliability-fixes.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/52a-kernel-reliability-fixes.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/52a-kernel-reliability-fixes-tasks.md)

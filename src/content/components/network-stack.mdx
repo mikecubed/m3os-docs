@@ -4,12 +4,13 @@ introducedIn: "network"
 touchedBy:
   - "socket-api"
   - "telnet-server"
-  - "io-multiplexing"
   - "unix-domain-sockets"
   - "crypto-primitives"
   - "ssh-server"
   - "system-services"
+  - "hardware-substrate"
   - "networking-and-github"
+  - "nodejs"
 summary: "The network stack grows the OS from a local system into one that can talk to other machines and higher-level services."
 responsibilities:
   - "Move packets between device drivers, protocols, and userspace."
@@ -26,6 +27,8 @@ keyFiles:
     summary: "SockaddrIn layout tests (host-testable)"
   - path: "kernel/src/net/tcp.rs"
     summary: "TCP connection limit increase"
+  - path: "kernel/src/net/unix.rs"
+    summary: "New struct in kernel/src/net/unix.rs managing the state machine for each Unix domain"
 ---
 
-The network stack is introduced in Network and later touched by 8 phase(s).
+The network stack is introduced in Network and later touched by 9 phase(s).

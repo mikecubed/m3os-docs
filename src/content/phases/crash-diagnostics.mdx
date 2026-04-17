@@ -3,48 +3,84 @@ phase: 43
 title: "Crash Diagnostics"
 status: complete
 category: infrastructure
-summary: "Learn how Crash Diagnostics fits into m3OS."
-learningGoal: "Understand Crash Diagnostics in m3OS."
+summary: "Every kernel crash is self-diagnosing. When the kernel panics or takes a fatal fault, the serial output includes full CPU register state, current task metadata, and per-core scheduler context. `debug_assert!` invariants at every scheduler, fork, IPC, and stack boundary catch state corruption at the point of origin rather than surfacing later as an opaque `RIP=0x4` fault."
+learningGoal: "Understand what information a kernel crash dump should contain and why each field matters (registers, task state, per-core run queues)."
 buildsOn:
   - "ssh-server"
 extends: []
 replaces: []
-components: []
-learningObjectives: []
-keyFiles: []
+components:
+  - "interrupt-router"
+  - "scheduler"
+  - "process-model"
+  - "ipc"
+learningObjectives:
+  - "Understand what information a kernel crash dump should contain and why each field matters (registers, task state, per-core run queues)."
+  - "Learn how deadlock-safe diagnostic output works (`try_lock()` + fallback serial) in a panic context where arbitrary locks may be held."
+  - "See how `debug_assert!` invariants at state-machine boundaries catch corruption at origin rather than at symptom."
+  - "Understand the x86_64 fault model: page faults, GPFs, and double faults, and how error codes encode segment selector information."
+  - "Learn why stack bounds validation on every context switch is critical for SMP correctness."
+keyFiles:
+  - path: "kernel/src/main.rs"
+    summary: "Panic handler calls dump_crash_context()"
+  - path: "kernel/src/arch/x86_64/interrupts.rs"
+    summary: "Enriched page fault, GPF, double fault handlers"
+  - path: "kernel/src/panic_diag.rs"
+    summary: "Crash diagnostics module: register capture, task dump, per-core dump"
+  - path: "kernel/src/task/mod.rs"
+    summary: "try_lock_scheduler(), Task::stack_bounds()"
+  - path: "kernel/src/task/scheduler.rs"
+    summary: "Scheduler assertions (C.1–C.6) and stack validation (F.1–F.3)"
+  - path: "kernel/src/process/mod.rs"
+    summary: "Fork context assertions (D.1–D.2)"
+  - path: "kernel/src/arch/x86_64/syscall.rs"
+    summary: "sys_fork assertions (D.3)"
+  - path: "kernel/src/ipc/endpoint.rs"
+    summary: "IPC assertions (E.1–E.4)"
 codeSpotlights:
   - title: "Dump CPU registers on panic"
-    file: "kernel/src/main.rs"
-    lines: "L1161-L1184"
-    summary: "Dump CPU registers on panic. Why it matters: The current panic handler at line 1157 prints only the file, line, and message; without register state, the developer cannot determine what value was in RIP, RSP, or any GPR at the point of failure. Focus on `panic` and `_panic_print` in `kernel/src/main.rs` while you trace the snippet."
-    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.43.1/kernel/src/main.rs"
-    snippet: "#[panic_handler]\nfn panic(info: &core::panic::PanicInfo) -> ! {\n    // In test builds, delegate to the test panic handler which exits QEMU\n    // with the failure code so `cargo xtask test` can detect the error.\n    #[cfg(test)]\n    testing::test_panic_handler(info);\n\n    #[cfg(not(test))]\n    {\n        if let Some(location) = info.location() {\n            serial::_panic_print(format_args!(\n                \"KERNEL PANIC at {}:{}\\n\",\n                location.file(),\n                location.line()\n            ));\n        } else {\n            serial::_panic_print(format_args!(\"KERNEL PANIC at unknown location\\n\"));\n        }\n        serial::_panic_print(format_args!(\"  {}\\n\", info.message()));\n        panic_diag::dump_crash_context();\n        trace::dump_trace_rings();\n        hlt_loop();\n    }\n}"
-    snippetLanguage: "rust"
-  - title: "Extract panic diagnostics into a helper module"
     file: "kernel/src/panic_diag.rs"
-    lines: "L303-L317"
-    summary: "Extract panic diagnostics into a helper module. Why it matters: Fault handlers (Track B) and the future trace-ring dump (Phase 43b) also need the same diagnostic output; extracting it avoids code duplication and keeps the panic handler readable. Focus on `dump_crash_context` and `_panic_print` in `kernel/src/panic_diag.rs` while you trace the snippet."
+    lines: "L56-L79"
+    summary: "Dump CPU registers on panic. Why it matters: The previous panic handler printed only the file, line, and message; without register state, the developer cannot determine what value was in RSP or any GPR at the point of failure. Focus on `capture_registers` and `_panic_print` in `kernel/src/panic_diag.rs` while you trace the snippet."
     githubUrl: "https://github.com/mikecubed/m3os/blob/v0.43.1/kernel/src/panic_diag.rs"
-    snippet: "/// Dump full crash diagnostics to the serial port.\n///\n/// Called from the panic handler after printing location and message.\n/// Uses only `_panic_print` (deadlock-safe) and `try_lock()` to avoid\n/// secondary deadlocks.\npub fn dump_crash_context() {\n    _panic_print(format_args!(\"=== CRASH DIAGNOSTICS ===\\n\"));\n\n    let regs = capture_registers();\n    dump_registers(&regs);\n    dump_current_task();\n    dump_per_core_state();\n\n    _panic_print(format_args!(\"=== END CRASH DIAGNOSTICS ===\\n\"));\n}"
+    snippet: "/// Read all general-purpose registers, RFLAGS, CR2, and CR3.\n///\n/// Note: RIP cannot be directly captured from inline assembly — the values\n/// here reflect the state at the point of capture inside this function, not\n/// at the original panic site. The panic location printed by the caller\n/// (file:line) is the best proxy for the faulting instruction.\nfn capture_registers() -> RegisterSnapshot {\n    let rax: u64;\n    let rcx: u64;\n    let rdx: u64;\n    let rsi: u64;\n    let rdi: u64;\n    let rsp: u64;\n    let r8: u64;\n    let r9: u64;\n    let r10: u64;\n    let r11: u64;\n    let r12: u64;\n    let r13: u64;\n    let r14: u64;\n    let r15: u64;\n    let rflags: u64;\n\n    // Capture all GPRs in a single asm block.  rbx/rbp are LLVM-reserved and"
     snippetLanguage: "rust"
   - title: "Enrich page fault handler (userspace)"
     file: "kernel/src/arch/x86_64/interrupts.rs"
     lines: "L350-L373"
-    summary: "Enrich page fault handler (userspace). Why it matters: The userspace page fault handler at line 425 prints PID, address, error code, and RIP, but not RSP, task state, scheduler state, or per-core context — exactly the information needed to diagnose the RIP=0x4 crash. Focus on `page_fault_handler` and `RIP=0x4` in `kernel/src/arch/x86_64/interrupts.rs` while you trace the snippet."
+    summary: "Enrich page fault handler (userspace). Why it matters: The userspace page fault handler prints PID, address, error code, and RIP, but not RSP, task state, scheduler state, or per-core context — exactly the information needed to diagnose the RIP=0x4 crash. Focus on `page_fault_handler` and `RIP=0x4` in `kernel/src/arch/x86_64/interrupts.rs` while you trace the snippet."
     githubUrl: "https://github.com/mikecubed/m3os/blob/v0.43.1/kernel/src/arch/x86_64/interrupts.rs"
     snippet: "extern \"x86-interrupt\" fn page_fault_handler(\n    mut stack_frame: InterruptStackFrame,\n    err: PageFaultErrorCode,\n) {\n    let addr = x86_64::registers::control::Cr2::read();\n\n    // Check if the fault came from ring 3 (user mode).\n    if stack_frame.code_segment.rpl() == x86_64::PrivilegeLevel::Ring3 {\n        // P17-T031: detect CoW faults — a write to a present, non-writable\n        // page marked with BIT_9 (the CoW marker set by cow_clone_user_pages).\n        let is_write = err.contains(PageFaultErrorCode::CAUSED_BY_WRITE);\n        let is_present = err.contains(PageFaultErrorCode::PROTECTION_VIOLATION);\n        if is_write\n            && is_present\n            && let Ok(fault_vaddr) = addr\n        {\n            let fault_addr_u64 = fault_vaddr.as_u64();\n            if has_cow_marker(fault_addr_u64) {\n                // CoW fault — resolve directly in the ISR. Safe because\n                // the fault is from ring 3 (no kernel locks held) and\n                // we're on a single CPU. On OOM, fall through to kill.\n                if resolve_cow_fault(fault_addr_u64) {\n                    return;\n                }"
     snippetLanguage: "rust"
-realOsDifferences: []
-successCriteria: []
+  - title: "Assertions in `pick_next`"
+    file: "kernel/src/task/scheduler.rs"
+    lines: "L138-L161"
+    summary: "Assertions in `pick_next`. Why it matters: pick_next selects and returns a task's saved_rsp for dispatch; a stale or zero saved_rsp causes the exact RIP=0x4 crash pattern observed in production. Focus on `pick_next` and `saved_rsp` in `kernel/src/task/scheduler.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.43.1/kernel/src/task/scheduler.rs"
+    snippet: "    /// Pick the next task to run on the given core.\n    ///\n    /// First checks the per-core run queue for an O(1) dequeue. Falls back\n    /// to a global round-robin scan if the local queue is empty (handles\n    /// tasks that haven't been assigned to a queue yet). Finally, falls back\n    /// to this core's idle task.\n    fn pick_next(&mut self, core_id: u8) -> Option<(u64, usize)> {\n        let core_bit = 1u64 << core_id;\n\n        // Scan local run queue: find the highest-priority (lowest numeric) Ready\n        // task in a single pass, then remove only that entry. No heap allocation.\n        if let Some(data) = crate::smp::get_core_data(core_id) {\n            let mut q = data.run_queue.lock();\n            let mut best_pos: Option<usize> = None;\n            let mut best_prio: u8 = u8::MAX;\n\n            // First pass: discard stale entries from the front while scanning.\n            let mut i = 0;\n            while i < q.len() {\n                let idx = q[i];\n                if idx >= self.tasks.len()\n                    || self.tasks[idx].state != TaskState::Ready\n                    || self.idle_tasks.contains(&Some(idx))\n                    || self.tasks[idx].affinity_mask & core_bit == 0"
+    snippetLanguage: "rust"
+realOsDifferences:
+  - "Linux uses `printk` with structured log levels and a ring buffer (`dmesg`); panic output goes through a dedicated \"oops\" formatter that includes a full stack trace with DWARF-based symbol resolution."
+  - "Linux's `BUG_ON()` / `WARN_ON()` macros include file:line and produce a full register dump, similar to this phase's `debug_assert!` + crash context approach but always-on (not debug-only)."
+  - "Production kernels use KASAN (address sanitizer), UBSAN (undefined behavior), and lockdep (lock ordering) -- much heavier instrumentation than the targeted assertions in this phase."
+  - "Windows uses structured exception handling (SEH) with per-thread exception chains and writes crash dumps (minidump / full dump) to disk for post-mortem analysis."
+  - "Real kernels support NMI-triggered register dumps across all cores simultaneously; m3OS captures registers only on the faulting core."
+successCriteria:
+  - "`dump_crash_context()` prints registers, task info, and per-core state on every panic and fault using the deadlock-safe serial path"
+  - "All four fault handlers (page fault userspace/kernel, GPF, double fault) call `dump_crash_context()` and print additional context (RSP, CR3, error code)"
+  - "`debug_assert!` invariants present at every scheduler, fork, IPC, and stack boundary as specified in the task list"
+  - "`cargo xtask check` passes (clippy clean, rustfmt, 189 host tests)"
+  - "`cargo xtask test` passes (all 8 QEMU kernel tests)"
+  - "No `debug_assert` panics during normal boot"
 ---
 
 ## Why this phase matters
 
-Learn how Crash Diagnostics fits into m3OS.
+Every kernel crash is self-diagnosing. When the kernel panics or takes a fatal fault, the serial output includes full CPU register state, current task metadata, and per-core scheduler context. `debug_assert!` invariants at every scheduler, fork, IPC, and stack boundary catch state corruption at the point of origin rather than surfacing later as an opaque `RIP=0x4` fault.
 
 ## How it works in m3OS
 
-The roadmap entry defines the learning scope for this phase; a deeper implementation doc has not been matched yet.
+Phase 43a makes every kernel crash self-diagnosing. The panic handler and all fault handlers now print full CPU register state, current task metadata, and per-core scheduler context. `debug_assert!` invariants at scheduler, fork, IPC, and stack boundaries catch state corruption at the point of origin rather than surfacing later as an opaque fault.
 
 ## How it builds on earlier phases
 
@@ -52,11 +88,19 @@ This phase builds on SSH Server and turns that foundation into Crash Diagnostics
 
 ## Implementation outline
 
-- Implementation steps have not been extracted yet.
+- Create `kernel/src/panic_diag.rs` with `dump_crash_context()` (registers, task info, per-core state).
+- Update the panic handler in `kernel/src/main.rs` to call `dump_crash_context()`.
+- Add `try_lock_scheduler()` and `Scheduler::get_task()` for safe non-blocking scheduler access.
+- Enrich page fault, GPF, and double fault handlers to call `dump_crash_context()` with additional context.
+- Add `debug_assert!` checks in `pick_next`, `yield_now`, `block_current`, `wake_task`, `run`, and `enqueue_to_core`.
+- Add `debug_assert!` checks in `make_fork_ctx`, `fork_child_trampoline`, `sys_fork`, and `spawn_fork_task`.
+- Add `debug_assert!` checks in `recv_msg`, `send`, and `reply`.
+- Add `Task::stack_bounds()` and stack validation assertions in `run`.
+- Verify `cargo xtask check` and `cargo xtask test` pass.
 
 ## Task progress snapshot
 
-0 of 75 tracked tasks are complete.
+63 of 63 tracked tasks are complete.
 
 ## Documentation targets
 
@@ -64,9 +108,14 @@ This phase builds on SSH Server and turns that foundation into Crash Diagnostics
 
 ## Deferred follow-on work
 
-- No deferred items were listed in the roadmap entry.
+- Full lockdep-lite checker (Phase 43b or beyond)
+- Allocator poisoning / redzones (KASAN-style, Phase 43b or beyond)
+- Register dump via NMI (requires NMI handler work)
+- Backtrace / stack unwinding (requires frame pointer chain or DWARF unwinder)
+- Structured crash dump to disk for post-mortem analysis
 
 ## Source materials
 
-- Roadmap entry not found.
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/43a-crash-diagnostics.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/43a-crash-diagnostics.md)
 - [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/43a-crash-diagnostics-tasks.md)

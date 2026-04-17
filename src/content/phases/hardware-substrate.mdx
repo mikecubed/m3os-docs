@@ -1,0 +1,93 @@
+---
+phase: 55
+title: "Hardware Substrate"
+status: planned
+category: infrastructure
+summary: "m3OS supports a small, deliberate reference-hardware matrix with a documented driver strategy, a reusable hardware-access layer, and at least one serious real-hardware storage and networking path. The project stops talking about hardware support as a vague future aspiration and starts treating it as a bounded support promise."
+learningGoal: "Understand the difference between reusable device logic and OS-specific integration glue."
+buildsOn:
+  - "post-serverization-kernel-hygiene"
+extends: []
+replaces: []
+components:
+  - "interrupt-router"
+  - "network-stack"
+  - "vfs"
+learningObjectives:
+  - "Understand the difference between reusable device logic and OS-specific integration glue."
+  - "Learn how to choose driver donor strategies without creating licensing or architecture traps."
+  - "See why real-hardware support must start with a reference matrix, not vague compatibility claims."
+  - "Understand how hardware work and microkernel boundaries interact instead of competing."
+keyFiles:
+  - path: "kernel/Cargo.toml"
+    summary: "When the phase lands, bump kernel/Cargo.toml and any release/version references to 0.55.0."
+codeSpotlights:
+  - title: "Parse MCFG ACPI table and enable PCIe MMIO configuration space"
+    file: "kernel/src/acpi/mod.rs"
+    lines: "See file"
+    summary: "Parse MCFG ACPI table and enable PCIe MMIO configuration space. Why it matters: The current PCI implementation uses legacy I/O ports (0xCF8/0xCFC) which limit config space to 256 bytes per function. PCIe MMIO (via the ACPI MCFG table) exposes the full 4096-byte extended config space needed for capability parsing (MSI/MSI-X, power management, AER) used by NVMe and other modern devices. Focus on `McfgEntry` and `pcie_mmio_config_read` in `kernel/src/acpi/mod.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/acpi/mod.rs"
+  - title: "Add MSI/MSI-X capability parsing and vector allocation"
+    file: "kernel/src/pci/mod.rs"
+    lines: "L283-L294"
+    summary: "Add MSI/MSI-X capability parsing and vector allocation. Why it matters: NVMe controllers require MSI or MSI-X for completion queue interrupt delivery. Legacy INTx interrupts are shared and slow. MSI/MSI-X provides dedicated per-queue interrupt vectors that eliminate spurious interrupt overhead. Focus on `MsiCapability` and `MsixCapability` in `kernel/src/pci/mod.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/pci/mod.rs"
+    snippet: "        (0x03, _) => \"Display\",\n        (0x04, _) => \"Multimedia\",\n        (0x05, _) => \"Memory Controller\",\n        (0x06, 0x00) => \"Host Bridge\",\n        (0x06, 0x01) => \"ISA Bridge\",\n        (0x06, 0x04) => \"PCI-to-PCI Bridge\",\n        (0x06, 0x80) => \"Other Bridge\",\n        (0x06, _) => \"Bridge\",\n        (0x07, _) => \"Communication Controller\",\n        (0x08, _) => \"System Peripheral\",\n        (0x0C, 0x03) => \"USB Controller\",\n        (0x0C, _) => \"Serial Bus Controller\","
+    snippetLanguage: "rust"
+  - title: "BAR mapping abstraction for MMIO and port I/O"
+    file: "kernel/src/pci/bar.rs"
+    lines: "See file"
+    summary: "BAR mapping abstraction for MMIO and port I/O. Why it matters: Every hardware driver needs access to device registers through BAR-mapped MMIO or port I/O. Currently, VirtIO drivers hardcode BAR0 port I/O addresses. A reusable BAR mapping abstraction prevents each new driver from inventing its own register-access scheme. Focus on `BarMapping` and `MmioRegion` in `kernel/src/pci/bar.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/src/pci/bar.rs"
+realOsDifferences:
+  - "Mature operating systems support much broader device matrices and more complex driver frameworks than m3OS should attempt here."
+  - "Linux driver internals and licensing assumptions make direct reuse a poor primary strategy."
+  - "m3OS should favor a small number of understandable, well-documented drivers on named hardware over shallow breadth."
+successCriteria:
+  - "A documented donor strategy exists and is followed for the first real-hardware drivers."
+  - "A small native hardware-access layer exists for BAR mapping, DMA, IRQs, and device binding."
+  - "The project documents a narrow reference hardware matrix and how to validate it."
+  - "At least one serious storage path and one serious networking path work on the reference targets."
+  - "Real-hardware bring-up is reproducible enough to be part of the release narrative."
+---
+
+## Why this phase matters
+
+m3OS supports a small, deliberate reference-hardware matrix with a documented driver strategy, a reusable hardware-access layer, and at least one serious real-hardware storage and networking path. The project stops talking about hardware support as a vague future aspiration and starts treating it as a bounded support promise.
+
+## How it works in m3OS
+
+The roadmap entry defines the learning scope for this phase; a deeper implementation doc has not been matched yet.
+
+## How it builds on earlier phases
+
+This phase builds on Post Serverization Kernel Hygiene and turns that foundation into Hardware Substrate.
+
+## Implementation outline
+
+- Choose the initial reference hardware matrix and driver targets.
+- Define the donor strategy and document it in the roadmap and hardware docs.
+- Implement the hardware-access layer for BAR mapping, DMA, IRQs, and device binding.
+- Bring up the first serious storage and networking drivers on the reference targets.
+- Add reproducible validation steps for real-hardware bring-up.
+- Update support-matrix and subsystem docs to reflect the new hardware posture.
+
+## Task progress snapshot
+
+0 of 159 tracked tasks are complete.
+
+## Documentation targets
+
+- Documentation deliverables have not been listed yet.
+
+## Deferred follow-on work
+
+- Broad laptop/desktop certification
+- Wide Wi-Fi, GPU, and USB peripheral matrices
+- IOMMU-heavy isolation work
+- Hardware-acceleration features not needed for the reference targets
+
+## Source materials
+
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/55-hardware-substrate.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/55-hardware-substrate-tasks.md)

@@ -1,0 +1,79 @@
+---
+phase: 56
+title: "Display And Input Architecture"
+status: planned
+category: infrastructure
+summary: "m3OS gains a real display and input model: one userspace-owned display service controls presentation, keyboard and mouse events are routed through an explicit focus-aware protocol, and multiple graphical clients can coexist without raw framebuffer conflicts."
+learningGoal: "Understand how a userspace display server separates kernel mechanism from GUI policy."
+buildsOn:
+  - "hardware-substrate"
+extends: []
+replaces: []
+components:
+  - "memory-manager"
+  - "process-model"
+learningObjectives:
+  - "Understand how a userspace display server separates kernel mechanism from GUI policy."
+  - "Learn how keyboard and mouse events become routable, focus-aware input streams."
+  - "See why display ownership, buffer exchange, and window/application lifecycle must be solved together."
+  - "Understand how a microkernel-style display architecture improves fault isolation and future GUI clarity."
+keyFiles:
+  - path: "kernel/Cargo.toml"
+    summary: "When the phase lands, bump kernel/Cargo.toml and any release/version references to 0.56.0."
+codeSpotlights:
+  - title: "Cargo"
+    file: "kernel/Cargo.toml"
+    lines: "See file"
+    summary: "When the phase lands, bump kernel/Cargo.toml and any release/version references to 0.56.0."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/main/kernel/Cargo.toml"
+realOsDifferences:
+  - "Mature desktop systems ship with far richer compositing, security, toolkit, and graphics-driver stacks."
+  - "Linux desktops rely on much deeper DRM/KMS and Wayland/X11 ecosystems than m3OS should try to copy immediately."
+  - "m3OS should prioritize one clear, restartable, userspace-owned display architecture over feature-rich but premature compatibility layers."
+successCriteria:
+  - "A userspace display service owns the primary display path."
+  - "At least two graphical clients can coexist without raw-framebuffer conflicts."
+  - "Keyboard and mouse events are routed through a documented focus-aware input model."
+  - "The display/input protocol is documented well enough for later clients to target without guesswork."
+  - "A display-service crash is recoverable or, at minimum, its failure mode and recovery path are explicitly documented and testable."
+---
+
+## Why this phase matters
+
+m3OS gains a real display and input model: one userspace-owned display service controls presentation, keyboard and mouse events are routed through an explicit focus-aware protocol, and multiple graphical clients can coexist without raw framebuffer conflicts.
+
+## How it works in m3OS
+
+The roadmap entry defines the learning scope for this phase; a deeper implementation doc has not been matched yet.
+
+## How it builds on earlier phases
+
+This phase builds on Hardware Substrate and turns that foundation into Display And Input Architecture.
+
+## Implementation outline
+
+- Define the display-service ownership model and the client protocol.
+- Implement or complete the keyboard and mouse event model needed by the first graphical session.
+- Wire the display service into the existing service/session startup path.
+- Add multi-client presentation and focus management.
+- Validate crash/recovery behavior and fallback to administration paths.
+- Document the protocol, service graph, and non-goals for the first graphical architecture.
+
+## Task progress snapshot
+
+No checklist tasks were discovered for this phase yet.
+
+## Documentation targets
+
+- Documentation deliverables have not been listed yet.
+
+## Deferred follow-on work
+
+- Rich widget/toolkit ecosystems
+- Hardware-accelerated composition
+- USB HID breadth beyond the needs of the first supported session
+- Desktop polish such as clipboard managers, notifications, and richer shells
+
+## Source materials
+
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/56-display-and-input-architecture.md)

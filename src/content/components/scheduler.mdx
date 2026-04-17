@@ -5,7 +5,15 @@ touchedBy:
   - "ipc-core"
   - "true-smp-multitasking"
   - "threading-primitives"
-  - "cross-compiled-toolchains"
+  - "crash-diagnostics"
+  - "kernel-trace-ring"
+  - "regression-stress-ci"
+  - "kernel-architecture-evolution"
+  - "kernel-completion-and-roadmap-alignment"
+  - "kernel-structural-hardening"
+  - "deep-serverization"
+  - "post-serverization-kernel-hygiene"
+  - "nodejs"
 summary: "The scheduler decides which runnable work executes next and turns a single control flow into a real operating system."
 responsibilities:
   - "Track runnable tasks."
@@ -14,6 +22,10 @@ responsibilities:
 keyFiles:
   - path: "kernel/src/task/scheduler.rs"
     summary: "kernel/src/task/scheduler.rs — IPC scheduler primitives"
+  - path: "kernel/src/task/mod.rs"
+    summary: "The Task struct in kernel/src/task/mod.rs is unchanged — it already has pid"
+  - path: "kernel-core/tests/scheduler_props.rs"
+    summary: "Proptest scheduler invariants"
 ---
 
-The scheduler is introduced in Tasking and later touched by 4 phase(s).
+The scheduler is introduced in Tasking and later touched by 12 phase(s).

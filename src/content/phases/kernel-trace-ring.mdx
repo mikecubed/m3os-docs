@@ -3,15 +3,38 @@ phase: 43
 title: "Kernel Trace Ring"
 status: complete
 category: infrastructure
-summary: "Learn how Kernel Trace Ring fits into m3OS."
-learningGoal: "Understand Kernel Trace Ring in m3OS."
+summary: "Every kernel crash includes a structured timeline of recent scheduler, fork, and IPC events. The per-core lockless trace ring records events with timestamps, and the auto-dump on panic/fault merges all cores into a single sorted timeline in the serial output. The ring is host-testable, accessible from userspace, and feature-gated for zero-cost release builds."
+learningGoal: "Understand lockless per-core ring buffers and why they avoid contention"
 buildsOn:
   - "crash-diagnostics"
 extends: []
 replaces: []
-components: []
-learningObjectives: []
-keyFiles: []
+components:
+  - "scheduler"
+  - "process-model"
+  - "ipc"
+learningObjectives:
+  - "Understand lockless per-core ring buffers and why they avoid contention"
+  - "Understand how structured event enums enable machine-parseable crash dumps"
+  - "Understand feature gating for zero-cost debug infrastructure"
+  - "Understand syscall design for exposing kernel state to userspace"
+keyFiles:
+  - path: "kernel-core/src/trace_ring.rs"
+    summary: "TraceRing<N>, TraceEvent, TraceEntry -- host-testable"
+  - path: "kernel/src/trace.rs"
+    summary: "trace_event(), dump_trace_rings()"
+  - path: "kernel/src/smp/mod.rs"
+    summary: "PerCoreData.trace_ring field"
+  - path: "kernel/src/task/scheduler.rs"
+    summary: "Scheduler instrumentation (6 sites)"
+  - path: "kernel/src/process/mod.rs"
+    summary: "Fork instrumentation (2 sites)"
+  - path: "kernel/src/ipc/endpoint.rs"
+    summary: "IPC instrumentation (7 sites)"
+  - path: "kernel/src/arch/x86_64/syscall.rs"
+    summary: "sys_ktrace syscall"
+  - path: "userspace/syscall-lib/src/lib.rs"
+    summary: "ktrace() userspace wrapper"
 codeSpotlights:
   - title: "Define `TraceRing<const N: usize>` in kernel-core"
     file: "kernel-core/src/trace_ring.rs"
@@ -34,17 +57,27 @@ codeSpotlights:
     githubUrl: "https://github.com/mikecubed/m3os/blob/v0.43.1/kernel/src/trace.rs"
     snippet: "/// Emit a trace event on the current core's trace ring.\n///\n/// Compiles to nothing when the `trace` feature is off.\n#[cfg(feature = \"trace\")]\npub fn trace_event(event: TraceEvent) {\n    if !crate::smp::is_per_core_ready() {\n        return;\n    }\n    let core_id = crate::smp::per_core().core_id;\n    let tick = crate::arch::x86_64::interrupts::tick_count();\n    // Safety: trace_ring is wrapped in UnsafeCell for interior mutability.\n    // Only the owning core writes to its ring (single-writer guarantee via\n    // gs_base per-core data). The UnsafeCell makes the mutable access sound.\n    let ring_ptr = crate::smp::per_core().trace_ring.get();\n    unsafe {\n        (*ring_ptr).push(TraceEntry {\n            tick,\n            core: core_id,\n            _pad: [0; 7],\n            event,\n        });\n    }\n}"
     snippetLanguage: "rust"
-realOsDifferences: []
-successCriteria: []
+realOsDifferences:
+  - "Linux uses `ftrace` with per-CPU ring buffers backed by `ring_buffer.c`, supporting binary format, filtering, function graph tracing, and live streaming via `/sys/kernel/tracing/`"
+  - "FreeBSD uses `DTrace` (and now also `ktrace`) with kernel-userspace cooperation and sophisticated filtering"
+  - "Production systems use binary trace formats (CTF, perf.data) for efficient storage and offline analysis tools"
+  - "Lock-free ring buffers in production kernels use memory ordering barriers and sequence counters for safe concurrent reader/writer access"
+successCriteria:
+  - "`cargo test -p kernel-core` passes with all trace ring tests"
+  - "`cargo xtask check` passes with trace feature on and off"
+  - "`cargo xtask test` passes with trace feature on"
+  - "`cargo build -p kernel --no-default-features` compiles without trace code"
+  - "Trace ring dump appears in serial output after crash diagnostics on panic"
+  - "`sys_ktrace` syscall copies trace entries to userspace buffer"
 ---
 
 ## Why this phase matters
 
-Learn how Kernel Trace Ring fits into m3OS.
+Every kernel crash includes a structured timeline of recent scheduler, fork, and IPC events. The per-core lockless trace ring records events with timestamps, and the auto-dump on panic/fault merges all cores into a single sorted timeline in the serial output. The ring is host-testable, accessible from userspace, and feature-gated for zero-cost release builds.
 
 ## How it works in m3OS
 
-The roadmap entry defines the learning scope for this phase; a deeper implementation doc has not been matched yet.
+Phase 43b adds a per-core lockless trace ring that records scheduler, fork, and IPC events with timestamps. When the kernel crashes, the trace ring is automatically dumped alongside the crash diagnostics from Phase 43a, giving developers a structured timeline of the kernel transitions leading into the fault. The ring is host-testable in kernel-core, accessible from userspace via `sys_ktrace`, and feature-gated so it compiles out for release builds.
 
 ## How it builds on earlier phases
 
@@ -52,7 +85,17 @@ This phase builds on Crash Diagnostics and turns that foundation into Kernel Tra
 
 ## Implementation outline
 
-- Implementation steps have not been extracted yet.
+- Implement `TraceRing<N>`, `TraceEvent`, `TraceEntry` in kernel-core
+- Add host-side unit tests for the ring buffer
+- Add `trace_ring` field to `PerCoreData` (BSP and AP init)
+- Implement `trace_event()` and `dump_trace_rings()` in kernel
+- Instrument scheduler paths (6 sites)
+- Instrument fork paths (4 sites)
+- Instrument IPC paths (7 sites)
+- Wire `dump_trace_rings()` into panic/fault handlers
+- Implement `sys_ktrace` syscall and syscall-lib wrapper
+- Add feature gate (`trace` feature on kernel crate)
+- Validate with `cargo xtask check` and `cargo xtask test`
 
 ## Task progress snapshot
 
@@ -64,9 +107,15 @@ This phase builds on Crash Diagnostics and turns that foundation into Kernel Tra
 
 ## Deferred follow-on work
 
-- No deferred items were listed in the roadmap entry.
+- Binary trace format for off-target analysis tooling
+- Userspace `ktrace` command-line tool
+- Network-accessible trace export
+- Trace filtering (per-subsystem enable/disable)
+- Trace event for timer ISR / reschedule signal
+- TSC-based sub-tick ordering
 
 ## Source materials
 
-- Roadmap entry not found.
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/43b-kernel-trace-ring.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/43b-kernel-trace-ring.md)
 - [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/43b-kernel-trace-ring-tasks.md)

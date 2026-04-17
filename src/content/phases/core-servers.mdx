@@ -34,10 +34,10 @@ codeSpotlights:
     snippetLanguage: "rust"
   - title: "Add a simple service registry for discovering early services"
     file: "kernel-core/src/ipc/registry.rs"
-    lines: "L33-L37"
+    lines: "L44-L49"
     summary: "Add a simple service registry for discovering early services. Why it matters: Clients need a well-known mechanism to find services by name without hardcoded endpoint IDs. Focus on `Registry` and `register` in `kernel-core/src/ipc/registry.rs` while you trace the snippet."
     githubUrl: "https://github.com/mikecubed/m3os/blob/v0.7.0/kernel-core/src/ipc/registry.rs"
-    snippet: "/// Service registry — static name-to-endpoint mapping.\npub struct Registry {\n    entries: [Option<Entry>; MAX_SERVICES],\n    count: usize,\n}"
+    snippet: "/// Dynamically growable service registry — name-to-endpoint mapping with\n/// ownership tracking.\npub struct Registry {\n    entries: Vec<Option<Entry>>,\n    count: usize,\n}"
     snippetLanguage: "rust"
 realOsDifferences:
   - "Production microkernels often have richer process managers, supervision trees, restart policies, and dynamic service discovery."

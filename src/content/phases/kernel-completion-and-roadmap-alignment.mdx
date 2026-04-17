@@ -1,0 +1,142 @@
+---
+phase: 52
+title: "Kernel Completion And Roadmap Alignment"
+status: complete
+category: infrastructure
+summary: "The Phase 52 follow-on work now matches reality: the roadmap truthfully describes what landed, syscall return state is task-owned end-to-end, keyboard input uses the kernel line discipline instead of a ring-3 clone, the integrated boot/login path survives the former `rt_sigaction` stall, generated initrd payloads no longer dirty the source tree, and the smoke/regression gates for login, fork, ion, and PTY flows are trustworthy again."
+learningGoal: "Understand the difference between a historical stop-gap fix and a completed architectural migration"
+buildsOn:
+  - "kernel-architecture-evolution"
+extends: []
+replaces: []
+components:
+  - "terminal"
+  - "ipc"
+  - "scheduler"
+  - "memory-manager"
+  - "boot-path"
+  - "vfs"
+learningObjectives:
+  - "Understand the difference between a historical stop-gap fix and a completed architectural migration"
+  - "Learn how roadmap drift makes reliability work harder by obscuring what is actually guaranteed"
+  - "See why terminal/input paths must converge on one line discipline instead of keeping a compatibility clone in userspace"
+  - "Learn how to separate correctness-critical closure work from larger scalability ambitions that should be explicitly deferred"
+  - "Treat smoke, regression, and audit notes as part of the product, not as side documentation"
+keyFiles:
+  - path: "userspace/stdin_feeder"
+    summary: "userspace/stdin_feeder still read termios flags and implemented ICANON,"
+  - path: "kernel/src/ipc/notification.rs"
+    summary: "kernel/src/ipc/notification.rs with exhaustion diagnostics (warning at 75%"
+  - path: "kernel/initrd/"
+    summary: "out of kernel/initrd/ into target/generated-initrd/ so validation no longer"
+  - path: "kernel/src/task/mod.rs"
+    summary: "UserReturnState definition and task-owned resume contract"
+  - path: "kernel/src/task/scheduler.rs"
+    summary: "Authoritative restore path for resumed userspace tasks"
+  - path: "kernel/src/arch/x86_64/syscall/mod.rs"
+    summary: "Syscall-entry snapshot, push_raw_input, and sys_rt_sigaction bootfix"
+  - path: "kernel/src/mm/user_mem.rs"
+    summary: "User-copy helpers with generation reporting and per-core address-space lookup"
+  - path: "kernel-core/src/tty.rs"
+    summary: "Shared kernel line discipline and escape-sequence filtering"
+  - path: "xtask/src/main.rs"
+    summary: "Smoke/regression definitions and generated-initrd staging helpers"
+  - path: "kernel/src/fs/ramdisk.rs"
+    summary: "Static-vs-generated initrd asset embedding split"
+  - path: "userspace/stdin_feeder/src/main.rs"
+    summary: "IPC scancode bridge that forwards bytes via push_raw_input"
+  - path: "userspace/signal-test/signal-test.c"
+    summary: "Exec-reset and rt_sigaction atomicity regression coverage"
+  - path: ".github/workflows/build.yml"
+    summary: "Build workflow gates aligned with Phase 52d closure"
+  - path: ".github/workflows/pr.yml"
+    summary: "PR workflow gates aligned with Phase 52d closure"
+codeSpotlights:
+  - title: "Add explicit regression coverage for exec-time signal reset"
+    file: "userspace/signal-test/signal-test.c"
+    lines: "L174-L185"
+    summary: "Add explicit regression coverage for exec-time signal reset. Why it matters: Phase 52a implemented the POSIX rule that caught signal handlers reset across exec, but the current signal-test binary does not exercise that behavior directly. Focus on `main` and `exec` in `userspace/signal-test/signal-test.c` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.52.0/userspace/signal-test/signal-test.c"
+    snippet: "    else if (reentry_count == 1)\n        /* Acceptable: the second delivery happens after the first handler\n           finishes and the mask is restored, but the main thread may have\n           already checked. In our kernel, check_pending_signals runs on\n           every syscall return, so the pending SIGUSR2 is delivered before\n           the next userspace instruction after sigreturn. */\n        pass(\"auto_masking (deferred delivery)\");\n    else\n        fail(\"auto_masking\", \"unexpected reentry_count\");\n\n    sa.sa_handler = SIG_DFL;\n    sigaction(SIGUSR2, &sa, NULL);"
+    snippetLanguage: "c"
+  - title: "Save user return state at syscall entry"
+    file: "kernel/src/task/mod.rs"
+    lines: "L99-L122"
+    summary: "Save user return state at syscall entry. Why it matters: The 52b design says user return state should be captured once at syscall entry before any blocking can occur. The current implementation still treats block/yield paths as the primary save points. Focus on `UserReturnState` and `syscall_handler` in `kernel/src/task/mod.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.52.0/kernel/src/task/mod.rs"
+    snippet: "/// User-mode return state saved at syscall entry and restored by the\n/// scheduler on re-dispatch.  Captures the complete per-task resume\n/// contract in one place, eliminating split ownership between `Task`,\n/// `Process`, and `PerCoreData`.\n///\n/// # Phase 52d invariant\n///\n/// `syscall_handler` snapshots this struct once before any blocking or\n/// yield path.  The scheduler restores `user_rsp`, `kernel_stack_top`,\n/// `fs_base`, and `cr3_phys` exclusively from this struct for userspace\n/// tasks (pid != 0).\n#[derive(Debug, Clone, Copy, Default)]\npub struct UserReturnState {\n    /// User-mode RSP at syscall entry.\n    pub user_rsp: u64,\n    /// Kernel stack top for TSS.RSP0 / SYSCALL stack.\n    pub kernel_stack_top: u64,\n    /// FS.base MSR value (TLS pointer).\n    pub fs_base: u64,\n    /// Physical address of the PML4 (CR3).  0 means no dedicated address space.\n    pub cr3_phys: u64,\n    /// Address-space generation counter at the time of snapshot (Phase 52d B.3).\n    /// Used by user-copy diagnostics to detect concurrent mapping mutations.\n    pub addr_space_gen: u64,"
+    snippetLanguage: "rust"
+  - title: "Make scheduler dispatch the authoritative restore path"
+    file: "kernel/src/task/scheduler.rs"
+    lines: "L1315-L1338"
+    summary: "Make scheduler dispatch the authoritative restore path. Why it matters: The scheduler currently restores only part of the return state from Task.user_return and still sources kernel_stack_top / fs_base from Process. That split keeps the architecture in a half-migrated state. Focus on `run` and `PerCoreData` in `kernel/src/task/scheduler.rs` while you trace the snippet."
+    githubUrl: "https://github.com/mikecubed/m3os/blob/v0.52.0/kernel/src/task/scheduler.rs"
+    snippet: "/// The main scheduler loop. Called once per core. Never returns.\n///\n/// Each core runs its own instance. The per-core reschedule flag gates\n/// iteration; per-core run queues provide task selection locality. However,\n/// the global `SCHEDULER` lock is acquired on each iteration for task state\n/// reads, state transitions, and post-switch bookkeeping (see module doc).\npub fn run() -> ! {\n    let core_id = crate::smp::per_core().core_id;\n\n    loop {\n        let reschedule = per_core_reschedule();\n\n        interrupts::disable();\n        if !reschedule.swap(false, Ordering::AcqRel) {\n            interrupts::enable_and_hlt();\n            continue;\n        }\n        interrupts::enable();\n\n        debug_assert!(\n            per_core_scheduler_rsp() != 0,\n            \"core {}: scheduler RSP is zero\",\n            core_id\n        );"
+    snippetLanguage: "rust"
+realOsDifferences:
+  - "Linux, Redox, and seL4 keep syscall return-critical state with the task or TCB rather than splitting it across scheduler scratch and process metadata"
+  - "Mature terminal stacks do not keep a second line-discipline implementation in a helper daemon after introducing a kernel-side discipline"
+  - "Production kernels do not mark scalability or reliability phases complete while CI gates and roadmap text still disagree about the shipped model"
+successCriteria:
+  - "Phase 52a/52b/52c docs and `docs/roadmap/README.md` explicitly distinguish delivered, superseded, partial, and deferred items"
+  - "`UserReturnState` is saved at syscall entry and scheduler dispatch restores the authoritative return-critical state for resumed userspace tasks without split ownership in the live return path"
+  - "`AddressSpace::generation` is bumped on mapping changes and user-copy paths can detect or report mid-copy divergence"
+  - "`userspace/stdin_feeder` no longer reads termios flags or implements `ICANON`, `ISIG`, echo, `ICRNL`, or canonical-editing logic"
+  - "The keyboard input path uses `push_raw_input` and the kernel-side `LineDiscipline`"
+  - "The integrated boot path reaches `login:` again after the former `sys_rt_sigaction` stall, and the raw-syscall regression proves the `oldact`/mutation ordering remains atomic on `-EFAULT`"
+  - "The current scheduler/notification design is either implemented as documented or explicitly re-deferred in the roadmap with matching code comments *(Track D: global scheduler lock re-deferred with truthful code/doc comments; fixed-size notification pool documented with ISR-safety rationale and exhaustion diagnostics)*"
+  - "The exec-time signal-reset behavior has explicit regression coverage"
+  - "The keyboard input path (serial→TTY→stdin→shell) has explicit regression coverage (`kbd-echo`)"
+  - "Generated initrd payloads are staged under `target/generated-initrd/`, while `kernel/initrd/` retains only source-owned static assets"
+  - "`cargo xtask check` passes"
+  - "`cargo xtask smoke-test --timeout 180` passes"
+  - "`cargo xtask regression --timeout 90` passes (fork-overlap, ipc-wake, pty-overlap, signal-reset, kbd-echo)"
+---
+
+## Why this phase matters
+
+The Phase 52 follow-on work now matches reality: the roadmap truthfully describes what landed, syscall return state is task-owned end-to-end, keyboard input uses the kernel line discipline instead of a ring-3 clone, the integrated boot/login path survives the former `rt_sigaction` stall, generated initrd payloads no longer dirty the source tree, and the smoke/regression gates for login, fork, ion, and PTY flows are trustworthy again.
+
+## How it works in m3OS
+
+Phase 52d closes the gap between the 52a-52c story and the code actually shipping in the tree. It completes the task-owned syscall return-state path, finishes the live keyboard convergence onto `push_raw_input`, re-baselines the remaining scheduler/notification limits, fixes the late pre-login boot stall that appeared on the integrated branch, and aligns the release gates and initrd staging model with the real development workflow.
+
+## How it builds on earlier phases
+
+This phase builds on Kernel Architecture Evolution and turns that foundation into Kernel Completion And Roadmap Alignment.
+
+## Implementation outline
+
+- Recorded the audited status of 52a/52b/52c in the roadmap docs and README
+- Added missing regression coverage for the exec-time signal-reset contract and the `rt_sigaction` atomicity case
+- Expanded `UserReturnState` to match the actual resume contract needed by the syscall ABI
+- Snapshotted return-critical state once at syscall entry before any blocking path
+- Made scheduler dispatch restore `syscall_user_rsp`, kernel stack/TSS state, `FS.base`, and CR3 from the task-owned resume contract for resumed userspace tasks
+- Wired `AddressSpace::generation` into mapping mutations and user-copy diagnostics so the dormant 52b instrumentation became active
+- Refactored `stdin_feeder` to scancode decode plus `push_raw_input`
+- Quarantined the workaround-only termios return syscalls as deprecated compatibility helpers after the in-tree keyboard path stopped using them
+- Reconciled the scheduler/notification roadmap claims with the actual code by explicitly re-deferring the still-unshipped pieces
+- Fixed the integrated-branch boot blocker in `user_mem` / `rt_sigaction` and moved generated initrd payloads into `target/generated-initrd/`
+- Closed the phase after `check`, smoke, and regression passed on the Phase 52d reference workflow
+
+## Task progress snapshot
+
+38 of 38 tracked tasks are complete.
+
+## Documentation targets
+
+- Documentation deliverables have not been listed yet.
+
+## Deferred follow-on work
+
+- Full fair scheduling or EEVDF/CFS-style runtime accounting
+- Cluster-aware or NUMA-aware work-stealing policy
+- **True per-core scheduling** (lock-free dispatch hot path) — per-core run queues and work-stealing landed in 52c, but the global `SCHEDULER` lock is still acquired on every dispatch iteration for task state reads and transitions; splitting task ownership per-core requires a larger architectural change deferred past Phase 52
+- **Growable ISR-safe notification pool** — a sound design (two-level: fixed ISR-visible fast table + growable overflow) exists conceptually but is not needed at current scale (`MAX_NOTIFS = 64` covers foreseeable demand); exhaustion diagnostics are in place
+- Broader cleanup of compatibility/debugging syscalls that are not exercised by in-tree code after the Phase 52 closure work is complete
+
+## Source materials
+
+- [Roadmap entry](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/52d-kernel-completion-and-roadmap-alignment.md)
+- [Implementation document](https://github.com/mikecubed/m3os/blob/main/docs/52d-kernel-completion-and-roadmap-alignment.md)
+- [Task list](https://github.com/mikecubed/m3os/blob/main/docs/roadmap/tasks/52d-kernel-completion-and-roadmap-alignment-tasks.md)
